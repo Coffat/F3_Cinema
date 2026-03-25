@@ -73,10 +73,10 @@ public class LoginFrame extends JFrame {
         JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
         topBar.setOpaque(false);
 
-        WindowControlButton btnMinimize = new WindowControlButton(new Color(0xFBBF24), "—"); // Amber 400
+        WindowControlButton btnMinimize = new WindowControlButton(new Color(0xFBBF24)); // Amber 400
         btnMinimize.addActionListener(e -> setState(JFrame.ICONIFIED));
 
-        WindowControlButton btnMaximize = new WindowControlButton(new Color(0x34D399), "⬜"); // Emerald 400
+        WindowControlButton btnMaximize = new WindowControlButton(new Color(0x34D399)); // Emerald 400
         btnMaximize.addActionListener(e -> {
             if (getExtendedState() == JFrame.MAXIMIZED_BOTH) {
                 setExtendedState(JFrame.NORMAL);
@@ -85,7 +85,7 @@ public class LoginFrame extends JFrame {
             }
         });
 
-        WindowControlButton btnClose = new WindowControlButton(ERROR_COLOR, "✕"); // Rose 500
+        WindowControlButton btnClose = new WindowControlButton(ERROR_COLOR); // Rose 500
         btnClose.addActionListener(e -> System.exit(0));
 
         topBar.add(btnMinimize);
@@ -129,17 +129,12 @@ public class LoginFrame extends JFrame {
         root.addMouseMotionListener(drag);
     }
 
-    /**
-     * Custom Circular Window Control Button (macOS Pro Max Style)
-     */
     private static class WindowControlButton extends JButton {
         private final Color baseColor;
         private boolean hovered = false;
-        private final String symbol;
 
-        public WindowControlButton(Color color, String symbol) {
+        public WindowControlButton(Color color) {
             this.baseColor = color;
-            this.symbol = symbol;
             setPreferredSize(new Dimension(14, 14));
             setOpaque(false);
             setContentAreaFilled(false);
@@ -157,19 +152,13 @@ public class LoginFrame extends JFrame {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
             double center = getWidth() / 2.0;
             double radius = 6.0;
-
-            // Paint Circle
             g2.setColor(hovered ? baseColor : baseColor.darker());
             g2.fill(new Ellipse2D.Double(center - radius, center - radius, radius * 2, radius * 2));
-
-            // Paint subtle border
             g2.setStroke(new BasicStroke(0.5f));
             g2.setColor(new Color(255, 255, 255, 40));
             g2.draw(new Ellipse2D.Double(center - radius, center - radius, radius * 2, radius * 2));
-
             g2.dispose();
         }
     }
@@ -182,7 +171,6 @@ public class LoginFrame extends JFrame {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            
             if (backgroundImage != null) {
                 double scaleX = (double) getWidth() / backgroundImage.getWidth();
                 double scaleY = (double) getHeight() / backgroundImage.getHeight();
@@ -192,7 +180,6 @@ public class LoginFrame extends JFrame {
                 int x = (getWidth() - w) / 2;
                 int y = (getHeight() - h) / 2;
                 g2.drawImage(backgroundImage, x, y, w, h, null);
-                
                 GradientPaint gp = new GradientPaint(0, 0, new Color(15, 23, 42, 140), 0, getHeight(), new Color(15, 23, 42, 200));
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
@@ -284,6 +271,7 @@ public class LoginFrame extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setOpaque(false);
+        // Important: Use LEFT_ALIGNMENT here so children can align to left edge
         panel.setAlignmentX(CENTER_ALIGNMENT);
 
         panel.add(makeLabel("Tên đăng nhập"));
@@ -384,7 +372,8 @@ public class LoginFrame extends JFrame {
         field.setBackground(FIELD_BG);
         field.setCaretColor(ACCENT);
         field.setMaximumSize(new Dimension(Short.MAX_VALUE, 52));
-        field.setAlignmentX(CENTER_ALIGNMENT);
+        // Change to LEFT_ALIGNMENT to line up with labels
+        field.setAlignmentX(LEFT_ALIGNMENT);
         field.putClientProperty(FlatClientProperties.STYLE, "arc: 16; margin: 8,16,8,16; borderWidth: 0; focusWidth: 2;");
         field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, placeholder);
         field.putClientProperty(FlatClientProperties.OUTLINE, new Color[]{ACCENT}); 
