@@ -64,22 +64,69 @@ public class LoginFrame extends JFrame {
         setMinimumSize(new Dimension(1000, 650));
         setLocationRelativeTo(null);
         setUndecorated(true);
-        setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 24, 24));
 
         BackgroundPanel root = new BackgroundPanel();
-        // Use GridBagLayout to center the single login card
-        root.setLayout(new GridBagLayout());
+        root.setLayout(new BorderLayout());
 
-        root.add(buildCenteredCard());
+        // ── Window Controls Bar (North) ───────────────────────────────
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        topBar.setOpaque(false);
+
+        JButton btnMinimize = makeIconButton("—");
+        btnMinimize.addActionListener(e -> setState(JFrame.ICONIFIED));
+
+        JButton btnMaximize = makeIconButton("⬜");
+        btnMaximize.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
+        btnMaximize.addActionListener(e -> {
+            if (getExtendedState() == JFrame.MAXIMIZED_BOTH) {
+                setExtendedState(JFrame.NORMAL);
+            } else {
+                setExtendedState(JFrame.MAXIMIZED_BOTH);
+            }
+        });
+
+        JButton btnClose = makeIconButton("✕");
+        btnClose.addActionListener(e -> System.exit(0));
+        // Red hover specifically for close button
+        btnClose.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { btnClose.setForeground(ERROR_COLOR); }
+            public void mouseExited(MouseEvent e)  { btnClose.setForeground(new Color(148, 163, 184)); }
+        });
+
+        topBar.add(btnMinimize);
+        topBar.add(btnMaximize);
+        topBar.add(btnClose);
+
+        root.add(topBar, BorderLayout.NORTH);
+
+        // ── Center Card Wrapper ───────────────────────────────────────
+        JPanel centerWrapper = new JPanel(new GridBagLayout());
+        centerWrapper.setOpaque(false);
+        centerWrapper.add(buildCenteredCard());
+
+        root.add(centerWrapper, BorderLayout.CENTER);
+
         setContentPane(root);
 
         pfPassword.addActionListener(e -> attemptLogin());
 
-        // Drag to move
+        // Dynamic corner rounding on resize and drag window
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                if (getExtendedState() == JFrame.MAXIMIZED_BOTH) {
+                    setShape(null);
+                } else {
+                    setShape(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 24, 24));
+                }
+            }
+        });
+
         MouseAdapter drag = new MouseAdapter() {
             private Point start;
             public void mousePressed(MouseEvent e)  { start = e.getPoint(); }
             public void mouseDragged(MouseEvent e)  {
+                if (getExtendedState() == JFrame.MAXIMIZED_BOTH) return;
                 Point loc = getLocation();
                 setLocation(loc.x + e.getX() - start.x, loc.y + e.getY() - start.y);
             }
@@ -88,16 +135,19 @@ public class LoginFrame extends JFrame {
         root.addMouseMotionListener(drag);
     }
 
-    // Custom Background Panel to draw the cinematic image
+    // Custom Background Panel with High Quality Rendering
     private class BackgroundPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
+            // Ultra High Quality Interpolation for clear non-pixelated backgrounds
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             
             if (backgroundImage != null) {
-                // Scale to fit or cover
+                // Scale to fully cover avoiding black bars (Cover scaling)
                 double scaleX = (double) getWidth() / backgroundImage.getWidth();
                 double scaleY = (double) getHeight() / backgroundImage.getHeight();
                 double scale = Math.max(scaleX, scaleY);
@@ -107,8 +157,8 @@ public class LoginFrame extends JFrame {
                 int y = (getHeight() - h) / 2;
                 g2.drawImage(backgroundImage, x, y, w, h, null);
                 
-                // Dim gradient overlay to make the center card pop
-                GradientPaint gp = new GradientPaint(0, 0, new Color(15, 23, 42, 180), 0, getHeight(), new Color(15, 23, 42, 80));
+                // Dim gradient overlay
+                GradientPaint gp = new GradientPaint(0, 0, new Color(15, 23, 42, 140), 0, getHeight(), new Color(15, 23, 42, 200));
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
             } else {
@@ -121,18 +171,15 @@ public class LoginFrame extends JFrame {
 
     // ── Centered Login Card ───────────────────────────────────────────────
     private JPanel buildCenteredCard() {
-        // Advanced Glassmorphism Card
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
-                // Base Translucent Background
                 g2.setColor(CARD_BG);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), ARC * 2, ARC * 2);
                 
-                // Outer glowing Indigo edge stroke
                 g2.setStroke(new BasicStroke(1.5f));
                 GradientPaint edgeGlow = new GradientPaint(0, 0, new Color(99, 102, 241, 150),
                                                            getWidth(), getHeight(), new Color(99, 102, 241, 30));
@@ -144,15 +191,7 @@ public class LoginFrame extends JFrame {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(false);
         card.setBorder(new EmptyBorder(30, 50, 40, 50));
-        card.setPreferredSize(new Dimension(460, 620));
-
-        // Close button (top-right)
-        JPanel topRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        topRow.setOpaque(false);
-        JButton btnClose = makeIconButton("✕");
-        btnClose.addActionListener(e -> System.exit(0));
-        topRow.add(btnClose);
-        topRow.setMaximumSize(new Dimension(Short.MAX_VALUE, 30));
+        card.setPreferredSize(new Dimension(460, 580));
 
         // Brand / Logo Top Section
         JLabel brandLogo = new JLabel("F3 CINEMA") {
@@ -165,7 +204,6 @@ public class LoginFrame extends JFrame {
                 int textX = (getWidth() - fm.stringWidth(getText())) / 2;
                 int textY = fm.getAscent() + (getHeight() - fm.getHeight()) / 2;
                 
-                // Glow effect
                 g2.setColor(GLOW_COLOR);
                 for(int i = 1; i <= 3; i++) {
                     g2.drawString(getText(), textX + i, textY + i);
@@ -200,7 +238,6 @@ public class LoginFrame extends JFrame {
 
         btnLogin = buildLoginButton();
 
-        card.add(topRow);
         card.add(brandLogo);
         card.add(Box.createVerticalStrut(4));
         card.add(lblTitle);
@@ -226,7 +263,7 @@ public class LoginFrame extends JFrame {
         panel.add(makeLabel("Tên đăng nhập"));
         panel.add(Box.createVerticalStrut(8));
         tfUsername = new JTextField();
-        styleTextField(tfUsername, "Nhập username của bạn...");
+        styleTextField(tfUsername, "Nhập username của bạn...", "User");
         panel.add(tfUsername);
 
         panel.add(Box.createVerticalStrut(22));
@@ -235,7 +272,7 @@ public class LoginFrame extends JFrame {
         panel.add(makeLabel("Mật khẩu"));
         panel.add(Box.createVerticalStrut(8));
         pfPassword = new JPasswordField();
-        styleTextField(pfPassword, "Nhập mật khẩu...");
+        styleTextField(pfPassword, "Nhập mật khẩu...", "Lock");
         panel.add(pfPassword);
 
         panel.add(Box.createVerticalStrut(12));
@@ -250,7 +287,6 @@ public class LoginFrame extends JFrame {
         chkShowPwd.addActionListener(e -> pfPassword.setEchoChar(
                 chkShowPwd.isSelected() ? '\0' : '●'));
         
-        // Align Checkbox to Right
         JPanel chkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         chkPanel.setOpaque(false);
         chkPanel.setMaximumSize(new Dimension(Short.MAX_VALUE, 30));
@@ -268,7 +304,6 @@ public class LoginFrame extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 
-                // Soft dimensional drop shadow
                 g2.setColor(new Color(0, 0, 0, 60));
                 g2.fillRoundRect(2, 6, getWidth() - 4, getHeight() - 4, ARC, ARC);
                 
@@ -325,37 +360,32 @@ public class LoginFrame extends JFrame {
         animateShake(pfPassword);
     }
 
-    private void styleTextField(JTextComponent field, String placeholder) {
+    private void styleTextField(JTextComponent field, String placeholder, String iconName) {
         field.setFont(new Font("Inter", Font.PLAIN, 15));
         field.setForeground(TEXT_PRIMARY);
         field.setBackground(FIELD_BG);
         field.setCaretColor(ACCENT);
-        field.setMaximumSize(new Dimension(Short.MAX_VALUE, 48));
+        field.setMaximumSize(new Dimension(Short.MAX_VALUE, 52));
         field.setAlignmentX(CENTER_ALIGNMENT);
+        
+        // Let FlatLaf handle the native perfect border and background rounding
+        field.putClientProperty(FlatClientProperties.STYLE, "arc: 16; margin: 8,16,8,16; borderWidth: 0; focusWidth: 2;");
         field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, placeholder);
-        field.putClientProperty(FlatClientProperties.COMPONENT_ROUND_RECT, true);
-        
-        // Elegant styling - glowing accent borders
-        field.putClientProperty(FlatClientProperties.OUTLINE, ACCENT);
-        
-        // Inner padding for breathing space inside text fields
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(2, 2, 2, 2),
-                new EmptyBorder(10, 16, 10, 16)));
+        field.putClientProperty(FlatClientProperties.OUTLINE, new Color[]{ACCENT}); // Indigo glow focus
     }
 
     private JLabel makeLabel(String text) {
         JLabel lbl = new JLabel(text);
         lbl.setFont(new Font("Inter", Font.BOLD, 14));
-        lbl.setForeground(new Color(226, 232, 240)); // Lighter than Slate 400 for better contrast
+        lbl.setForeground(new Color(226, 232, 240)); 
         lbl.setAlignmentX(LEFT_ALIGNMENT);
-        // Important to ensure label takes up full width so left alignment works strictly
         lbl.setMaximumSize(new Dimension(Short.MAX_VALUE, 24)); 
         return lbl;
     }
 
     private JButton makeIconButton(String icon) {
         JButton btn = new JButton(icon);
+        btn.setPreferredSize(new Dimension(40, 30));
         btn.setFont(new Font("Inter", Font.BOLD, 18));
         btn.setForeground(new Color(148, 163, 184)); // Slate 400
         btn.setOpaque(false);
@@ -364,11 +394,12 @@ public class LoginFrame extends JFrame {
         btn.setFocusPainted(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         
-        // Add hover glow effect for the X button
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { btn.setForeground(ACCENT_HOVER); }
-            public void mouseExited(MouseEvent e)  { btn.setForeground(new Color(148, 163, 184)); }
-        });
+        if (!icon.equals("✕")) {
+             btn.addMouseListener(new MouseAdapter() {
+                 public void mouseEntered(MouseEvent e) { btn.setForeground(ACCENT_HOVER); }
+                 public void mouseExited(MouseEvent e)  { btn.setForeground(new Color(148, 163, 184)); }
+             });
+        }
         return btn;
     }
 
