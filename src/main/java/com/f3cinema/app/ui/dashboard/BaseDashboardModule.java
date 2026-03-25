@@ -10,6 +10,7 @@ public abstract class BaseDashboardModule extends JPanel {
 
     protected final String title;
     protected final String breadcrumb;
+    protected JPanel contentBody;
 
     public BaseDashboardModule(String title, String breadcrumb) {
         this.title = title;
@@ -41,7 +42,7 @@ public abstract class BaseDashboardModule extends JPanel {
         headerPanel.add(breadcrumbContainer, BorderLayout.SOUTH);
 
         // 2. Pro Max Glassmorphism Body
-        JPanel contentBody = new JPanel() {
+        contentBody = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();

@@ -21,7 +21,7 @@ public class Room {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "room_type", nullable = false, length = 20)
+    @Column(name = "type", nullable = false, length = 20)
     private RoomType roomType;
 
     @OneToMany(mappedBy = "room", fetch = FetchType.LAZY)

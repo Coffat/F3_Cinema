@@ -27,6 +27,14 @@ public class Movie {
     @Column(name = "status", nullable = false, length = 20)
     private MovieStatus status;
 
-    @OneToMany(mappedBy = "movie", fetch = FetchType.LAZY)
-    private List<MovieGenre> movieGenres;
+    @Column(name = "poster_url", columnDefinition = "TEXT")
+    private String posterUrl;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "movie_genres",
+        joinColumns = @JoinColumn(name = "movie_id"),
+        inverseJoinColumns = @JoinColumn(name = "genre_id")
+    )
+    private List<Genre> genres;
 }

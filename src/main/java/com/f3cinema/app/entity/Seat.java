@@ -23,7 +23,7 @@ public class Seat {
     private Integer number;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "seat_type", nullable = false, length = 20)
+    @Column(name = "type", nullable = false, length = 20)
     private SeatType seatType;
 
     @ManyToOne(fetch = FetchType.LAZY)

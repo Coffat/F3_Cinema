@@ -19,6 +19,6 @@ public class Genre {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @OneToMany(mappedBy = "genre", fetch = FetchType.LAZY)
-    private List<MovieGenre> movieGenres;
+    @ManyToMany(mappedBy = "genres", fetch = FetchType.LAZY)
+    private List<Movie> movies;
 }

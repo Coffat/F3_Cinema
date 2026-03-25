@@ -23,7 +23,7 @@
         <mapping class="com.f3cinema.app.entity.Customer"/>
         <mapping class="com.f3cinema.app.entity.Movie"/>
         <mapping class="com.f3cinema.app.entity.Genre"/>
-        <mapping class="com.f3cinema.app.entity.MovieGenre"/>
+
         <mapping class="com.f3cinema.app.entity.Room"/>
         <mapping class="com.f3cinema.app.entity.Seat"/>
         <mapping class="com.f3cinema.app.entity.Showtime"/>

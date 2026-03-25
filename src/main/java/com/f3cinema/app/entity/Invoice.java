@@ -31,7 +31,7 @@ public class Invoice {
     @JoinColumn(name = "promotion_id")
     private Promotion promotion;
 
-    @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
+    @Column(name = "final_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
     @Column(name = "created_at", nullable = false)

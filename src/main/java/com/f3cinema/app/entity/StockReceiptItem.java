@@ -17,7 +17,7 @@ public class StockReceiptItem {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "stock_receipt_id", nullable = false)
+    @JoinColumn(name = "receipt_id", nullable = false)
     private StockReceipt stockReceipt;
 
     @ManyToOne(fetch = FetchType.LAZY)
