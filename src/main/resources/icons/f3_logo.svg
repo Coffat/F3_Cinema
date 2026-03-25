@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <!-- Cinematic Indigo -> Rose Gradient -->
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" /> <!-- Indigo 500 -->
+      <stop offset="100%" style="stop-color:#F43F5E;stop-opacity:1" /> <!-- Rose 500 -->
+    </linearGradient>
+  </defs>
+
+  <!-- BACKGROUND: Minimal Cinematic Plate -->
+  <rect x="0" y="0" width="100" height="100" rx="20" fill="#1E293B" />
+
+  <!-- FILM STRIP EDGES (Top & Bottom) -->
+  <g fill="rgba(255, 255, 255, 0.15)">
+    <!-- Top edge -->
+    <rect x="15" y="10" width="10" height="6" rx="2" />
+    <rect x="35" y="10" width="10" height="6" rx="2" />
+    <rect x="55" y="10" width="10" height="6" rx="2" />
+    <rect x="75" y="10" width="10" height="6" rx="2" />
+    <!-- Bottom edge -->
+    <rect x="15" y="84" width="10" height="6" rx="2" />
+    <rect x="35" y="84" width="10" height="6" rx="2" />
+    <rect x="55" y="84" width="10" height="6" rx="2" />
+    <rect x="75" y="84" width="10" height="6" rx="2" />
+  </g>
+
+  <!-- THE "F" (Film/Future) - Stylized as a Lens Frame side -->
+  <path d="M25 30 H50 V38 H33 V50 H45 V58 H33 V70 H25 Z" fill="white" />
+
+  <!-- THE "3" (3D/Experience) - With a Play button hole -->
+  <path d="M55 30 H75 V38 L63 50 L75 62 V70 H55 V62 H65 L55 52 V48 L65 38 H55 Z" fill="url(#brandGrad)" />
+  
+  <!-- MINI PLAY ICON in the center to signify "Action" -->
+  <path d="M50 50 L50 60 L58 55 Z" fill="white" opacity="0.8" />
+</svg>

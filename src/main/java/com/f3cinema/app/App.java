@@ -13,7 +13,10 @@ public class App {
             // 1. Initialize Modern Midnight theme BEFORE any UI is created
             ThemeConfig.setup();
 
-            // 2. Launch Login Screen
+            // 2. Seed Database with initial data
+            com.f3cinema.app.config.DatabaseSeeder.seed();
+
+            // 3. Launch Login Screen
             LoginFrame loginFrame = new LoginFrame();
             loginFrame.setVisible(true);
         });
