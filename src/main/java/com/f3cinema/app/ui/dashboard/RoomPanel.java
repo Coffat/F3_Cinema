@@ -38,7 +38,7 @@ public class RoomPanel extends BaseDashboardModule {
 
         gridPanel = new JPanel();
         gridPanel.setOpaque(false);
-        gridPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20)); // Wrap layout effectively
+        gridPanel.setLayout(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 20, 20)); // WrapLayout fixes JScrollPane overflow
         
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
