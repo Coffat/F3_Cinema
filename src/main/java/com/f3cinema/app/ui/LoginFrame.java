@@ -271,8 +271,10 @@ public class LoginFrame extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setOpaque(false);
+        // Important: Panel itself is center-aligned in card
         panel.setAlignmentX(CENTER_ALIGNMENT);
 
+        // ── Username Group ──
         panel.add(makeLabel("Tên đăng nhập"));
         panel.add(Box.createVerticalStrut(8));
         tfUsername = new JTextField();
@@ -281,6 +283,7 @@ public class LoginFrame extends JFrame {
 
         panel.add(Box.createVerticalStrut(22));
 
+        // ── Password Group ──
         panel.add(makeLabel("Mật khẩu"));
         panel.add(Box.createVerticalStrut(8));
         pfPassword = new JPasswordField();
@@ -300,6 +303,8 @@ public class LoginFrame extends JFrame {
         JPanel chkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         chkPanel.setOpaque(false);
         chkPanel.setMaximumSize(new Dimension(Short.MAX_VALUE, 30));
+        // Align checkbox to right of input field bound
+        chkPanel.setAlignmentX(LEFT_ALIGNMENT);
         chkPanel.add(chkShowPwd);
         panel.add(chkPanel);
 
@@ -371,8 +376,8 @@ public class LoginFrame extends JFrame {
         field.setBackground(FIELD_BG);
         field.setCaretColor(ACCENT);
         field.setMaximumSize(new Dimension(Short.MAX_VALUE, 52));
-        // Reset Inputs to CENTER_ALIGNMENT to look centered in the card
-        field.setAlignmentX(CENTER_ALIGNMENT);
+        // SET TO LEFT_ALIGNMENT: so it shares the same left edge as the Label
+        field.setAlignmentX(LEFT_ALIGNMENT);
         field.putClientProperty(FlatClientProperties.STYLE, "arc: 16; margin: 8,16,8,16; borderWidth: 0; focusWidth: 2;");
         field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, placeholder);
         field.putClientProperty(FlatClientProperties.OUTLINE, new Color[]{ACCENT}); 
@@ -382,7 +387,7 @@ public class LoginFrame extends JFrame {
         JLabel lbl = new JLabel(text);
         lbl.setFont(new Font("Inter", Font.BOLD, 14));
         lbl.setForeground(new Color(226, 232, 240)); 
-        // Label stays LEFT_ALIGNMENT relative to the field bounds
+        // SET TO LEFT_ALIGNMENT: lines up perfectly with the Input field left edge
         lbl.setAlignmentX(LEFT_ALIGNMENT);
         lbl.setMaximumSize(new Dimension(Short.MAX_VALUE, 24)); 
         return lbl;
