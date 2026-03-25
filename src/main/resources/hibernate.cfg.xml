@@ -6,21 +6,35 @@
     <session-factory>
         <!-- Database connection settings -->
         <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
-        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/f3_cinema?useSSL=false&amp;allowPublicKeyRetrieval=true</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/f3_cinema?createDatabaseIfNotExist=true&amp;useSSL=false&amp;allowPublicKeyRetrieval=true</property>
         <property name="hibernate.connection.username">root</property>
-        <property name="hibernate.connection.password">root</property>
+        <property name="hibernate.connection.password">123456</property>
 
         <!-- SQL dialect -->
         <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
 
-        <!-- Echo all executed SQL to stdout -->
+        <!-- Configuration -->
         <property name="hibernate.show_sql">true</property>
         <property name="hibernate.format_sql">true</property>
-
-        <!-- Drop and re-create the database schema on startup -->
         <property name="hibernate.hbm2ddl.auto">update</property>
 
-        <!-- Entity mapping placeholders -->
-        <!-- <mapping class="com.f3cinema.app.entity.User"/> -->
+        <!-- Entity mapping -->
+        <mapping class="com.f3cinema.app.entity.User"/>
+        <mapping class="com.f3cinema.app.entity.Customer"/>
+        <mapping class="com.f3cinema.app.entity.Movie"/>
+        <mapping class="com.f3cinema.app.entity.Genre"/>
+        <mapping class="com.f3cinema.app.entity.MovieGenre"/>
+        <mapping class="com.f3cinema.app.entity.Room"/>
+        <mapping class="com.f3cinema.app.entity.Seat"/>
+        <mapping class="com.f3cinema.app.entity.Showtime"/>
+        <mapping class="com.f3cinema.app.entity.Product"/>
+        <mapping class="com.f3cinema.app.entity.Inventory"/>
+        <mapping class="com.f3cinema.app.entity.StockReceipt"/>
+        <mapping class="com.f3cinema.app.entity.StockReceiptItem"/>
+        <mapping class="com.f3cinema.app.entity.Promotion"/>
+        <mapping class="com.f3cinema.app.entity.Invoice"/>
+        <mapping class="com.f3cinema.app.entity.Ticket"/>
+        <mapping class="com.f3cinema.app.entity.InvoiceItem"/>
+        <mapping class="com.f3cinema.app.entity.Payment"/>
     </session-factory>
 </hibernate-configuration>
