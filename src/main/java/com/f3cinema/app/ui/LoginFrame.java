@@ -271,7 +271,6 @@ public class LoginFrame extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setOpaque(false);
-        // Important: Use LEFT_ALIGNMENT here so children can align to left edge
         panel.setAlignmentX(CENTER_ALIGNMENT);
 
         panel.add(makeLabel("Tên đăng nhập"));
@@ -372,8 +371,8 @@ public class LoginFrame extends JFrame {
         field.setBackground(FIELD_BG);
         field.setCaretColor(ACCENT);
         field.setMaximumSize(new Dimension(Short.MAX_VALUE, 52));
-        // Change to LEFT_ALIGNMENT to line up with labels
-        field.setAlignmentX(LEFT_ALIGNMENT);
+        // Reset Inputs to CENTER_ALIGNMENT to look centered in the card
+        field.setAlignmentX(CENTER_ALIGNMENT);
         field.putClientProperty(FlatClientProperties.STYLE, "arc: 16; margin: 8,16,8,16; borderWidth: 0; focusWidth: 2;");
         field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, placeholder);
         field.putClientProperty(FlatClientProperties.OUTLINE, new Color[]{ACCENT}); 
@@ -383,6 +382,7 @@ public class LoginFrame extends JFrame {
         JLabel lbl = new JLabel(text);
         lbl.setFont(new Font("Inter", Font.BOLD, 14));
         lbl.setForeground(new Color(226, 232, 240)); 
+        // Label stays LEFT_ALIGNMENT relative to the field bounds
         lbl.setAlignmentX(LEFT_ALIGNMENT);
         lbl.setMaximumSize(new Dimension(Short.MAX_VALUE, 24)); 
         return lbl;
