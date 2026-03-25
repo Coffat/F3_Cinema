@@ -11,6 +11,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
@@ -22,7 +23,7 @@ public class LoginFrame extends JFrame {
 
     // ── Design Tokens ──────────────────────────────────────────────────
     private static final Color BG_DARK        = new Color(0x0F172A);  // Slate 900
-    private static final Color CARD_BG        = new Color(15, 23, 42, 220); // Deep Slate 900 with high opacity for contrast
+    private static final Color CARD_BG        = new Color(15, 23, 42, 220); // Deep Slate 900
     private static final Color ACCENT         = new Color(0x6366F1);  // Indigo 500
     private static final Color ACCENT_HOVER   = new Color(0x818CF8);  // Indigo 400
     private static final Color TEXT_PRIMARY   = new Color(0xF8FAFC);  // Slate 50
@@ -69,14 +70,13 @@ public class LoginFrame extends JFrame {
         root.setLayout(new BorderLayout());
 
         // ── Window Controls Bar (North) ───────────────────────────────
-        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
         topBar.setOpaque(false);
 
-        JButton btnMinimize = makeIconButton("—");
+        WindowControlButton btnMinimize = new WindowControlButton(new Color(0xFBBF24), "—"); // Amber 400
         btnMinimize.addActionListener(e -> setState(JFrame.ICONIFIED));
 
-        JButton btnMaximize = makeIconButton("⬜");
-        btnMaximize.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
+        WindowControlButton btnMaximize = new WindowControlButton(new Color(0x34D399), "⬜"); // Emerald 400
         btnMaximize.addActionListener(e -> {
             if (getExtendedState() == JFrame.MAXIMIZED_BOTH) {
                 setExtendedState(JFrame.NORMAL);
@@ -85,13 +85,8 @@ public class LoginFrame extends JFrame {
             }
         });
 
-        JButton btnClose = makeIconButton("✕");
+        WindowControlButton btnClose = new WindowControlButton(ERROR_COLOR, "✕"); // Rose 500
         btnClose.addActionListener(e -> System.exit(0));
-        // Red hover specifically for close button
-        btnClose.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { btnClose.setForeground(ERROR_COLOR); }
-            public void mouseExited(MouseEvent e)  { btnClose.setForeground(new Color(148, 163, 184)); }
-        });
 
         topBar.add(btnMinimize);
         topBar.add(btnMaximize);
@@ -110,7 +105,6 @@ public class LoginFrame extends JFrame {
 
         pfPassword.addActionListener(e -> attemptLogin());
 
-        // Dynamic corner rounding on resize and drag window
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -135,19 +129,61 @@ public class LoginFrame extends JFrame {
         root.addMouseMotionListener(drag);
     }
 
-    // Custom Background Panel with High Quality Rendering
+    /**
+     * Custom Circular Window Control Button (macOS Pro Max Style)
+     */
+    private static class WindowControlButton extends JButton {
+        private final Color baseColor;
+        private boolean hovered = false;
+        private final String symbol;
+
+        public WindowControlButton(Color color, String symbol) {
+            this.baseColor = color;
+            this.symbol = symbol;
+            setPreferredSize(new Dimension(14, 14));
+            setOpaque(false);
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+            addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) { hovered = true; repaint(); }
+                public void mouseExited(MouseEvent e)  { hovered = false; repaint(); }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            double center = getWidth() / 2.0;
+            double radius = 6.0;
+
+            // Paint Circle
+            g2.setColor(hovered ? baseColor : baseColor.darker());
+            g2.fill(new Ellipse2D.Double(center - radius, center - radius, radius * 2, radius * 2));
+
+            // Paint subtle border
+            g2.setStroke(new BasicStroke(0.5f));
+            g2.setColor(new Color(255, 255, 255, 40));
+            g2.draw(new Ellipse2D.Double(center - radius, center - radius, radius * 2, radius * 2));
+
+            g2.dispose();
+        }
+    }
+
     private class BackgroundPanel extends JPanel {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
-            // Ultra High Quality Interpolation for clear non-pixelated backgrounds
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             
             if (backgroundImage != null) {
-                // Scale to fully cover avoiding black bars (Cover scaling)
                 double scaleX = (double) getWidth() / backgroundImage.getWidth();
                 double scaleY = (double) getHeight() / backgroundImage.getHeight();
                 double scale = Math.max(scaleX, scaleY);
@@ -157,7 +193,6 @@ public class LoginFrame extends JFrame {
                 int y = (getHeight() - h) / 2;
                 g2.drawImage(backgroundImage, x, y, w, h, null);
                 
-                // Dim gradient overlay
                 GradientPaint gp = new GradientPaint(0, 0, new Color(15, 23, 42, 140), 0, getHeight(), new Color(15, 23, 42, 200));
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
@@ -169,17 +204,14 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    // ── Centered Login Card ───────────────────────────────────────────────
     private JPanel buildCenteredCard() {
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
                 g2.setColor(CARD_BG);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), ARC * 2, ARC * 2);
-                
                 g2.setStroke(new BasicStroke(1.5f));
                 GradientPaint edgeGlow = new GradientPaint(0, 0, new Color(99, 102, 241, 150),
                                                            getWidth(), getHeight(), new Color(99, 102, 241, 30));
@@ -193,7 +225,6 @@ public class LoginFrame extends JFrame {
         card.setBorder(new EmptyBorder(30, 50, 40, 50));
         card.setPreferredSize(new Dimension(460, 580));
 
-        // Brand / Logo Top Section
         JLabel brandLogo = new JLabel("F3 CINEMA") {
             @Override
             protected void paintComponent(Graphics g) {
@@ -203,7 +234,6 @@ public class LoginFrame extends JFrame {
                 FontMetrics fm = g2.getFontMetrics();
                 int textX = (getWidth() - fm.stringWidth(getText())) / 2;
                 int textY = fm.getAscent() + (getHeight() - fm.getHeight()) / 2;
-                
                 g2.setColor(GLOW_COLOR);
                 for(int i = 1; i <= 3; i++) {
                     g2.drawString(getText(), textX + i, textY + i);
@@ -218,7 +248,6 @@ public class LoginFrame extends JFrame {
         brandLogo.setAlignmentX(CENTER_ALIGNMENT);
         brandLogo.setPreferredSize(new Dimension(400, 60));
 
-        // Title
         JLabel lblTitle = new JLabel("HỆ THỐNG QUẢN LÝ");
         lblTitle.setFont(new Font("Inter", Font.PLAIN, 18));
         lblTitle.setForeground(ACCENT);
@@ -230,12 +259,10 @@ public class LoginFrame extends JFrame {
         lblSub.setAlignmentX(CENTER_ALIGNMENT);
 
         JPanel fieldsPanel = buildFieldsPanel();
-
         lblError = new JLabel(" ");
         lblError.setFont(new Font("Inter", Font.PLAIN, 13));
         lblError.setForeground(ERROR_COLOR);
         lblError.setAlignmentX(CENTER_ALIGNMENT);
-
         btnLogin = buildLoginButton();
 
         card.add(brandLogo);
@@ -259,39 +286,34 @@ public class LoginFrame extends JFrame {
         panel.setOpaque(false);
         panel.setAlignmentX(CENTER_ALIGNMENT);
 
-        // Username
         panel.add(makeLabel("Tên đăng nhập"));
         panel.add(Box.createVerticalStrut(8));
         tfUsername = new JTextField();
-        styleTextField(tfUsername, "Nhập username của bạn...", "User");
+        styleTextField(tfUsername, "Nhập username của bạn...");
         panel.add(tfUsername);
 
         panel.add(Box.createVerticalStrut(22));
 
-        // Password
         panel.add(makeLabel("Mật khẩu"));
         panel.add(Box.createVerticalStrut(8));
         pfPassword = new JPasswordField();
-        styleTextField(pfPassword, "Nhập mật khẩu...", "Lock");
+        styleTextField(pfPassword, "Nhập mật khẩu...");
         panel.add(pfPassword);
 
         panel.add(Box.createVerticalStrut(12));
 
-        // Show/Hide password toggle
         chkShowPwd = new JCheckBox("Hiện mật khẩu");
         chkShowPwd.setFont(new Font("Inter", Font.PLAIN, 13));
         chkShowPwd.setForeground(TEXT_SECONDARY);
         chkShowPwd.setOpaque(false);
         chkShowPwd.setFocusPainted(false);
         chkShowPwd.setIconTextGap(8);
-        chkShowPwd.addActionListener(e -> pfPassword.setEchoChar(
-                chkShowPwd.isSelected() ? '\0' : '●'));
+        chkShowPwd.addActionListener(e -> pfPassword.setEchoChar(chkShowPwd.isSelected() ? '\0' : '●'));
         
         JPanel chkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         chkPanel.setOpaque(false);
         chkPanel.setMaximumSize(new Dimension(Short.MAX_VALUE, 30));
         chkPanel.add(chkShowPwd);
-        
         panel.add(chkPanel);
 
         return panel;
@@ -303,10 +325,8 @@ public class LoginFrame extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
                 g2.setColor(new Color(0, 0, 0, 60));
                 g2.fillRoundRect(2, 6, getWidth() - 4, getHeight() - 4, ARC, ARC);
-                
                 Color fill = getModel().isRollover() ? ACCENT_HOVER : ACCENT;
                 g2.setColor(fill);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight() - 4, ARC, ARC);
@@ -330,11 +350,9 @@ public class LoginFrame extends JFrame {
     private void attemptLogin() {
         String username = tfUsername.getText().trim();
         String password = new String(pfPassword.getPassword());
-
         lblError.setText(" ");
         btnLogin.setEnabled(false);
         btnLogin.setText("Đang xử lý...");
-
         Thread.ofVirtual().start(() -> {
             try {
                 User user = userService.authenticate(username, password);
@@ -360,18 +378,16 @@ public class LoginFrame extends JFrame {
         animateShake(pfPassword);
     }
 
-    private void styleTextField(JTextComponent field, String placeholder, String iconName) {
+    private void styleTextField(JTextComponent field, String placeholder) {
         field.setFont(new Font("Inter", Font.PLAIN, 15));
         field.setForeground(TEXT_PRIMARY);
         field.setBackground(FIELD_BG);
         field.setCaretColor(ACCENT);
         field.setMaximumSize(new Dimension(Short.MAX_VALUE, 52));
         field.setAlignmentX(CENTER_ALIGNMENT);
-        
-        // Let FlatLaf handle the native perfect border and background rounding
         field.putClientProperty(FlatClientProperties.STYLE, "arc: 16; margin: 8,16,8,16; borderWidth: 0; focusWidth: 2;");
         field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, placeholder);
-        field.putClientProperty(FlatClientProperties.OUTLINE, new Color[]{ACCENT}); // Indigo glow focus
+        field.putClientProperty(FlatClientProperties.OUTLINE, new Color[]{ACCENT}); 
     }
 
     private JLabel makeLabel(String text) {
@@ -381,26 +397,6 @@ public class LoginFrame extends JFrame {
         lbl.setAlignmentX(LEFT_ALIGNMENT);
         lbl.setMaximumSize(new Dimension(Short.MAX_VALUE, 24)); 
         return lbl;
-    }
-
-    private JButton makeIconButton(String icon) {
-        JButton btn = new JButton(icon);
-        btn.setPreferredSize(new Dimension(40, 30));
-        btn.setFont(new Font("Inter", Font.BOLD, 18));
-        btn.setForeground(new Color(148, 163, 184)); // Slate 400
-        btn.setOpaque(false);
-        btn.setContentAreaFilled(false);
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        
-        if (!icon.equals("✕")) {
-             btn.addMouseListener(new MouseAdapter() {
-                 public void mouseEntered(MouseEvent e) { btn.setForeground(ACCENT_HOVER); }
-                 public void mouseExited(MouseEvent e)  { btn.setForeground(new Color(148, 163, 184)); }
-             });
-        }
-        return btn;
     }
 
     private void animateShake(JComponent target) {
