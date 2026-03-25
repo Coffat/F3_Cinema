@@ -15,6 +15,10 @@ import lombok.extern.log4j.Log4j2;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.f3cinema.app.entity.Room;
+import com.f3cinema.app.entity.enums.RoomType;
+import com.f3cinema.app.service.RoomService;
+
 /**
  * Seeder to initialize default system data (e.g., Admin account).
  */
@@ -30,6 +34,7 @@ public class DatabaseSeeder {
         try {
             seedUsers();
             seedMovies();
+            seedRooms();
         } catch (Exception e) {
             log.error("Failed to seed database.", e);
         }
@@ -139,6 +144,21 @@ public class DatabaseSeeder {
                     movieService.updateMovie(m);
                 }
             }
+        }
+    }
+
+    private static void seedRooms() {
+        RoomService roomService = new RoomService();
+        if (roomService.getAllRooms().isEmpty()) {
+            Room r1 = new Room(); r1.setName("Cinema 1 - IMAX"); r1.setRoomType(RoomType.ROOM_IMAX);
+            roomService.saveRoomWithSeats(r1, 12, 16);
+            
+            Room r2 = new Room(); r2.setName("Cinema 2 - 3D"); r2.setRoomType(RoomType.ROOM_3D);
+            roomService.saveRoomWithSeats(r2, 10, 12);
+            
+            Room r3 = new Room(); r3.setName("Cinema 3 - Standard"); r3.setRoomType(RoomType.ROOM_2D);
+            roomService.saveRoomWithSeats(r3, 10, 14);
+            log.info("Rooms and seats seeded successfully.");
         }
     }
 }
