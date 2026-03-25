@@ -105,8 +105,8 @@ public class MoviePanel extends BaseDashboardModule {
     }
 
     private JScrollPane buildCardView() {
-        // FlowLayout with generous spacing
-        cardContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 32, 32));
+        // WrapLayout to properly wrap multiple elements without overflowing MainFrame
+        cardContainer = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 32, 32));
         cardContainer.setOpaque(false);
         
         // Inner wrapper to force cards to stay at top if list is short
