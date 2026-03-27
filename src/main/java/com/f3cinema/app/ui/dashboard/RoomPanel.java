@@ -44,6 +44,8 @@ public class RoomPanel extends BaseDashboardModule {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.decode("#1E293B")); // match contentBody gradient visually or just transparent
         scrollPane.getViewport().setOpaque(false);
+        // Fix scrolling ghost artifact bounds
+        scrollPane.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
         scrollPane.setOpaque(false);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         

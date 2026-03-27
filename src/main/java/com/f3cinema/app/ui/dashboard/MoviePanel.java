@@ -118,6 +118,8 @@ public class MoviePanel extends BaseDashboardModule {
         scroll.setBorder(null);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
+        // FORCE repaint on scroll, completely eliminating tearing/ghosting artifacts for scaled components
+        scroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
         scroll.getVerticalScrollBar().setUnitIncrement(20);
         
         return scroll;

@@ -47,6 +47,9 @@ public class RoomCard extends JPanel {
                 animTimer.stop();
             }
             repaint();
+            if (getParent() != null) {
+                getParent().repaint(getX() - 20, getY() - 20, getWidth() + 40, getHeight() + 40);
+            }
         });
 
         addMouseListener(new MouseAdapter() {
