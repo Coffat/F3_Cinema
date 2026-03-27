@@ -105,23 +105,22 @@ public class MoviePanel extends BaseDashboardModule {
     }
 
     private JScrollPane buildCardView() {
-        // WrapLayout to properly wrap multiple elements without overflowing MainFrame
         cardContainer = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 32, 32));
         cardContainer.setOpaque(false); // cards paint themselves
 
         // Inner wrapper to force cards to stay at top if list is short
         JPanel inner = new JPanel(new BorderLayout());
-        inner.setOpaque(false);
+        inner.setOpaque(true);
+        inner.setBackground(new Color(15, 23, 42)); // Slate 900 — matches bg-main
         inner.add(cardContainer, BorderLayout.NORTH);
 
         JScrollPane scroll = new JScrollPane(inner);
         scroll.setBorder(null);
-        scroll.setOpaque(true);
-        // CRITICAL FIX: give viewport a solid background so Swing can clear it
-        // fully before repainting, eliminating all ghosting artefacts permanently
+        scroll.setOpaque(false);
         scroll.getViewport().setOpaque(true);
-        scroll.getViewport().setBackground(new Color(15, 23, 42)); // Slate 900 — matches bg-main
-        scroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        scroll.getViewport().setBackground(new Color(15, 23, 42));
+        // BLIT mode gives smoother/stable viewport updates for card grid scrolling.
+        scroll.getViewport().setScrollMode(JViewport.BLIT_SCROLL_MODE);
         scroll.getVerticalScrollBar().setUnitIncrement(20);
 
         return scroll;

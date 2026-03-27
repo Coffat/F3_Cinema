@@ -25,3 +25,6 @@ target/
 *.swp
 *~
 .DS_Store
+
+# Maven local repo
+.m2/
