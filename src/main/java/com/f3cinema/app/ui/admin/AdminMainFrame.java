@@ -72,7 +72,7 @@ public class AdminMainFrame extends JFrame {
         // Zero-latency module initialization
         contentArea.add(new DashboardPanel(), CARD_DASHBOARD);
         contentArea.add(new MoviePanel(), CARD_MOVIES);
-        contentArea.add(new RoomSeatPanel(), CARD_ROOMS);
+        contentArea.add(new RoomPanel(), CARD_ROOMS);
         contentArea.add(new ShowtimePanel(), CARD_SHOWTIMES);
         contentArea.add(new StaffPanel(), CARD_STAFF);
         contentArea.add(new WarehousePanel(), CARD_WAREHOUSE);

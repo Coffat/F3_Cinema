@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   f3_cinema_db:
-    image: mysql:8.4
+    build:
+      context: .
+      dockerfile: Dockerfile.mysql
     container_name: f3_cinema_db
     restart: always
     environment:
@@ -12,14 +14,18 @@ services:
       MYSQL_PASSWORD: 'f3_password'
     ports:
       - '3306:3306'
-    volumes:
-      - ./src/main/resources/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - f3_cinema_mysql_data:/var/lib/mysql
+    # Gỡ bỏ volume persistent để DB được reset mỗi lần có thay đổi SQL
+    # volumes:
+    #   - f3_cinema_mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
+    develop:
+      watch:
+        - action: rebuild
+          path: ./src/main/resources/sql/init.sql
 
-volumes:
-  f3_cinema_mysql_data:
-    driver: local
+# volumes:
+#   f3_cinema_mysql_data:
+#     driver: local

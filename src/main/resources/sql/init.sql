@@ -171,11 +171,6 @@ CREATE TABLE IF NOT EXISTS payments (
 -- SEED DATA
 -- ==========================================
 
--- Admin Account (password: 123456)
--- Bcrypt hash of '123456'
--- INSERT IGNORE INTO users (username, password, full_name, role) 
--- VALUES ('admin', '$2a$10$vI8AAn.XmO9j2W6K5l2y3uH.zG.O.2E.2E.2E.2E.2E.2E.2E.2E.2E.2E.2E.2E', 'Default Administrator', 'ADMIN');
-
 -- Sample Genres
 INSERT IGNORE INTO genres (name) VALUES 
 ('Action'), ('Comedy'), ('Drama'), ('Horror'), ('Sci-Fi'), ('Animation'), ('Thriller'), ('Romance');
