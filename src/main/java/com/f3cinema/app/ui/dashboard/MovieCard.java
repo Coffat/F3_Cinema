@@ -152,10 +152,11 @@ public class MovieCard extends JPanel {
         g2.fillRoundRect(0, 0, w, h, 24, 24);
 
         // Poster Area
+        Shape oldClip = g2.getClip();
         RoundRectangle2D posterRect = new RoundRectangle2D.Float(8, 8, w - 16, h - 90, 20, 20);
-        g2.setClip(posterRect);
+        g2.clip(posterRect); // Intersects with existing clip (like JViewport) to keep it inside boundaries
         drawPoster(g2, 8, 8, w - 16, h - 90);
-        g2.setClip(null);
+        g2.setClip(oldClip); // Restore the previous clip correctly
 
         // Text Content
         drawInfoArea(g2, w, h);
