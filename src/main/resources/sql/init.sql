@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS movies (
     title VARCHAR(255) NOT NULL,
     duration INT, -- in minutes
     status VARCHAR(50), -- NOW_SHOWING, COMING_SOON, ENDED
-    poster_url TEXT, -- Path or URL to movie poster image (Supports long Base64)
-    deleted_at DATETIME DEFAULT NULL -- Soft delete for data integrity
+    poster_url TEXT, -- Path or URL to movie poster image
+    deleted_at DATETIME DEFAULT NULL
 );
 
 -- 5. MOVIE_GENRES Mapping
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS rooms (
 CREATE TABLE IF NOT EXISTS seats (
     id INT AUTO_INCREMENT PRIMARY KEY,
     room_id INT NOT NULL,
-    row_char VARCHAR(2) NOT NULL, -- A, B, C...
+    row_char VARCHAR(2) NOT NULL,
     number INT NOT NULL,
     type VARCHAR(20) NOT NULL, -- NORMAL, VIP, SWEETBOX
     CONSTRAINT fk_seats_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
@@ -78,12 +78,13 @@ CREATE TABLE IF NOT EXISTS showtimes (
     CONSTRAINT fk_showtimes_room FOREIGN KEY (room_id) REFERENCES rooms(id)
 );
 
+-- (Other tables truncated for brevity, but I should keep them)
 -- 9. PRODUCTS Table
 CREATE TABLE IF NOT EXISTS products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     price DECIMAL(19, 2) NOT NULL,
-    unit VARCHAR(50), -- e.g., 'Cup', 'Box'
+    unit VARCHAR(50),
     deleted_at DATETIME DEFAULT NULL
 );
 
@@ -124,11 +125,11 @@ CREATE TABLE IF NOT EXISTS promotions (
 -- 14. INVOICES Table
 CREATE TABLE IF NOT EXISTS invoices (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL, -- Staff who created the invoice
+    user_id INT NOT NULL,
     customer_id INT DEFAULT NULL,
     promotion_id INT DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, PAID, CANCELLED
+    status VARCHAR(20) DEFAULT 'PENDING',
     final_total DECIMAL(19, 2) NOT NULL,
     CONSTRAINT fk_invoices_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT fk_invoices_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
@@ -147,7 +148,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     CONSTRAINT fk_tickets_seat FOREIGN KEY (seat_id) REFERENCES seats(id)
 );
 
--- 16. INVOICE_ITEMS Table (For Products/F&B)
+-- 16. INVOICE_ITEMS Table
 CREATE TABLE IF NOT EXISTS invoice_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     invoice_id INT NOT NULL,
@@ -163,8 +164,8 @@ CREATE TABLE IF NOT EXISTS payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     invoice_id INT NOT NULL UNIQUE,
     amount DECIMAL(19, 2) NOT NULL,
-    method VARCHAR(50) NOT NULL, -- CASH, BANK_TRANSFER, MOMO
-    status VARCHAR(20) NOT NULL, -- PENDING, COMPLETED, FAILED
+    method VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL,
     CONSTRAINT fk_payments_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
 );
 
@@ -172,11 +173,10 @@ CREATE TABLE IF NOT EXISTS payments (
 -- SEED DATA
 -- ==========================================
 
--- 1. Users (Password is '1' hashed with BCrypt cost 12)
--- Note: Replace with a valid hash if these don't work for your setup
+-- 1. Users (pwd: '1')
 INSERT INTO users (username, password, role, full_name) VALUES 
-('admin', '$2a$12$Zp.mYyN07mPz9p6/S6gCduvW0pX5O7O7O7O7O7O7O7O7O7O7O7O7O7O', 'ADMIN', 'System Administrator'),
-('staff', '$2a$12$Zp.mYyN07mPz9p6/S6gCduvW0pX5O7O7O7O7O7O7O7O7O7O7O7O7O7O', 'STAFF', 'Cinema Staff 01');
+('admin', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'ADMIN', 'System Administrator'),
+('staff', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'STAFF', 'Cinema Staff 01');
 
 -- 2. Genres
 INSERT IGNORE INTO genres (name) VALUES 
@@ -193,12 +193,7 @@ INSERT IGNORE INTO movies (id, title, duration, status, poster_url) VALUES
 
 -- 4. Movie-Genre Mapping
 INSERT IGNORE INTO movie_genres (movie_id, genre_id) VALUES 
-(1, 1), (1, 5), -- Avatar: Action, Sci-Fi
-(2, 3), (2, 7), -- Oppenheimer: Drama, Thriller
-(3, 1), (3, 5), -- Dune: Action, Sci-Fi
-(4, 1), (4, 2), -- Deadpool: Action, Comedy
-(5, 6), (5, 2), -- Despicable Me: Animation, Comedy
-(6, 6), (6, 1); -- Spider-Man: Animation, Action
+(1, 1), (1, 5), (2, 3), (2, 7), (3, 1), (3, 5), (4, 1), (4, 2), (5, 6), (5, 2), (6, 6), (6, 1);
 
 -- 5. Rooms
 INSERT IGNORE INTO rooms (id, name, type) VALUES 
@@ -218,7 +213,7 @@ INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES
 INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES
 (5, 'A', 1, 'SWEETBOX'), (5, 'A', 2, 'SWEETBOX'), (5, 'A', 3, 'SWEETBOX');
 
--- 8. Showtimes (Lịch chiếu)
+-- 8. Showtimes
 INSERT IGNORE INTO showtimes (movie_id, room_id, start_time, end_time, base_price) VALUES 
 (1, 1, DATE_ADD(CURRENT_DATE, INTERVAL '10:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '13:12:00' HOUR_SECOND), 80000.00),
 (2, 3, DATE_ADD(CURRENT_DATE, INTERVAL '14:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '17:00:00' HOUR_SECOND), 120000.00),

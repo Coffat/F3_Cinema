@@ -49,7 +49,8 @@ public class MovieController {
             protected void done() {
                 try {
                     List<Movie> data = get();
-                    view.updateTableData(data); // Re-uses method name for compatibility
+                    System.out.println("=== DEBUG: Loaded " + data.size() + " movies ===");
+                    view.updateTableData(data);
                 } catch (Exception ex) {
                     view.showErrorMessage("⚠ Lỗi kết nối cơ sở dữ liệu: " + ex.getMessage());
                 } finally {
