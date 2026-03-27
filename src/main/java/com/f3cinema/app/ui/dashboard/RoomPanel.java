@@ -38,17 +38,18 @@ public class RoomPanel extends BaseDashboardModule {
 
         gridPanel = new JPanel();
         gridPanel.setOpaque(false);
-        gridPanel.setLayout(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 20, 20)); // WrapLayout fixes JScrollPane overflow
-        
+        gridPanel.setLayout(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 20, 20));
+
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(Color.decode("#1E293B")); // match contentBody gradient visually or just transparent
-        scrollPane.getViewport().setOpaque(false);
-        // Fix scrolling ghost artifact bounds
+        scrollPane.setOpaque(true);
+        // CRITICAL: opaque viewport with solid bg-main color so Swing erases
+        // previous frame before repainting — permanently fixes ghosting on scroll
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(new Color(15, 23, 42)); // Slate 900
         scrollPane.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
-        scrollPane.setOpaque(false);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        
+
         contentBody.add(scrollPane, BorderLayout.CENTER);
     }
     
