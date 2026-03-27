@@ -194,25 +194,33 @@ INSERT IGNORE INTO movies (id, title, duration, status, poster_url) VALUES
 -- 4. Movie-Genre Mapping
 INSERT IGNORE INTO movie_genres (movie_id, genre_id) VALUES 
 (1, 1), (1, 5), -- Avatar: Action, Sci-Fi
-(2, 3),         -- Oppenheimer: Drama
+(2, 3), (2, 7), -- Oppenheimer: Drama, Thriller
 (3, 1), (3, 5), -- Dune: Action, Sci-Fi
-(4, 1), (4, 5), -- Deadpool: Action, Sci-Fi
-(5, 2), (5, 6), -- Despicable Me: Comedy, Animation
-(6, 1), (6, 6); -- Spider-Man: Action, Animation
+(4, 1), (4, 2), -- Deadpool: Action, Comedy
+(5, 6), (5, 2), -- Despicable Me: Animation, Comedy
+(6, 6), (6, 1); -- Spider-Man: Animation, Action
 
 -- 5. Rooms
 INSERT IGNORE INTO rooms (id, name, type) VALUES 
-(1, 'Cinema 1 - IMAX', 'ROOM_IMAX'),
-(2, 'Cinema 2 - 3D', 'ROOM_3D'),
-(3, 'Cinema 3 - Standard', 'ROOM_2D');
+(1, 'Phòng 1', 'ROOM_2D'),
+(2, 'Phòng 2', 'ROOM_3D'),
+(3, 'Phòng 3', 'ROOM_IMAX'),
+(4, 'Phòng 4', 'ROOM_2D'),
+(5, 'Phòng 5 (SWEETBOX)', 'ROOM_2D');
 
--- 6. Sample Seats (Room 1)
-INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES 
-(1, 'A', 1, 'NORMAL'), (1, 'A', 2, 'NORMAL'), (1, 'A', 3, 'NORMAL'), (1, 'A', 4, 'NORMAL'),
-(1, 'B', 1, 'VIP'), (1, 'B', 2, 'VIP'), (1, 'B', 3, 'VIP'), (1, 'B', 4, 'VIP'),
-(1, 'C', 1, 'SWEETBOX'), (1, 'C', 2, 'SWEETBOX');
+-- 6. Seats (Room 1)
+INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES
+(1, 'A', 1, 'NORMAL'), (1, 'A', 2, 'NORMAL'), (1, 'A', 3, 'NORMAL'), (1, 'A', 4, 'NORMAL'), (1, 'A', 5, 'NORMAL'),
+(1, 'B', 1, 'NORMAL'), (1, 'B', 2, 'NORMAL'), (1, 'B', 3, 'NORMAL'), (1, 'B', 4, 'NORMAL'), (1, 'B', 5, 'NORMAL'),
+(1, 'C', 1, 'VIP'), (1, 'C', 2, 'VIP'), (1, 'C', 3, 'VIP'), (1, 'C', 4, 'VIP'), (1, 'C', 5, 'VIP');
 
--- 7. Sample Seats (Room 2)
-INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES 
-(2, 'A', 1, 'NORMAL'), (2, 'A', 2, 'NORMAL'), (2, 'A', 3, 'NORMAL'),
-(2, 'B', 1, 'VIP'), (2, 'B', 2, 'VIP'), (2, 'B', 3, 'VIP');
+-- 7. Seats (Room 5)
+INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES
+(5, 'A', 1, 'SWEETBOX'), (5, 'A', 2, 'SWEETBOX'), (5, 'A', 3, 'SWEETBOX');
+
+-- 8. Showtimes (Lịch chiếu)
+INSERT IGNORE INTO showtimes (movie_id, room_id, start_time, end_time, base_price) VALUES 
+(1, 1, DATE_ADD(CURRENT_DATE, INTERVAL '10:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '13:12:00' HOUR_SECOND), 80000.00),
+(2, 3, DATE_ADD(CURRENT_DATE, INTERVAL '14:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '17:00:00' HOUR_SECOND), 120000.00),
+(3, 2, DATE_ADD(CURRENT_DATE, INTERVAL '19:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '21:46:00' HOUR_SECOND), 100000.00),
+(4, 1, DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '20:00:00' HOUR_SECOND), DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '22:07:00' HOUR_SECOND), 90000.00);
