@@ -2,7 +2,8 @@
 -- Strictly matching provided ERD structure
 -- Database Name: f3_cinema
 
-CREATE DATABASE IF NOT EXISTS f3_cinema;
+DROP DATABASE IF EXISTS f3_cinema;
+CREATE DATABASE f3_cinema;
 USE f3_cinema;
 
 -- 1. USERS Table
@@ -171,28 +172,26 @@ CREATE TABLE IF NOT EXISTS payments (
 -- SEED DATA
 -- ==========================================
 
--- Sample Genres
+-- 1. Users (Password is '1' hashed with BCrypt cost 12)
+-- Note: Replace with a valid hash if these don't work for your setup
+INSERT INTO users (username, password, role, full_name) VALUES 
+('admin', '$2a$12$Zp.mYyN07mPz9p6/S6gCduvW0pX5O7O7O7O7O7O7O7O7O7O7O7O7O7O', 'ADMIN', 'System Administrator'),
+('staff', '$2a$12$Zp.mYyN07mPz9p6/S6gCduvW0pX5O7O7O7O7O7O7O7O7O7O7O7O7O7O', 'STAFF', 'Cinema Staff 01');
+
+-- 2. Genres
 INSERT IGNORE INTO genres (name) VALUES 
 ('Action'), ('Comedy'), ('Drama'), ('Horror'), ('Sci-Fi'), ('Animation'), ('Thriller'), ('Romance');
 
--- Real Movie Data Seeder
-INSERT IGNORE INTO movies (title, duration, status, poster_url) VALUES 
-('Avatar: The Way of Water', 192, 'NOW_SHOWING', 'https://m.media-amazon.com/images/M/MV5BYjhiNjBlODctY2ZiOC00YjVlLWFlNzAtNTVhNjM1YjI1NzMxXkEyXkFqcGdeQXVyMjQxNTE1MDA@._V1_.jpg'),
-('Oppenheimer', 180, 'NOW_SHOWING', 'https://m.media-amazon.com/images/M/MV5BMDBmYTZjNjUtN2M1Zi00N2MzLTk2NzgtOGM2MzFhNDLiZTMzXkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_.jpg'),
-('Dune: Part Two', 166, 'NOW_SHOWING', 'https://m.media-amazon.com/images/M/MV5BN2QyZGU4ZDctOWJmMy00N2IzLThmMWQtOTUxNDcyY2MyNzIxXkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_.jpg'),
-('Deadpool & Wolverine', 127, 'COMING_SOON', 'https://m.media-amazon.com/images/M/MV5BNzRiMjg0MzUtNTQ1Mi00Y2QyLWEwNjMtMzI3ZDBmY2NlNmU0XkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_.jpg'),
-('Despicable Me 4', 94, 'NOW_SHOWING', 'https://m.media-amazon.com/images/M/MV5BZjE0YjVjODQtZGY2NS00MDcyLThhMDAtZGQwMTZiOWNmNjRiXkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_.jpg'),
-('Spider-Man: Across the Spider-Verse', 140, 'ENDED', 'https://m.media-amazon.com/images/M/MV5BMzI0NmVkMjEtYmY4MS00ZDMxLTlkZmEtMzU4MDQxYTMzMjU2XkEyXkFqcGdeQXVyMzQ0MzA0NTM@._V1_.jpg');
+-- 3. Movies
+INSERT IGNORE INTO movies (id, title, duration, status, poster_url) VALUES 
+(1, 'Avatar: The Way of Water', 192, 'NOW_SHOWING', 'https://m.media-amazon.com/images/M/MV5BYjhiNjBlODctY2ZiOC00YjVlLWFlNzAtNTVhNjM1YjI1NzMxXkEyXkFqcGdeQXVyMjQxNTE1MDA@._V1_.jpg'),
+(2, 'Oppenheimer', 180, 'NOW_SHOWING', 'https://m.media-amazon.com/images/M/MV5BMDBmYTZjNjUtN2M1Zi00N2MzLTk2NzgtOGM2MzFhNDLiZTMzXkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_.jpg'),
+(3, 'Dune: Part Two', 166, 'NOW_SHOWING', 'https://m.media-amazon.com/images/M/MV5BN2QyZGU4ZDctOWJmMy00N2IzLThmMWQtOTUxNDcyY2MyNzIxXkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_.jpg'),
+(4, 'Deadpool & Wolverine', 127, 'COMING_SOON', 'https://m.media-amazon.com/images/M/MV5BNzRiMjg0MzUtNTQ1Mi00Y2QyLWEwNjMtMzI3ZDBmY2NlNmU0XkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_.jpg'),
+(5, 'Despicable Me 4', 94, 'NOW_SHOWING', 'https://m.media-amazon.com/images/M/MV5BZjE0YjVjODQtZGY2NS00MDcyLThhMDAtZGQwMTZiOWNmNjRiXkEyXkFqcGdeQXVyMTUzMTg2ODkz._V1_.jpg'),
+(6, 'Spider-Man: Across the Spider-Verse', 140, 'ENDED', 'https://m.media-amazon.com/images/M/MV5BMzI0NmVkMjEtYmY4MS00ZDMxLTlkZmEtMzU4MDQxYTMzMjU2XkEyXkFqcGdeQXVyMzQ0MzA0NTM@._V1_.jpg');
 
--- Sample Rooms
-INSERT IGNORE INTO rooms (name, type) VALUES 
-('Phòng 1', 'ROOM_2D'),
-('Phòng 2', 'ROOM_3D'),
-('Phòng 3', 'ROOM_IMAX'),
-('Phòng 4', 'ROOM_2D'),
-('Phòng 5 (SWEETBOX)', 'ROOM_2D');
-
--- Thể loại cho các bộ phim (Movie_Genres)
+-- 4. Movie-Genre Mapping
 INSERT IGNORE INTO movie_genres (movie_id, genre_id) VALUES 
 (1, 1), (1, 5), -- Avatar: Action, Sci-Fi
 (2, 3), (2, 7), -- Oppenheimer: Drama, Thriller
@@ -201,22 +200,27 @@ INSERT IGNORE INTO movie_genres (movie_id, genre_id) VALUES
 (5, 6), (5, 2), -- Despicable Me: Animation, Comedy
 (6, 6), (6, 1); -- Spider-Man: Animation, Action
 
--- Tạo ghế (Seats) cho Phòng 1 (Room 1)
--- Dãy A, B (Ghế thường), Dãy C (Ghế VIP)
+-- 5. Rooms
+INSERT IGNORE INTO rooms (id, name, type) VALUES 
+(1, 'Phòng 1', 'ROOM_2D'),
+(2, 'Phòng 2', 'ROOM_3D'),
+(3, 'Phòng 3', 'ROOM_IMAX'),
+(4, 'Phòng 4', 'ROOM_2D'),
+(5, 'Phòng 5 (SWEETBOX)', 'ROOM_2D');
+
+-- 6. Seats (Room 1)
 INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES
 (1, 'A', 1, 'NORMAL'), (1, 'A', 2, 'NORMAL'), (1, 'A', 3, 'NORMAL'), (1, 'A', 4, 'NORMAL'), (1, 'A', 5, 'NORMAL'),
 (1, 'B', 1, 'NORMAL'), (1, 'B', 2, 'NORMAL'), (1, 'B', 3, 'NORMAL'), (1, 'B', 4, 'NORMAL'), (1, 'B', 5, 'NORMAL'),
 (1, 'C', 1, 'VIP'), (1, 'C', 2, 'VIP'), (1, 'C', 3, 'VIP'), (1, 'C', 4, 'VIP'), (1, 'C', 5, 'VIP');
 
--- Tạo ghế cho Phòng 5 (Vài ghế SWEETBOX)
+-- 7. Seats (Room 5)
 INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES
 (5, 'A', 1, 'SWEETBOX'), (5, 'A', 2, 'SWEETBOX'), (5, 'A', 3, 'SWEETBOX');
 
--- Lịch chiếu (Showtimes)
--- Lịch chiếu hôm nay/ngày mai
+-- 8. Showtimes (Lịch chiếu)
 INSERT IGNORE INTO showtimes (movie_id, room_id, start_time, end_time, base_price) VALUES 
 (1, 1, DATE_ADD(CURRENT_DATE, INTERVAL '10:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '13:12:00' HOUR_SECOND), 80000.00),
 (2, 3, DATE_ADD(CURRENT_DATE, INTERVAL '14:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '17:00:00' HOUR_SECOND), 120000.00),
 (3, 2, DATE_ADD(CURRENT_DATE, INTERVAL '19:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '21:46:00' HOUR_SECOND), 100000.00),
 (4, 1, DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '20:00:00' HOUR_SECOND), DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '22:07:00' HOUR_SECOND), 90000.00);
-

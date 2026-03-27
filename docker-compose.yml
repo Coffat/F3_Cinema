@@ -14,9 +14,8 @@ services:
       MYSQL_PASSWORD: 'f3_password'
     ports:
       - '3306:3306'
-    # Gỡ bỏ volume persistent để DB được reset mỗi lần có thay đổi SQL
-    # volumes:
-    #   - f3_cinema_mysql_data:/var/lib/mysql
+    volumes:
+      - f3_cinema_mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       timeout: 20s
@@ -26,6 +25,6 @@ services:
         - action: rebuild
           path: ./src/main/resources/sql/init.sql
 
-# volumes:
-#   f3_cinema_mysql_data:
-#     driver: local
+volumes:
+  f3_cinema_mysql_data:
+    driver: local
