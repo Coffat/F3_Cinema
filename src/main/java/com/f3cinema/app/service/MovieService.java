@@ -1,7 +1,9 @@
 package com.f3cinema.app.service;
 
+import com.f3cinema.app.dto.dashboard.NowShowingRow;
 import com.f3cinema.app.entity.Movie;
 import com.f3cinema.app.entity.enums.MovieStatus;
+import com.f3cinema.app.repository.DashboardRepositoryImpl;
 import com.f3cinema.app.repository.MovieRepository;
 import com.f3cinema.app.repository.MovieRepositoryImpl;
 import lombok.extern.log4j.Log4j2;
@@ -103,6 +105,14 @@ public class MovieService {
      */
     public Optional<Movie> findById(Long id) {
         return movieRepository.findById(id);
+    }
+
+    /**
+     * Now-showing schedule with live status labels for the operations dashboard.
+     */
+    public List<NowShowingRow> getNowShowingSchedule() {
+        log.info("Fetching now showing schedule for dashboard");
+        return DashboardRepositoryImpl.getInstance().loadNowShowingSchedule();
     }
 
     // ---- Private Validation ----
