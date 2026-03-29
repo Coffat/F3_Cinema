@@ -12,11 +12,12 @@ import lombok.*;
 @AllArgsConstructor
 public class Inventory {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "product_id")
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @MapsId
+    @JoinColumn(name = "product_id")
     private Product product;
 
     @Column(name = "current_quantity", nullable = false)
