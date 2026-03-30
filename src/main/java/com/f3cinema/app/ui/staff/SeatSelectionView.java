@@ -83,12 +83,18 @@ public class SeatSelectionView extends JPanel {
         seatMapContainer = new JPanel();
         seatMapContainer.setBackground(BG_MAIN);
 
-        JScrollPane scrollPane = new JScrollPane(seatMapContainer);
+        // Bọc vào GridBagLayout để các ghế không bị kéo giãn theo toàn bộ không gian
+        JPanel wrapperPanel = new JPanel(new GridBagLayout());
+        wrapperPanel.setBackground(BG_MAIN);
+        wrapperPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Thêm không gian thở
+        wrapperPanel.add(seatMapContainer);
+
+        JScrollPane scrollPane = new JScrollPane(wrapperPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setBackground(BG_MAIN);
         scrollPane.getViewport().setBackground(BG_MAIN);
-        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
-        scrollPane.getHorizontalScrollBar().setPreferredSize(new Dimension(0, 0));
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         centerWrapper.add(scrollPane, BorderLayout.CENTER);
 
@@ -305,8 +311,8 @@ public class SeatSelectionView extends JPanel {
 
     private void renderSeatMap(List<SeatDTO> seats) {
         seatMapContainer.removeAll();
-        // Áp dụng lưới 10x16 chuẩn Form ảnh User cấp
-        seatMapContainer.setLayout(new GridLayout(10, 16, 6, 6));
+        // Lưới ghế với khoảng cách chuẩn ngang 10, dọc 10
+        seatMapContainer.setLayout(new GridLayout(10, 16, 10, 10));
         seatButtonsMap.clear();
 
         for (SeatDTO seat : seats) {
@@ -322,9 +328,11 @@ public class SeatSelectionView extends JPanel {
         // Build số theo cấu trúc Form. "02", "14", "160"
         String defaultLabel = String.format("%02d", seat.number());
         JToggleButton btn = new JToggleButton(defaultLabel);
+        btn.setPreferredSize(new Dimension(45, 45)); // Định kích thước cố định hình vuông cho ghế
         btn.setFont(new Font("Inter", Font.BOLD, 12));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; borderWidth: 0; focusWidth: 0;");
+        btn.setMargin(new Insets(0, 0, 0, 0)); // Xóa khoảng trắng mặc định bên trong nút để không bị chữ "..."
+        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; borderWidth: 0; focusWidth: 0; margin: 0,0,0,0; textShiftOffset: 0;");
 
         // Set Màu Nền & Màu Chữ
         Color baseColor = COLOR_NORMAL;
