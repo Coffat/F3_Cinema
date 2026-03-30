@@ -32,7 +32,15 @@ public class RoomService {
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
     }
-    
+
+    /** Lấy một Room theo ID — dùng nội bộ trong Service (không export cho UI). */
+    public Room getRoomById(Long id) {
+        if (id == null) return null;
+        return roomRepository.findAll().stream()
+                .filter(r -> r.getId().equals(id))
+                .findFirst().orElse(null);
+    }
+
     public List<Seat> getSeatsByRoom(Long roomId) {
         return seatRepository.findByRoomId(roomId);
     }

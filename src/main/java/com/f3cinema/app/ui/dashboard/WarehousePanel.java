@@ -15,6 +15,9 @@ public class WarehousePanel extends BaseDashboardModule {
     private JTable historyTable;
     private DefaultTableModel historyModel;
 
+    private SwingWorker<List<ProductDTO>, Void> inventoryWorker;
+    private SwingWorker<List<com.f3cinema.app.dto.StockReceiptSummaryDTO>, Void> historyWorker;
+
     public WarehousePanel() {
         super("Kho & Sản phẩm", "Home > Warehouse & Products");
         initUI();
@@ -120,8 +123,12 @@ public class WarehousePanel extends BaseDashboardModule {
     }
 
     public void loadInventoryData() {
+        if (inventoryWorker != null && !inventoryWorker.isDone()) {
+            inventoryWorker.cancel(true);
+        }
+
         // Sử dụng SwingWorker để trách giật lag UI Thread
-        new SwingWorker<List<ProductDTO>, Void>() {
+        inventoryWorker = new SwingWorker<List<ProductDTO>, Void>() {
             @Override
             protected List<ProductDTO> doInBackground() throws Exception {
                 // Background thread: Call DB
@@ -130,6 +137,7 @@ public class WarehousePanel extends BaseDashboardModule {
 
             @Override
             protected void done() {
+                if (isCancelled()) return;
                 try {
                     List<ProductDTO> products = get();
                     productTableModel.setRowCount(0); // clear
@@ -150,14 +158,19 @@ public class WarehousePanel extends BaseDashboardModule {
                             "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
-        }.execute();
+        };
+        inventoryWorker.execute();
     }
 
     public void loadHistoryData() {
         if (historyModel == null)
             return;
 
-        new SwingWorker<List<com.f3cinema.app.dto.StockReceiptSummaryDTO>, Void>() {
+        if (historyWorker != null && !historyWorker.isDone()) {
+            historyWorker.cancel(true);
+        }
+
+        historyWorker = new SwingWorker<List<com.f3cinema.app.dto.StockReceiptSummaryDTO>, Void>() {
             @Override
             protected List<com.f3cinema.app.dto.StockReceiptSummaryDTO> doInBackground() throws Exception {
                 return com.f3cinema.app.service.impl.StockReceiptServiceImpl.getInstance().getAllReceipts();
@@ -165,6 +178,7 @@ public class WarehousePanel extends BaseDashboardModule {
 
             @Override
             protected void done() {
+                if (isCancelled()) return;
                 try {
                     List<com.f3cinema.app.dto.StockReceiptSummaryDTO> receipts = get();
                     historyModel.setRowCount(0);
@@ -186,7 +200,8 @@ public class WarehousePanel extends BaseDashboardModule {
                             "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
-        }.execute();
+        };
+        historyWorker.execute();
     }
 
     private JTable createStyledTable(DefaultTableModel model) {

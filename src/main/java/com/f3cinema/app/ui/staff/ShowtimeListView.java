@@ -23,6 +23,7 @@ public class ShowtimeListView extends JPanel {
     private JComboBox<com.f3cinema.app.entity.Room> cbRooms;
     private LocalDate selectedDate = LocalDate.now();
     private JPanel listPanel;
+    private SwingWorker<List<ShowtimeSummaryDTO>, Void> currentWorker;
 
     // ── Design Tokens ───────────────────────────────────────────────
     private static final Color BG_MAIN        = new Color(0x0F172A);  // Slate 900
@@ -175,6 +176,10 @@ public class ShowtimeListView extends JPanel {
      * Tải danh sách suất chiếu bất đồng bộ (SwingWorker) sử dụng các bộ lọc.
      */
     private void loadShowtimesData() {
+        if (currentWorker != null && !currentWorker.isDone()) {
+            currentWorker.cancel(true);
+        }
+
         // Sử dụng biến đã cập nhật từ thanh chọn ngày, phim và phòng
         final LocalDate finalFilterDate = this.selectedDate;
         
@@ -184,11 +189,7 @@ public class ShowtimeListView extends JPanel {
         com.f3cinema.app.entity.Room selectedRoom = (com.f3cinema.app.entity.Room) cbRooms.getSelectedItem();
         final Long finalRoomId = (selectedRoom != null) ? selectedRoom.getId() : null;
 
-        listPanel.removeAll();
-        listPanel.revalidate();
-        listPanel.repaint();
-
-        new SwingWorker<List<ShowtimeSummaryDTO>, Void>() {
+        currentWorker = new SwingWorker<List<ShowtimeSummaryDTO>, Void>() {
             @Override
             protected List<ShowtimeSummaryDTO> doInBackground() throws Exception {
                 return ShowtimeService.getInstance().getShowtimesForUI(finalFilterDate, finalMovieId, finalRoomId);
@@ -196,8 +197,11 @@ public class ShowtimeListView extends JPanel {
 
             @Override
             protected void done() {
+                if (isCancelled()) return;
                 try {
                     List<ShowtimeSummaryDTO> results = get();
+                    
+                    listPanel.removeAll();
                     if (results.isEmpty()) {
                         JLabel lblEmpty = new JLabel("Không có suất chiếu nào cho ngày này.");
                         lblEmpty.setForeground(TEXT_SECONDARY);
@@ -217,7 +221,8 @@ public class ShowtimeListView extends JPanel {
                     JOptionPane.showMessageDialog(ShowtimeListView.this, "Lỗi khi tải dữ liệu suất chiếu từ máy chủ.", "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
                 }
             }
-        }.execute();
+        };
+        currentWorker.execute();
     }
 
     /**

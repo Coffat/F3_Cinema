@@ -41,6 +41,14 @@ public class MovieService {
         return movieRepository.findAll();
     }
 
+    /** Lấy một Movie theo ID — dùng nội bộ trong Service (không export cho UI). */
+    public Movie getMovieById(Long id) {
+        if (id == null) return null;
+        return movieRepository.findAll().stream()
+                .filter(m -> m.getId().equals(id))
+                .findFirst().orElse(null);
+    }
+
     /**
      * Search movies by title keyword (debounced from UI).
      */
