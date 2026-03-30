@@ -155,10 +155,11 @@ public class RoomDialog extends JDialog {
             return;
         }
         Room r = new Room();
+        RoomService service = RoomService.getInstance();
         r.setName(txtName.getText());
         r.setRoomType((RoomType) cbType.getSelectedItem());
         
-        new RoomService().saveRoomWithSeats(r, (int)spinRows.getValue(), (int)spinCols.getValue());
+        service.saveRoomWithSeats(r, (int)spinRows.getValue(), (int)spinCols.getValue());
         parent.loadData();
         dispose();
     }

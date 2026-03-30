@@ -15,9 +15,20 @@ import java.util.List;
 
 @Log4j2
 public class RoomService {
+    // Singleton Instance
+    private static RoomService instance;
+
     private final RoomRepository roomRepository = new RoomRepositoryImpl();
     private final SeatRepository seatRepository = new SeatRepositoryImpl();
 
+    private RoomService() {}
+
+    public static synchronized RoomService getInstance() {
+        if (instance == null) {
+            instance = new RoomService();
+        }
+        return instance;
+    }
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
     }

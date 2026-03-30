@@ -59,11 +59,13 @@ public class TicketingServiceImpl implements TicketingService {
 
     @Override
     public ShowtimeSummaryDTO getShowtimeSummary(Long showtimeId) {
+        LocalDateTime start = LocalDateTime.now().plusHours(2);
         return new ShowtimeSummaryDTO(
             showtimeId != null ? showtimeId : 101L,
             "Lật Mặt 7: Một Điều Ước",
             "Phòng 1 (IMAX)",
-            LocalDateTime.now().plusHours(2), 
+            start,
+            start.plusMinutes(120),
             50000.0
         );
     }

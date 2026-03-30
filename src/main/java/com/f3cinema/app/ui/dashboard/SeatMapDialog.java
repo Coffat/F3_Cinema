@@ -11,7 +11,7 @@ import java.awt.*;
 import java.util.List;
 
 public class SeatMapDialog extends JDialog {
-    private final RoomService roomService = new RoomService();
+    private final RoomService roomService = RoomService.getInstance();
     private final Long roomId;
     private JPanel mapPanel;
     

@@ -1,5 +1,6 @@
 package com.f3cinema.app.service;
 
+import com.f3cinema.app.dto.MovieSummaryDTO;
 import com.f3cinema.app.entity.Movie;
 import com.f3cinema.app.entity.enums.MovieStatus;
 import com.f3cinema.app.repository.MovieRepository;
@@ -103,6 +104,15 @@ public class MovieService {
      */
     public Optional<Movie> findById(Long id) {
         return movieRepository.findById(id);
+    }
+
+    /**
+     * Trả về danh sách phim rút gọn (ID và Title) chuyên dùng cho ComboBox UI.
+     */
+    public List<MovieSummaryDTO> getMovieSummaries() {
+        return getAllMovies().stream()
+                .map(m -> new MovieSummaryDTO(m.getId(), m.getTitle()))
+                .collect(java.util.stream.Collectors.toList());
     }
 
     // ---- Private Validation ----

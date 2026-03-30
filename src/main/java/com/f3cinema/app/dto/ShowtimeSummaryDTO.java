@@ -6,6 +6,7 @@ public record ShowtimeSummaryDTO(
     Long showtimeId,
     String movieTitle,
     String roomName,
-    LocalDateTime startTime,
+    java.time.LocalDateTime startTime,
+    java.time.LocalDateTime endTime,
     double basePrice
 ) {}
