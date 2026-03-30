@@ -20,89 +20,70 @@ public class ShowtimeListView extends JPanel {
 
     private final TicketingPanel navigator;
     private JComboBox<MovieSummaryDTO> cbMovies;
-    private JComboBox<LocalDate> cbDate;
+    private JComboBox<com.f3cinema.app.entity.Room> cbRooms;
+    private LocalDate selectedDate = LocalDate.now();
     private JPanel listPanel;
-    private static final DateTimeFormatter DISPLAY_FORMATTER = DateTimeFormatter.ofPattern("EEEE, dd/MM");
 
     // ── Design Tokens ───────────────────────────────────────────────
     private static final Color BG_MAIN        = new Color(0x0F172A);  // Slate 900
     private static final Color BG_SURFACE     = new Color(0x1E293B);  // Slate 800
-    private static final Color TEXT_PRIMARY   = new Color(0xF8FAFC);  // Slate 50
     private static final Color TEXT_SECONDARY = new Color(0x94A3B8);  // Slate 400
     private static final Color ACCENT_PRIMARY = new Color(0x6366F1);  // Indigo 500
 
     public ShowtimeListView(TicketingPanel navigator) {
         this.navigator = navigator;
         initLayout();
-        loadMoviesToComboBox(); // Bước 1: Load danh sách phim thật
-        loadShowtimesData();    // Bước 2: Load suất chiếu mặc định (Async)
+        loadMoviesToComboBox();
+        loadRoomsToComboBox();
+        loadShowtimesData();
     }
 
     private void initLayout() {
-        // 1. Áp dụng BorderLayout
         setLayout(new BorderLayout(0, 24));
         setOpaque(false);
-        setBorder(new EmptyBorder(10, 0, 10, 0)); // Padding nhẹ
+        setBorder(new EmptyBorder(10, 0, 10, 0));
 
         // ──────────────────────────────────────────────────────────────────
-        // 2. Vùng NORTH: Bộ Toolbar (Lọc Phim & Ngày chiếu)
+        // 2. Vùng NORTH: Bộ Toolbar (Date Strip & Lọc Phim)
         // ──────────────────────────────────────────────────────────────────
-        JPanel topFilterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
-        topFilterPanel.setOpaque(false);
+        JPanel northPanel = new JPanel(new BorderLayout(0, 16));
+        northPanel.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Lịch chiếu ngày:");
-        lblTitle.setFont(new Font("Inter", Font.BOLD, 16));
-        lblTitle.setForeground(TEXT_PRIMARY);
+        // Hàng 1: Thanh chọn ngày ngang (Date Strip)
+        northPanel.add(createDateStripPanel(), BorderLayout.NORTH);
 
-        // Ô Chọn Ngày (Thay thế TextField nhập liệu)
-        cbDate = new JComboBox<>();
-        cbDate.setPreferredSize(new Dimension(180, 38));
-        cbDate.setFont(new Font("Inter", Font.BOLD, 14));
-        cbDate.putClientProperty(FlatClientProperties.STYLE, "arc: 12; focusWidth: 2;");
-        
-        // Nạp 14 ngày kể từ hôm nay
-        for (int i = 0; i < 14; i++) {
-            cbDate.addItem(LocalDate.now().plusDays(i));
-        }
-        
-        // Renderer giúp hiển thị ngày "Thứ 2, 30/03" thay vì ISO date
-        cbDate.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof LocalDate date) {
-                    setText(date.format(DISPLAY_FORMATTER));
-                }
-                return this;
-            }
-        });
-        
-        // Tự động tải lại khi chọn ngày khác
-        cbDate.addActionListener(e -> loadShowtimesData());
+        // Hàng 2: Lọc Phim & Phòng & Tìm kiếm
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        filterRow.setOpaque(false);
 
-        // Combo Box chọn phim (Sử dụng Record DTO)
         cbMovies = new JComboBox<>();
-        cbMovies.setPreferredSize(new Dimension(240, 38));
-        cbMovies.setFont(new Font("Inter", Font.PLAIN, 14));
-        cbMovies.putClientProperty(FlatClientProperties.STYLE, "arc: 12; focusWidth: 2;");
-        cbMovies.addActionListener(e -> loadShowtimesData()); // Auto-reload khi đổi phim
+        cbMovies.setPreferredSize(new Dimension(220, 42));
+        cbMovies.setFont(new Font("Inter", Font.PLAIN, 15));
+        cbMovies.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #1E293B; foreground: #F8FAFC; borderWidth: 0;");
+        cbMovies.addActionListener(e -> loadShowtimesData());
 
-        // Nút Tìm Kiếm
-        JButton btnSearch = new JButton("Tìm kiếm");
-        btnSearch.addActionListener(e -> loadShowtimesData()); // Trigger tải lại dữ liệu khi bấm nút
+        cbRooms = new JComboBox<>();
+        cbRooms.setPreferredSize(new Dimension(180, 42));
+        cbRooms.setFont(new Font("Inter", Font.PLAIN, 15));
+        cbRooms.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #1E293B; foreground: #F8FAFC; borderWidth: 0;");
+        cbRooms.addActionListener(e -> loadShowtimesData());
+
+        JButton btnSearch = new JButton("Làm mới");
+        btnSearch.addActionListener(e -> loadShowtimesData());
         btnSearch.setFont(new Font("Inter", Font.BOLD, 14));
         btnSearch.setForeground(Color.WHITE);
-        btnSearch.setBackground(ACCENT_PRIMARY);
-        btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnSearch.setPreferredSize(new Dimension(120, 38));
-        btnSearch.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0; focusWidth: 0;");
+        btnSearch.setBackground(BG_SURFACE);
+        btnSearch.setPreferredSize(new Dimension(120, 42));
+        btnSearch.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0;");
 
-        topFilterPanel.add(lblTitle);
-        topFilterPanel.add(cbDate);
-        topFilterPanel.add(cbMovies);
-        topFilterPanel.add(btnSearch);
+        filterRow.add(new JLabel("<html><font color='#94A3B8'>Phim:</font></html>"));
+        filterRow.add(cbMovies);
+        filterRow.add(new JLabel("<html><font color='#94A3B8'>Phòng:</font></html>"));
+        filterRow.add(cbRooms);
+        filterRow.add(btnSearch);
 
-        add(topFilterPanel, BorderLayout.NORTH);
+        northPanel.add(filterRow, BorderLayout.CENTER);
+        add(northPanel, BorderLayout.NORTH);
 
         // ──────────────────────────────────────────────────────────────────
         // 3. Vùng CENTER: Hiển thị Suất Chiếu bằng WrapLayout
@@ -111,51 +92,106 @@ public class ShowtimeListView extends JPanel {
         listPanel.setBackground(BG_MAIN);
         listPanel.setOpaque(true); 
 
-        // Bọc vào Scroll Pane an toàn, ẩn viền
         JScrollPane scrollPane = new JScrollPane(listPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.setBackground(BG_MAIN);
         scrollPane.getViewport().setBackground(BG_MAIN);
-        // Tắt scroll ngang, thanh scroll dọc tự biến mất nếu chưa cần cuộn
         scrollPane.getHorizontalScrollBar().setPreferredSize(new Dimension(0, 0));
         scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
 
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    /**
-     * Tải danh sách phim từ Service và đưa vào ComboBox.
-     */
+    private JPanel createDateStripPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(0, 4, 10, 0));
+
+        ButtonGroup group = new ButtonGroup();
+        // Sử dụng Java 19+ Locale.of hoặc Locale.forLanguageTag để tránh Deprecated
+        DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("EEEE", java.util.Locale.forLanguageTag("vi-VN"));
+        DateTimeFormatter dateStrFormatter = DateTimeFormatter.ofPattern("dd/MM");
+
+        for (int i = 0; i < 7; i++) {
+            LocalDate date = LocalDate.now().plusDays(i);
+            String dayName = (i == 0) ? "Hôm nay" : date.format(dayFormatter);
+            String label = "<html><center>" + dayName + "<br><font size='4'><b>" + date.format(dateStrFormatter) + "</b></font></center></html>";
+
+            JToggleButton btn = new JToggleButton(label);
+            btn.setPreferredSize(new Dimension(110, 65));
+            btn.setFont(new Font("Inter", Font.PLAIN, 13));
+            btn.setFocusPainted(false);
+            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            
+            // Indigo style cho nút được chọn
+            btn.putClientProperty(FlatClientProperties.STYLE, 
+                "arc: 16; " +
+                "background: #1E293B; " +
+                "foreground: #94A3B8; " +
+                "selectedBackground: #6366F1; " +
+                "selectedForeground: #FFFFFF; " +
+                "borderWidth: 0; " +
+                "innerFocusWidth: 0;"
+            );
+
+            if (i == 0) btn.setSelected(true);
+
+            btn.addActionListener(e -> {
+                this.selectedDate = date;
+                loadShowtimesData();
+            });
+
+            group.add(btn);
+            panel.add(btn);
+        }
+        return panel;
+    }
+
     private void loadMoviesToComboBox() {
         List<MovieSummaryDTO> movies = MovieService.getInstance().getMovieSummaries();
-        cbMovies.addItem(new MovieSummaryDTO(null, "Tất cả các phim")); // Option mặc định
+        cbMovies.addItem(new MovieSummaryDTO(null, "Tất cả các phim"));
         for (MovieSummaryDTO m : movies) {
             cbMovies.addItem(m);
         }
     }
 
+    private void loadRoomsToComboBox() {
+        cbRooms.addItem(null); // Option "Tất cả phòng"
+        cbRooms.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value == null) setText("Tất cả phòng");
+                else if (value instanceof com.f3cinema.app.entity.Room r) setText(r.getName());
+                return this;
+            }
+        });
+        for (com.f3cinema.app.entity.Room r : com.f3cinema.app.service.RoomService.getInstance().getAllRooms()) {
+            cbRooms.addItem(r);
+        }
+    }
+
     /**
-     * Tải danh sách suất chiếu bất đồng bộ (SwingWorker) để tránh block UI.
-     * Tuân thủ Frontend Style Guide: Async Processing & Zero Latency.
+     * Tải danh sách suất chiếu bất đồng bộ (SwingWorker) sử dụng các bộ lọc.
      */
     private void loadShowtimesData() {
-        // 1. Lấy điều kiện lọc (Không cần parse từ text nữa, lấy trực tiếp object)
-        LocalDate selectedDate = (LocalDate) cbDate.getSelectedItem();
-        if (selectedDate == null) return;
-
+        // Sử dụng biến đã cập nhật từ thanh chọn ngày, phim và phòng
+        final LocalDate finalFilterDate = this.selectedDate;
+        
         MovieSummaryDTO selectedMovie = (MovieSummaryDTO) cbMovies.getSelectedItem();
-        Long movieId = (selectedMovie != null) ? selectedMovie.id() : null;
+        final Long finalMovieId = (selectedMovie != null) ? selectedMovie.id() : null;
 
-        // 2. Xóa danh sách cũ
+        com.f3cinema.app.entity.Room selectedRoom = (com.f3cinema.app.entity.Room) cbRooms.getSelectedItem();
+        final Long finalRoomId = (selectedRoom != null) ? selectedRoom.getId() : null;
+
         listPanel.removeAll();
         listPanel.revalidate();
         listPanel.repaint();
 
-        // 3. Thực thi truy vấn ngầm (Background Thread)
         new SwingWorker<List<ShowtimeSummaryDTO>, Void>() {
             @Override
             protected List<ShowtimeSummaryDTO> doInBackground() throws Exception {
-                return ShowtimeService.getInstance().getShowtimesForUI(selectedDate, movieId);
+                return ShowtimeService.getInstance().getShowtimesForUI(finalFilterDate, finalMovieId, finalRoomId);
             }
 
             @Override

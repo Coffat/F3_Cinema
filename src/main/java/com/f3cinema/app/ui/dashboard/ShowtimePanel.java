@@ -23,10 +23,10 @@ public class ShowtimePanel extends BaseDashboardModule {
     private JTable showtimeTable;
     private DefaultTableModel tableModel;
     private JComboBox<MovieSummaryDTO> cbMovies;
-    private JComboBox<LocalDate> cbDate;
+    private JComboBox<com.f3cinema.app.entity.Room> cbRooms;
+    private JSpinner spinnerDate;
     private final ShowtimeController controller;
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-    private static final DateTimeFormatter DISPLAY_DATE_FORMATTER = DateTimeFormatter.ofPattern("EEEE, dd/MM");
 
     public ShowtimePanel() {
         super("Quản lý Lịch chiếu", "Home > Showtime Management");
@@ -60,54 +60,86 @@ public class ShowtimePanel extends BaseDashboardModule {
     }
 
     private JPanel createToolbar() {
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 12));
+        JPanel toolbar = new JPanel();
+        toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.X_AXIS));
         toolbar.setOpaque(false);
+        toolbar.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
 
-        // Lọc ngày
-        cbDate = new JComboBox<>();
-        cbDate.setPreferredSize(new Dimension(180, 40));
-        for (int i = 0; i < 14; i++) {
-            cbDate.addItem(LocalDate.now().plusDays(i));
-        }
-        cbDate.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof LocalDate date) setText(date.format(DISPLAY_DATE_FORMATTER));
-                return this;
-            }
-        });
-        cbDate.addActionListener(e -> controller.loadShowtimes(getSelectedDate(), getSelectedMovieId()));
+        // 1. Cụm bên trái (Bộ lọc)
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        leftPanel.setOpaque(false);
 
-        // Lọc phim
+        // Date Picker (JSpinner + SpinnerDateModel)
+        spinnerDate = new JSpinner(new SpinnerDateModel());
+        spinnerDate.setValue(new java.util.Date()); // Đảm bảo lấy ngày giờ hiện tại của hệ thống
+        JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(spinnerDate, "dd/MM/yyyy");
+        spinnerDate.setEditor(dateEditor);
+        styleToolbarComponent(spinnerDate, 140);
+        spinnerDate.addChangeListener(e -> controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId()));
+
+        // Phim filter
         cbMovies = new JComboBox<>();
-        cbMovies.setPreferredSize(new Dimension(220, 40));
-        cbMovies.addActionListener(e -> controller.loadShowtimes(getSelectedDate(), getSelectedMovieId()));
+        styleToolbarComponent(cbMovies, 200);
+        cbMovies.addActionListener(e -> controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId()));
 
-        // Nút thêm mới
+        // Phòng filter
+        cbRooms = new JComboBox<>();
+        styleToolbarComponent(cbRooms, 180);
+        cbRooms.addActionListener(e -> controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId()));
+
+        leftPanel.add(new JLabel("📅"));
+        leftPanel.add(spinnerDate);
+        leftPanel.add(new JLabel("🎬"));
+        leftPanel.add(cbMovies);
+        leftPanel.add(new JLabel("🏠"));
+        leftPanel.add(cbRooms);
+
+        // 2. Cụm bên phải (Hành động)
         JButton btnAdd = new JButton("+ Thêm suất chiếu");
-        btnAdd.setBackground(Color.decode("#6366F1"));
+        btnAdd.setBackground(Color.decode("#6366F1")); // Indigo 500
         btnAdd.setForeground(Color.WHITE);
         btnAdd.setFont(new Font("Inter", Font.BOLD, 14));
         btnAdd.setPreferredSize(new Dimension(180, 40));
+        btnAdd.setMaximumSize(new Dimension(180, 40));
         btnAdd.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0;");
         btnAdd.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnAdd.addActionListener(e -> controller.handleAddAction());
 
-        toolbar.add(new JLabel("Ngày:"));
-        toolbar.add(cbDate);
-        toolbar.add(new JLabel("Phim:"));
-        toolbar.add(cbMovies);
-        toolbar.add(Box.createHorizontalStrut(20));
+        toolbar.add(leftPanel);
+        toolbar.add(Box.createHorizontalGlue()); // Đẩy nút thêm về bên phải
         toolbar.add(btnAdd);
 
         return toolbar;
     }
 
+    private void styleToolbarComponent(JComponent c, int width) {
+        c.setPreferredSize(new Dimension(width, 40));
+        c.setMaximumSize(new Dimension(width, 40));
+        c.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #1E293B; foreground: #FFFFFF; borderWidth: 0;");
+        c.setFont(new Font("Inter", Font.PLAIN, 14));
+    }
+
     private void loadMoviesToComboBox() {
-        List<MovieSummaryDTO> movies = MovieService.getInstance().getMovieSummaries();
+        // Load Phim
         cbMovies.addItem(new MovieSummaryDTO(null, "Tất cả các phim"));
-        for (MovieSummaryDTO m : movies) cbMovies.addItem(m);
+        for (MovieSummaryDTO m : MovieService.getInstance().getMovieSummaries()) {
+            cbMovies.addItem(m);
+        }
+        
+        // Load Phòng
+        cbRooms.addItem(null); // Placeholder cho "Tất cả phòng"
+        cbRooms.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value == null) setText("Tất cả phòng");
+                else if (value instanceof com.f3cinema.app.entity.Room r) setText(r.getName());
+                return this;
+            }
+        });
+        for (com.f3cinema.app.entity.Room r : com.f3cinema.app.service.RoomService.getInstance().getAllRooms()) {
+            cbRooms.addItem(r);
+        }
     }
 
     private JTable createStyledTable(DefaultTableModel model) {
@@ -192,9 +224,18 @@ public class ShowtimePanel extends BaseDashboardModule {
         JOptionPane.showMessageDialog(this, msg, "Lỗi Quản lý Suất chiếu", JOptionPane.ERROR_MESSAGE);
     }
 
-    public LocalDate getSelectedDate() { return (LocalDate) cbDate.getSelectedItem(); }
+    public LocalDate getSelectedDate() { 
+        java.util.Date date = (java.util.Date) spinnerDate.getValue();
+        return date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+    }
+    
     public Long getSelectedMovieId() {
         MovieSummaryDTO selected = (MovieSummaryDTO) cbMovies.getSelectedItem();
         return (selected != null) ? selected.id() : null;
+    }
+
+    public Long getSelectedRoomId() {
+        com.f3cinema.app.entity.Room selected = (com.f3cinema.app.entity.Room) cbRooms.getSelectedItem();
+        return (selected != null) ? selected.getId() : null;
     }
 }

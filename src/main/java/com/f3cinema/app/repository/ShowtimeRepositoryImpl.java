@@ -19,19 +19,21 @@ public class ShowtimeRepositoryImpl extends BaseRepositoryImpl<Showtime, Long> i
     }
 
     @Override
-    public List<Showtime> findByFilter(LocalDate date, Long movieId) {
+    public List<Showtime> findByFilter(LocalDate date, Long movieId, Long roomId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             LocalDateTime startOfDay = date.atStartOfDay();
             LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
 
             StringBuilder hql = new StringBuilder("SELECT s FROM Showtime s ");
-            // Tối ưu hiệu năng bằng JOIN FETCH
             hql.append("JOIN FETCH s.movie ");
             hql.append("JOIN FETCH s.room ");
             hql.append("WHERE s.startTime >= :start AND s.startTime <= :end ");
 
             if (movieId != null) {
                 hql.append("AND s.movie.id = :movieId ");
+            }
+            if (roomId != null) {
+                hql.append("AND s.room.id = :roomId ");
             }
             
             hql.append("ORDER BY s.startTime ASC");
@@ -43,9 +45,13 @@ public class ShowtimeRepositoryImpl extends BaseRepositoryImpl<Showtime, Long> i
             if (movieId != null) {
                 query.setParameter("movieId", movieId);
             }
+            if (roomId != null) {
+                query.setParameter("roomId", roomId);
+            }
 
             return query.getResultList();
-        } catch (Exception e) {
+        }
+ catch (Exception e) {
             throw new RuntimeException("Lỗi khi truy vấn danh sách suất chiếu từ Database", e);
         }
     }

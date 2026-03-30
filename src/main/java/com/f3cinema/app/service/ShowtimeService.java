@@ -34,9 +34,9 @@ public class ShowtimeService {
     /**
      * Lấy danh sách suất chiếu rút gọn cho UI theo ngày và phim.
      */
-    public List<ShowtimeSummaryDTO> getShowtimesForUI(LocalDate date, Long movieId) {
-        log.info("Fetching showtimes for date: {} and movieId: {}", date, movieId);
-        List<Showtime> showtimes = showtimeRepository.findByFilter(date, movieId);
+    public List<ShowtimeSummaryDTO> getShowtimesForUI(LocalDate date, Long movieId, Long roomId) {
+        log.info("Fetching showtimes for date: {}, movieId: {}, roomId: {}", date, movieId, roomId);
+        List<Showtime> showtimes = showtimeRepository.findByFilter(date, movieId, roomId);
         
         return showtimes.stream()
                 .map(this::mapToSummaryDTO)

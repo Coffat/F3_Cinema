@@ -25,17 +25,17 @@ public class ShowtimeController {
     }
 
     public void init() {
-        loadShowtimes(LocalDate.now(), null);
+        loadShowtimes(LocalDate.now(), null, null);
     }
 
-    public void loadShowtimes(LocalDate date, Long movieId) {
+    public void loadShowtimes(LocalDate date, Long movieId, Long roomId) {
         view.setLoadingState(true);
 
         new SwingWorker<List<Showtime>, Void>() {
             @Override
             protected List<Showtime> doInBackground() {
-                // Sử dụng repository để lấy entity thô cho admin quản lý
-                return new com.f3cinema.app.repository.ShowtimeRepositoryImpl().findByFilter(date, movieId);
+                // Sử dụng DAO trực tiếp để lấy entity thô cho admin quản lý
+                return new com.f3cinema.app.repository.ShowtimeRepositoryImpl().findByFilter(date, movieId, roomId);
             }
 
             @Override
@@ -60,7 +60,7 @@ public class ShowtimeController {
         ShowtimeDialog dialog = new ShowtimeDialog(owner, null);
         dialog.setVisible(true);
         if (dialog.isSaved()) {
-            loadShowtimes(view.getSelectedDate(), view.getSelectedMovieId());
+            loadShowtimes(view.getSelectedDate(), view.getSelectedMovieId(), view.getSelectedRoomId());
         }
     }
 
@@ -70,7 +70,7 @@ public class ShowtimeController {
         ShowtimeDialog dialog = new ShowtimeDialog(owner, selected);
         dialog.setVisible(true);
         if (dialog.isSaved()) {
-            loadShowtimes(view.getSelectedDate(), view.getSelectedMovieId());
+            loadShowtimes(view.getSelectedDate(), view.getSelectedMovieId(), view.getSelectedRoomId());
         }
     }
 
@@ -84,7 +84,7 @@ public class ShowtimeController {
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 showtimeService.deleteShowtime(selected.getId());
-                loadShowtimes(view.getSelectedDate(), view.getSelectedMovieId());
+                loadShowtimes(view.getSelectedDate(), view.getSelectedMovieId(), view.getSelectedRoomId());
             } catch (Exception ex) {
                 view.showErrorMessage("Lỗi khi xóa: " + ex.getMessage());
             }

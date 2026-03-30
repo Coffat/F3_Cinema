@@ -12,9 +12,10 @@ public interface ShowtimeRepository extends BaseRepository<Showtime, Long> {
      * Tìm kiếm suất chiếu dựa trên ngày và phim.
      * @param date Ngày cần lọc
      * @param movieId ID của phim (null nếu muốn lấy tất cả phim)
+     * @param roomId ID của phòng (null nếu lấy tất cả)
      * @return Danh sách suất chiếu thỏa mãn điều kiện
      */
-    List<Showtime> findByFilter(LocalDate date, Long movieId);
+    List<Showtime> findByFilter(LocalDate date, Long movieId, Long roomId);
 
     /**
      * Kiểm tra xem suất chiếu mới có bị trùng lịch với bất kỳ suất nào khác trong cùng phòng không.
