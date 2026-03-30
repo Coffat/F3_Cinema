@@ -126,7 +126,6 @@ public class StaffNavbarPanel extends JPanel {
 
     private JPopupMenu createUserMenu() {
         JPopupMenu menu = new JPopupMenu();
-        menu.putClientProperty(FlatClientProperties.STYLE, "arc: 16;");
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setBackground(Color.decode("#1E293B"));
         header.setBorder(new EmptyBorder(12, 16, 12, 16));

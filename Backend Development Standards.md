@@ -40,7 +40,13 @@ một Transaction.
 Inventory.currentQuantity.
 ```
 
-## 3. Design Patterns ứng dụng (Mandatory)
+## 3. Design Patterns ứng dụng (Quy Tắc Bắt Buộc)
+
+> **QUY TẮC CỐT LÕI (MANDATORY YET PRAGMATIC):**
+> Việc áp dụng Design Pattern trong dự án là **bắt buộc khi cần thiết**, nhằm giải quyết đúng điểm đau (pain points) về thiết kế, nhưng **tuyệt đối không lạm dụng (Over-engineering)**.
+>
+> - **Chỉ dùng khi cần:** Nếu nghiệp vụ có khả năng mở rộng (như nạp nhiều loại thanh toán) thì dùng *Strategy*. Nếu luồng logic phức tạp từ nhiều nguồn, dùng *Facade*. Nếu chỉ có một logic đơn giản không bao giờ đổi, hãy để Code thuần (KISS).
+> - **Sử dụng đúng mục đích:** Không "gọt chân cho vừa giày", tránh việc viết ra hàng loạt Interface/Factory/Builder trong khi Entity chỉ có 2-3 fields. Tối ưu hoá nhưng phải thực tế lập trình.
 
 ### 3.1. Creational Patterns
 
@@ -59,15 +65,14 @@ Report).
 Repository tương ứng.
 ● DTO Pattern: Sử dụng Java Records để chuyển dữ liệu từ Service sang UI. Tuyệt đối
 không trả về JPA Entity cho tầng UI.
+● Facade Pattern (NEW): Áp dụng cho các giao diện giao dịch phức tạp (như POS Bán hàng) để gom nhóm logic, giảm việc UI phải gọi trực tiếp hàng loạt Service riêng biệt (ví dụ: `TicketingFacade`).
 ```
 
 ### 3.3. Behavioral Patterns
 
 ```
-● Strategy Pattern: Áp dụng cho PaymentService. Định nghĩa PaymentStrategy interface
-(Cash, BankTransfer, E-Wallet).
-● Template Method: Định nghĩa quy trình xử lý Hóa đơn (Validate -> Calculate -> Save ->
-Print).
+● Strategy Pattern (IMPLEMENTED): Áp dụng cho PaymentService. Đã triển khai `PaymentStrategy` interface (CashPaymentStrategy, MomoPaymentStrategy) và `PaymentContext`.
+● Template Method (IMPLEMENTED): Đã triển khai `InvoiceProcessor` định nghĩa bộ workflow xử lý Hóa đơn chuẩn quy trình (Validate -> Calculate -> Save -> Print).
 ```
 
 ## 4. Quy chuẩn Code Java 21 & Hibernate 6

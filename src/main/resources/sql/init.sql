@@ -219,3 +219,29 @@ INSERT IGNORE INTO showtimes (movie_id, room_id, start_time, end_time, base_pric
 (2, 3, DATE_ADD(CURRENT_DATE, INTERVAL '14:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '17:00:00' HOUR_SECOND), 120000.00),
 (3, 2, DATE_ADD(CURRENT_DATE, INTERVAL '19:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '21:46:00' HOUR_SECOND), 100000.00),
 (4, 1, DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '20:00:00' HOUR_SECOND), DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '22:07:00' HOUR_SECOND), 90000.00);
+
+-- 9. Products (Snacks & Drinks)
+INSERT IGNORE INTO products (id, name, price, unit) VALUES 
+(1, 'Bắp rang Caramel (L)', 65000.00, 'Hộp'),
+(2, 'Bắp rang Phô mai (L)', 65000.00, 'Hộp'),
+(3, 'Bắp rang Caramel (M)', 55000.00, 'Hộp'),
+(4, 'Bắp rang Phô mai (M)', 55000.00, 'Hộp'),
+(5, 'Coca Cola (L)', 35000.00, 'Ly'),
+(6, 'Sprite (L)', 35000.00, 'Ly'),
+(7, 'Fanta (L)', 35000.00, 'Ly'),
+(8, 'Nước suối Dasani', 20000.00, 'Chai'),
+(9, 'Combo Solo (1 Bắp L + 1 Nước L)', 85000.00, 'Combo'),
+(10, 'Combo Couple (1 Bắp L + 2 Nước L)', 105000.00, 'Combo');
+
+-- 10. Inventories
+INSERT IGNORE INTO inventories (product_id, current_quantity, min_threshold) VALUES 
+(1, 100, 10),
+(2, 100, 10),
+(3, 100, 10),
+(4, 100, 10),
+(5, 200, 20),
+(6, 200, 20),
+(7, 200, 20),
+(8, 150, 15),
+(9, 50, 5),
+(10, 50, 5);
