@@ -170,11 +170,11 @@ public class RoomDialog extends JDialog {
         for (int r = 0; r < rows; r++) {
             for (int c = 1; c <= cols; c++) {
                 JButton btn = new JButton(String.valueOf(c));
-                btn.setPreferredSize(new Dimension(36, 36));
+                btn.setPreferredSize(new Dimension(40, 40));
                 btn.setFont(new Font("Inter", Font.BOLD, 10));
                 btn.setForeground(Color.WHITE);
                 btn.setFocusPainted(false);
-                btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #6366F1; borderWidth: 0");
+                btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #6366F1; borderWidth: 0; margin: 0,0,0,0; padding: 0,0,0,0");
                 previewPanel.add(btn);
             }
         }

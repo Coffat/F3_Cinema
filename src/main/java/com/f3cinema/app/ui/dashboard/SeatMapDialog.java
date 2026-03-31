@@ -66,7 +66,7 @@ public class SeatMapDialog extends JDialog {
             maxCols = Math.max(maxCols, s.getNumber());
         }
         
-        mapPanel.setLayout(new GridLayout(maxRows, maxCols, 8, 8));
+        mapPanel.setLayout(new GridLayout(maxRows, maxCols, 5, 5));
         mapPanel.removeAll();
         
         Seat[][] matrix = new Seat[maxRows][maxCols];
@@ -81,12 +81,12 @@ public class SeatMapDialog extends JDialog {
                     mapPanel.add(new JLabel());
                 } else {
                     JButton btn = new JButton(s.getRowChar() + s.getNumber());
-                    btn.setPreferredSize(new Dimension(50, 50));
+                    btn.setPreferredSize(new Dimension(44, 44));
                     btn.setFont(new Font("Inter", Font.BOLD, 10));
                     btn.setForeground(Color.WHITE);
                     btn.setFocusPainted(false);
                     btn.setBorderPainted(false);
-                    btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8");
+                    btn.putClientProperty(FlatClientProperties.STYLE, "arc: 12; margin: 0,0,0,0; padding: 0,0,0,0");
                     
                     switch(s.getSeatType()) {
                         case NORMAL -> btn.setBackground(Color.decode("#6366F1")); // Indigo
@@ -95,10 +95,31 @@ public class SeatMapDialog extends JDialog {
                     }
                     
                     btn.addActionListener(e -> {
-                        s.setSeatType(s.getSeatType() == SeatType.NORMAL ? SeatType.VIP :
-                                    (s.getSeatType() == SeatType.VIP ? SeatType.SWEETBOX : SeatType.NORMAL));
-                        roomService.updateSeat(s);
-                        loadSeats(); // Refresh colors
+                        // 1. Cập nhật Model & UI ngay lập tức (Optimistic UI)
+                        SeatType nextType = switch(s.getSeatType()) {
+                            case NORMAL -> SeatType.VIP;
+                            case VIP -> SeatType.SWEETBOX;
+                            case SWEETBOX -> SeatType.NORMAL;
+                        };
+                        s.setSeatType(nextType);
+                        
+                        // Cập nhật màu sắc nút bấm mà không cần render lại cả map
+                        switch(nextType) {
+                            case NORMAL -> btn.setBackground(Color.decode("#6366F1"));
+                            case VIP -> btn.setBackground(Color.decode("#A855F7"));
+                            case SWEETBOX -> btn.setBackground(Color.decode("#EC4899"));
+                        }
+
+                        // 2. Lưu Database ở luồng phụ (Tránh lag EDT)
+                        new Thread(() -> {
+                            try {
+                                roomService.updateSeat(s);
+                            } catch (Exception ex) {
+                                SwingUtilities.invokeLater(() -> 
+                                    JOptionPane.showMessageDialog(this, "Lỗi khi lưu trạng thái ghế!", "Lỗi", JOptionPane.ERROR_MESSAGE)
+                                );
+                            }
+                        }).start();
                     });
                     mapPanel.add(btn);
                 }
