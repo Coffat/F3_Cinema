@@ -182,7 +182,11 @@ CREATE TABLE IF NOT EXISTS payments (
 -- 1. Users (pwd: '1')
 INSERT INTO users (username, password, role, full_name) VALUES 
 ('admin', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'ADMIN', 'System Administrator'),
-('staff', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'STAFF', 'Cinema Staff 01');
+('staff', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'STAFF', 'Cinema Staff 01'),
+('staff02', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'STAFF', 'Cinema Staff 02'),
+('staff03', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'STAFF', 'Cinema Staff 03'),
+('staff04', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'STAFF', 'Cinema Staff 04'),
+('staff05', '$2a$12$eUnQAUgU6wG1akE0xbsAYOkKsx.joNW1QHah.6A7fO7suIDtAnA76', 'STAFF', 'Cinema Staff 05');
 
 -- 2. Genres
 INSERT IGNORE INTO genres (name) VALUES 
