@@ -6,6 +6,12 @@ DROP DATABASE IF EXISTS f3_cinema;
 CREATE DATABASE f3_cinema;
 USE f3_cinema;
 
+-- BỔ SUNG ĐOẠN NÀY ĐỂ FIX LỖI 172.18.0.1 (Cấp quyền cho root)
+CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '123456';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+
+
 -- 1. USERS Table
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -195,27 +201,41 @@ INSERT IGNORE INTO movies (id, title, duration, status, poster_url) VALUES
 INSERT IGNORE INTO movie_genres (movie_id, genre_id) VALUES 
 (1, 1), (1, 5), (2, 3), (2, 7), (3, 1), (3, 5), (4, 1), (4, 2), (5, 6), (5, 2), (6, 6), (6, 1);
 
--- 5. Rooms
+-- ==========================================
+-- SEED DATA (UPDATE THEO TEMPLATE MỚI)
+-- ==========================================
+
+-- 5. Rooms (3 Khuôn mẫu phòng chuẩn)
 INSERT IGNORE INTO rooms (id, name, type) VALUES 
-(1, 'Phòng 1', 'ROOM_2D'),
-(2, 'Phòng 2', 'ROOM_3D'),
-(3, 'Phòng 3', 'ROOM_IMAX'),
-(4, 'Phòng 4', 'ROOM_2D'),
-(5, 'Phòng 5 (SWEETBOX)', 'ROOM_2D');
+(1, 'Phòng 1 (Tiêu Chuẩn)', 'ROOM_2D'),
+(2, 'Phòng 2 (IMAX)', 'ROOM_IMAX'),
+(3, 'Phòng 3 (Nhỏ)', 'ROOM_2D');
 
--- 6. Seats (Room 1)
-INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES
-(1, 'A', 1, 'NORMAL'), (1, 'A', 2, 'NORMAL'), (1, 'A', 3, 'NORMAL'), (1, 'A', 4, 'NORMAL'), (1, 'A', 5, 'NORMAL'),
-(1, 'B', 1, 'NORMAL'), (1, 'B', 2, 'NORMAL'), (1, 'B', 3, 'NORMAL'), (1, 'B', 4, 'NORMAL'), (1, 'B', 5, 'NORMAL'),
-(1, 'C', 1, 'VIP'), (1, 'C', 2, 'VIP'), (1, 'C', 3, 'VIP'), (1, 'C', 4, 'VIP'), (1, 'C', 5, 'VIP');
+-- 6. SEATS GENERATION (Using Recursive CTE for compatibility - No DELIMITER needed)
+-- Room 1: Tiêu Chuẩn (10 rows x 10 cols = 100 seats)
+INSERT INTO seats (room_id, row_char, number, type)
+WITH RECURSIVE rows_cte AS (SELECT 0 AS r UNION ALL SELECT r + 1 FROM rows_cte WHERE r < 9),
+               cols_cte AS (SELECT 1 AS c UNION ALL SELECT c + 1 FROM cols_cte WHERE c < 10)
+SELECT 1, CHAR(65 + r), c, CASE WHEN r >= 4 AND r <= 7 THEN 'VIP' ELSE 'NORMAL' END
+FROM rows_cte CROSS JOIN cols_cte;
 
--- 7. Seats (Room 5)
-INSERT IGNORE INTO seats (room_id, row_char, number, type) VALUES
-(5, 'A', 1, 'SWEETBOX'), (5, 'A', 2, 'SWEETBOX'), (5, 'A', 3, 'SWEETBOX');
+-- Room 2: Lớn / IMAX (10 rows x 16 cols = 160 seats)
+INSERT INTO seats (room_id, row_char, number, type)
+WITH RECURSIVE rows_cte AS (SELECT 0 AS r UNION ALL SELECT r + 1 FROM rows_cte WHERE r < 9),
+               cols_cte AS (SELECT 1 AS c UNION ALL SELECT c + 1 FROM cols_cte WHERE c < 15)
+SELECT 2, CHAR(65 + r), c, CASE WHEN r >= 5 THEN 'VIP' ELSE 'NORMAL' END
+FROM rows_cte CROSS JOIN cols_cte;
 
--- 8. Showtimes
+-- Room 3: Nhỏ (6 rows x 10 cols = 60 seats)
+INSERT INTO seats (room_id, row_char, number, type)
+WITH RECURSIVE rows_cte AS (SELECT 0 AS r UNION ALL SELECT r + 1 FROM rows_cte WHERE r < 5),
+               cols_cte AS (SELECT 1 AS c UNION ALL SELECT c + 1 FROM cols_cte WHERE c < 10)
+SELECT 3, CHAR(65 + r), c, 'NORMAL'
+FROM rows_cte CROSS JOIN cols_cte;
+
+-- 7. Showtimes (Cập nhật id phòng chiếu tương ứng với 3 phòng trên)
 INSERT IGNORE INTO showtimes (movie_id, room_id, start_time, end_time, base_price) VALUES 
 (1, 1, DATE_ADD(CURRENT_DATE, INTERVAL '10:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '13:12:00' HOUR_SECOND), 80000.00),
-(2, 3, DATE_ADD(CURRENT_DATE, INTERVAL '14:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '17:00:00' HOUR_SECOND), 120000.00),
-(3, 2, DATE_ADD(CURRENT_DATE, INTERVAL '19:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '21:46:00' HOUR_SECOND), 100000.00),
+(2, 2, DATE_ADD(CURRENT_DATE, INTERVAL '14:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '17:00:00' HOUR_SECOND), 120000.00),
+(3, 3, DATE_ADD(CURRENT_DATE, INTERVAL '19:00:00' HOUR_SECOND), DATE_ADD(CURRENT_DATE, INTERVAL '21:46:00' HOUR_SECOND), 100000.00),
 (4, 1, DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '20:00:00' HOUR_SECOND), DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '22:07:00' HOUR_SECOND), 90000.00);

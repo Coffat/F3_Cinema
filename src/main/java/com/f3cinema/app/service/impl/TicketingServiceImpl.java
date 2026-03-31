@@ -1,28 +1,41 @@
 package com.f3cinema.app.service.impl;
 
+import com.f3cinema.app.config.HibernateUtil;
 import com.f3cinema.app.dto.SeatDTO;
 import com.f3cinema.app.dto.ShowtimeSummaryDTO;
+import com.f3cinema.app.entity.*;
+import com.f3cinema.app.entity.enums.InvoiceStatus;
+import com.f3cinema.app.entity.enums.PaymentMethod;
+import com.f3cinema.app.entity.enums.PaymentStatus;
+import com.f3cinema.app.repository.*;
 import com.f3cinema.app.service.TicketingService;
+import com.f3cinema.app.util.SessionManager;
+import lombok.extern.log4j.Log4j2;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+/**
+ * TicketingServiceImpl - Implementation using Hibernate 6 and Real Database.
+ * Compliant with Backend Development Standards §2.1 & §4.
+ */
+@Log4j2
 public class TicketingServiceImpl implements TicketingService {
 
     private static final TicketingServiceImpl INSTANCE = new TicketingServiceImpl();
-    
-    // Lưu tạm các ID ghế đã bị người khác mua để test Mock Real-time Update
-    private Set<Long> mockSoldSeats = new HashSet<>();
+
+    private final ShowtimeRepository showtimeRepository = new ShowtimeRepositoryImpl();
+    private final SeatRepository seatRepository = new SeatRepositoryImpl();
+    private final TicketRepository ticketRepository = new TicketRepositoryImpl();
+    private final InvoiceRepository invoiceRepository = new InvoiceRepositoryImpl();
 
     private TicketingServiceImpl() {
-        // Tái tạo bản đồ giả lập giống hệt hình ảnh mẫu: Có một vài ghế bị đỏ đầu tiên
-        mockSoldSeats.add(1L); mockSoldSeats.add(2L); mockSoldSeats.add(3L); mockSoldSeats.add(4L);
-        mockSoldSeats.add(17L); mockSoldSeats.add(18L); mockSoldSeats.add(19L); mockSoldSeats.add(20L);
-        mockSoldSeats.add(129L); mockSoldSeats.add(130L); mockSoldSeats.add(134L);
-        mockSoldSeats.add(149L); mockSoldSeats.add(150L); mockSoldSeats.add(160L);
     }
 
     public static TicketingServiceImpl getInstance() {
@@ -31,48 +44,163 @@ public class TicketingServiceImpl implements TicketingService {
 
     @Override
     public List<SeatDTO> getSeatsForShowtime(Long showtimeId) {
-        List<SeatDTO> seats = new ArrayList<>();
-        int rows = 10;
-        int cols = 16;
-        long seatIdCounter = 1;
+        log.info("Fetching real-time seat map for showtime ID: {}", showtimeId);
 
-        for (int r = 0; r < rows; r++) {
-            for (int c = 1; c <= cols; c++) {
-                SeatDTO.SeatType type = SeatDTO.SeatType.NORMAL;
-                double price = 50000;
-                
-                // Giả lập vùng VIP ở giữa giống hình của bạn cung cấp (Màu vàng rực)
-                if (r >= 2 && r <= 7 && c >= 4 && c <= 13) {
-                    type = SeatDTO.SeatType.VIP;
-                    price = 80000;
-                }
-                
-                // Kiểm tra ghế có đang nằm trong danh sách đã chốt đơn chưa
-                boolean isSold = mockSoldSeats.contains(seatIdCounter);
-                
-                seats.add(new SeatDTO(seatIdCounter, "", (int)seatIdCounter, type, price, isSold));
-                seatIdCounter++;
-            }
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            // 1. Get Showtime to identify the room
+            Showtime showtime = session.createQuery(
+                    "SELECT s FROM Showtime s JOIN FETCH s.room WHERE s.id = :id", Showtime.class)
+                    .setParameter("id", showtimeId)
+                    .uniqueResult();
+
+            if (showtime == null)
+                throw new RuntimeException("Không tìm thấy suất chiếu ID: " + showtimeId);
+
+            // 2. Get all seats for that room
+            List<Seat> seats = seatRepository.findByRoomId(showtime.getRoom().getId());
+
+            // 3. Get all sold tickets for this showtime to determine occupation
+            Set<Long> soldSeatIds = ticketRepository.findByShowtimeId(showtimeId)
+                    .stream()
+                    .map(t -> t.getSeat().getId())
+                    .collect(Collectors.toSet());
+
+            // 4. Map to DTOs
+            return seats.stream().map(s -> {
+                boolean isSold = soldSeatIds.contains(s.getId());
+                double price = calculatePrice(showtime.getBasePrice(), s.getSeatType());
+
+                return new SeatDTO(
+                        s.getId(),
+                        s.getRowChar(),
+                        s.getNumber(),
+                        mapToDtoSeatType(s.getSeatType()),
+                        price,
+                        isSold);
+            }).collect(Collectors.toList());
         }
-        return seats;
     }
 
     @Override
     public ShowtimeSummaryDTO getShowtimeSummary(Long showtimeId) {
-        LocalDateTime start = LocalDateTime.now().plusHours(2);
-        return new ShowtimeSummaryDTO(
-            showtimeId != null ? showtimeId : 101L,
-            "Lật Mặt 7: Một Điều Ước",
-            "Phòng 1 (IMAX)",
-            start,
-            start.plusMinutes(120),
-            50000.0
-        );
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Showtime s = session.createQuery(
+                    "SELECT s FROM Showtime s JOIN FETCH s.movie JOIN FETCH s.room WHERE s.id = :id", Showtime.class)
+                    .setParameter("id", showtimeId)
+                    .uniqueResult();
+
+            if (s == null)
+                throw new RuntimeException("Suất chiếu không tồn tại.");
+
+            return new ShowtimeSummaryDTO(
+                    s.getId(),
+                    s.getMovie().getTitle(),
+                    s.getRoom().getName() + " (" + s.getRoom().getRoomType() + ")",
+                    s.getStartTime(),
+                    s.getEndTime(),
+                    s.getBasePrice().doubleValue());
+        }
     }
 
     @Override
     public void bookSeats(Long showtimeId, List<Long> seatIds) {
-        // Thao tác chốt đơn: Thêm ghế vào HashSet để không ai mua được nữa
-        mockSoldSeats.addAll(seatIds);
+        log.info("Beginning booking transaction for showtime {}. Seats: {}", showtimeId, seatIds);
+
+        Transaction tx = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            tx = session.beginTransaction();
+
+            // 1. Pre-fetch Showtime to get base price
+            Showtime showtime = session.get(Showtime.class, showtimeId);
+            if (showtime == null)
+                throw new RuntimeException("Suất chiếu đã bị xóa hoặc không hợp lệ.");
+
+            // 2. Resolve Authenticated Staff
+            User staff = SessionManager.getCurrentUser();
+            if (staff == null) {
+                // To maintain NOT NULL constraint in DB, we fallback to a default admin if no
+                // one is logged in (dev mode)
+                staff = session.createQuery("from User u where u.role = 'ADMIN'", User.class)
+                        .setMaxResults(1)
+                        .uniqueResult();
+            }
+
+            // 3. Create Master: Invoice
+            Invoice invoice = Invoice.builder()
+                    .user(staff)
+                    .createdAt(LocalDateTime.now())
+                    .status(InvoiceStatus.PAID)
+                    .totalAmount(BigDecimal.ZERO) // Calculated later
+                    .build();
+
+            session.persist(invoice);
+
+            // 4. Create Details: Tickets & Calculate Total
+            BigDecimal total = BigDecimal.ZERO;
+            List<Ticket> tickets = new ArrayList<>();
+
+            for (Long seatId : seatIds) {
+                Seat seat = session.get(Seat.class, seatId);
+                if (seat == null)
+                    continue;
+
+                BigDecimal finalPrice = BigDecimal.valueOf(calculatePrice(showtime.getBasePrice(), seat.getSeatType()));
+
+                Ticket ticket = Ticket.builder()
+                        .invoice(invoice)
+                        .showtime(showtime)
+                        .seat(seat)
+                        .finalPrice(finalPrice)
+                        .build();
+
+                session.persist(ticket);
+                tickets.add(ticket);
+                total = total.add(finalPrice);
+            }
+
+            // 5. Update Invoice with total and Create Payment entry
+            invoice.setTotalAmount(total);
+            session.merge(invoice);
+
+            Payment payment = Payment.builder()
+                    .invoice(invoice)
+                    .amount(total)
+                    .method(PaymentMethod.CASH)
+                    .status(PaymentStatus.COMPLETED)
+                    .build();
+
+            session.persist(payment);
+
+            tx.commit();
+            log.info("Booking completed successfully. Invoice ID: {}", invoice.getId());
+
+        } catch (Exception e) {
+            if (tx != null)
+                tx.rollback();
+            log.error("Critical error during seat booking transaction: {}", e.getMessage(), e);
+            throw new RuntimeException("Giao dịch thất bại: " + e.getMessage());
+        }
+    }
+
+    // ── Helper Methods ──────────────────────────────────────────────────
+
+    private double calculatePrice(BigDecimal base, com.f3cinema.app.entity.enums.SeatType type) {
+        double result = base.doubleValue();
+        // Surcharge logic based on seat type
+        switch (type) {
+            case VIP -> result += 20000;
+            case SWEETBOX -> result += 40000;
+            default -> {
+            } // Normal
+        }
+        return result;
+    }
+
+    private SeatDTO.SeatType mapToDtoSeatType(com.f3cinema.app.entity.enums.SeatType entityType) {
+        return switch (entityType) {
+            case VIP -> SeatDTO.SeatType.VIP;
+            case SWEETBOX -> SeatDTO.SeatType.SWEETBOX;
+            default -> SeatDTO.SeatType.NORMAL;
+        };
     }
 }

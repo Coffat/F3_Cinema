@@ -332,7 +332,7 @@ public class SeatSelectionView extends JPanel {
         btn.setFont(new Font("Inter", Font.BOLD, 12));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setMargin(new Insets(0, 0, 0, 0)); // Xóa khoảng trắng mặc định bên trong nút để không bị chữ "..."
-        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; borderWidth: 0; focusWidth: 0; margin: 0,0,0,0; textShiftOffset: 0;");
+        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; borderWidth: 0; focusWidth: 0; margin: 0,0,0,0;");
 
         // Set Màu Nền & Màu Chữ
         Color baseColor = COLOR_NORMAL;

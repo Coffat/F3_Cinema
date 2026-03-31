@@ -469,6 +469,8 @@ public class ShowtimeDialog extends JDialog {
         // 5. Kiểm tra & lấy Giờ / Phút
         int hour, minute;
         try {
+            spHour.commitEdit();
+            spMinute.commitEdit();
             Object hVal = spHour.getValue();
             Object mVal = spMinute.getValue();
             if (hVal == null || mVal == null) throw new IllegalStateException();
