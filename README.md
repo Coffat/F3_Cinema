@@ -1,17 +1,28 @@
 <div align="center">
 
-<img src="assets/header.png" alt="F3 Cinema Header" width="100%" style="border-radius: 12px; box-shadow: 0px 4px 15px rgba(0,0,0,0.5);">
-
-# 🎬 F3 CINEMA MANAGEMENT SYSTEM
-
-**Hệ sinh thái Quản lý Rạp chiếu phim Toàn diện & Hiện đại**
-
 <p align="center">
-  <img src="https://img.shields.io/badge/Java-21_LTS-ED8B00?style=for-the-badge&logo=java&logoColor=white" alt="Java 21" />
-  <img src="https://img.shields.io/badge/Hibernate-6.6.1-59666C?style=for-the-badge&logo=hibernate&logoColor=white" alt="Hibernate" />
-  <img src="https://img.shields.io/badge/MySQL-9.1.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
-  <img src="https://img.shields.io/badge/FlatLaf-Midnight_Theme-6A0DAD?style=for-the-badge" alt="FlatLaf" />
-  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <a href="#">
+    <img src="assets/f3_brand_team.png" alt="F3 Cinema Header" width="100%" style="border-radius: 16px; box-shadow: 0px 10px 25px rgba(0,0,0,0.5);" />
+  </a>
+</p>
+
+<h1 style="font-family: 'Segoe UI', Helvetica, Arial, sans-serif; font-weight: 800; font-size: 2.8em; margin-bottom: 0;">🎬 F3 CINEMA</h1>
+<h3 style="font-family: 'Courier New', Courier, monospace; font-weight: 400; color: #888;">Nền Tảng Quản Lý Rạp Chiếu Phim Thế Hệ Mới</h3>
+
+<a href="https://git.io/typing-svg">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1000&color=00F0FF&center=true&vCenter=true&width=600&height=50&lines=Modern+Ticketing+POS+System;Comprehensive+Admin+Dashboard;Built+with+Robust+Design+Patterns" alt="Typing SVG" />
+</a>
+
+<p align="center" style="font-family: system-ui, -apple-system, sans-serif;">
+  <img alt="Java LTS" src="https://img.shields.io/badge/Java-21_Edition-ED8B00?style=flat-square&logo=java&logoColor=white" />
+  <img alt="Hibernate ORM" src="https://img.shields.io/badge/Hibernate-6.6.1-59666C?style=flat-square&logo=hibernate&logoColor=white" />
+  <img alt="MySQL Database" src="https://img.shields.io/badge/MySQL-9.1.0-4479A1?style=flat-square&logo=mysql&logoColor=white" />
+  <img alt="UI Theme" src="https://img.shields.io/badge/FlatLaf-Midnight_Theme-7F00FF?style=flat-square" />
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker" />
+</p>
+
+<p style="font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 1.1em; color: #555; max-width: 800px; margin: 0 auto;">
+  F3 Cinema là hệ thống phần mềm Desktop toàn diện được phát triển bằng <b>Java 21</b> kết hợp kiến trúc MVC và giao diện Dark-mode ấn tượng. Hệ thống tối ưu hóa toàn bộ chuỗi quy trình vận hành rạp chiếu phim từ khâu: <i>Nhập kho ➔ Lập lịch chiếu ➔ Bán vé/POS ➔ Báo cáo doanh thu</i>.
 </p>
 
 </div>
@@ -19,180 +30,158 @@
 ---
 
 <details open>
-  <summary><b>📑 MỤC LỤC CHI TIẾT (Bấm để mở rộng)</b></summary>
-  <ol>
-    <li><a href="#1-tổng-quan-hệ-thống-">Tổng Quan Hệ Thống</a></li>
-    <li><a href="#2-kiến-trúc-phần-mềm--uml-diagrams-">Kiến Trúc Phần Mềm & UML</a>
+  <summary style="font-family: 'Impact', sans-serif; font-size: 1.2em; cursor: pointer;"><b>📑 NỘI DUNG (TABLE OF CONTENTS)</b></summary>
+  <ul style="font-family: 'Inter', sans-serif;">
+    <li><a href="#-tính-năng-cốt-lõi-core-features">Tính Năng Cốt Lõi</a></li>
+    <li><a href="#-kiến-trúc--design-patterns-architecture">Kiến Trúc & Design Patterns</a>
       <ul>
-        <li><a href="#a-sơ-đồ-lớp-class-diagram---thanh-toán-strategy">Strategy Pattern (Thanh Toán)</a></li>
-        <li><a href="#b-sơ-đồ-luồng-sequence-diagram---hệ-giỏ-hàng-command--observer">Command & Observer (Giỏ Hàng)</a></li>
+        <li><a href="#1-point-of-sale-pos--giỏ-hàng-command--observer">Point of Sale (Command / Observer)</a></li>
+        <li><a href="#2-hệ-thống-thanh-toán-strategy-pattern">Hệ thống Thanh toán (Strategy)</a></li>
       </ul>
     </li>
-    <li><a href="#3-sơ-đồ-cơ-sở-dữ-liệu-erd-">Sơ Đồ ERD (Entity Relationship)</a></li>
-    <li><a href="#4-tính-năng-chi-tiết-">Tính Năng Chi Tiết</a></li>
-    <li><a href="#5-hướng-dẫn-triển-khai-">Hướng Dẫn Triển Khai</a></li>
-  </ol>
+    <li><a href="#-cấu-trúc-dữ-liệu-erd">Cấu Trúc Dữ Liệu (ERD)</a></li>
+    <li><a href="#-bắt-đầu-nhanh-getting-started">Bắt Đầu Nhanh (Getting Started)</a></li>
+    <li><a href="#-đội-ngũ-phát-triển">Đội Ngũ Phát Triển</a></li>
+  </ul>
 </details>
 
 ---
 
-## 1. Tổng Quan Hệ Thống 🌟
+<h2 id="-tính-năng-cốt-lõi-core-features" style="font-family: 'Arial Black', sans-serif;">✨ Tính Năng Cốt Lõi (Core Features)</h2>
 
-**F3 Cinema** là một ứng dụng Desktop mạnh mẽ được phát triển bằng **Java 21**. Trái ngược với các ứng dụng Swing truyền thống cũ kỹ, F3 Cinema sử dụng **FlatLaf (Modern Midnight Theme)** đem lại một giao diện Dark-mode cao cấp, mang trải nghiệm UI/UX tiệm cận với các Web App hiện đại.
+Dự án được phân rã thành **2 Trạm Hoạt Động (Workstations)** tách biệt nhằm tối đa hóa hiệu suất sử dụng tại Rạp.
 
-Hệ thống số hóa toàn bộ chuỗi quy trình vận hành rạp chiếu phim từ khâu: **Nhập kho ➔ Lập lịch chiếu ➔ Bán vé/Đồ ăn (POS) ➔ Thanh toán ➔ Báo cáo doanh thu.**
+### 👑 Trạm Quản Trị (Admin Portal)
+*Được thiết kế hướng dữ liệu (Data-driven) và kiểm soát toàn cục.*
+- **Quản lý rạp & Lịch chiếu:** Thiết lập rạp, cấu hình Layout ghế (VIP, Couple, Standard) và gán suất chiếu với cơ chế chống trùng giờ (Conflict validation).
+- **Warehouse (Kho Hàng):** Tracking chính xác số lượng hàng tồn kho (Nước, Bắp), khởi tạo phiếu nhập (`StockReceipt`).
+- **Thống kê Doanh Thu (Dashboard):** Visualize dữ liệu kinh doanh thông qua biểu đồ **JFreeChart** sắc nét. Tự động tính toán các chỉ số Sale theo thời gian.
+
+### 💳 Quầy Bán Vé (Staff POS System)
+*Được thiết kế tối giản, tập trung vào tốc độ xử lý ngầm.*
+- **Real-time Map:** Màn hình Booking trực quan hiển thị ma trận ghế ngồi (Matrix). Tự động khóa các vị trí đã có người đặt.
+- **Cart System:** Terminal mua Bắp/Nước linh động, hiển thị `Total` tức thời ngay khi thay đổi số lượng.
+- **Invoice Generator:** Tự động in và xuất hóa đơn PDF tiêu chuẩn bằng **OpenPDF** gửi cho khách.
 
 ---
 
-## 2. Kiến Trúc Phần Mềm & UML Diagrams 📐
+<h2 id="-kiến-trúc--design-patterns-architecture" style="font-family: 'Arial Black', sans-serif;">📐 Kiến Trúc & Design Patterns (Architecture)</h2>
 
-Dự án áp dụng chặt chẽ các mẫu thiết kế (Design Patterns) tiêu chuẩn của GOF, đảm bảo tính mở rộng linh hoạt cao (SOLID Principles).
+Mã nguồn được cấu trúc chặt chẽ theo tư tưởng **Clean Code** nhằm dễ bảo trì và dễ mở rộng các tính năng mới trong tương lai.
 
-### A. Sơ đồ Lớp (Class Diagram) - Thanh Toán (Strategy)
-Hệ thống thanh toán được cô lập hoàn toàn khỏi logic UI. Cấu trúc này cho phép thêm cổng thanh toán ZaloPay/Visa cực kỳ dễ dàng mà không cần sửa code cũ.
+### 1. Point of Sale (POS) & Giỏ Hàng (Command / Observer)
+Luồng mua hàng của khách ở quầy tuyệt đối không được xảy ra lỗi đồng bộ UI.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Nhân Viên (Staff)
+    participant UI as Màn hình POS (CartPanel)
+    participant C as Lệnh Update (QuantityCommand)
+    participant Logic as Tầng Nghiệp Vụ (Service)
+    participant O as Observer Kích Hoạt
+
+    Nhân Viên->>UI: Thêm Bắp / Đổi Số Lượng Về 2
+    UI->>C: Execute Command
+    activate C
+    C->>Logic: Tính toán giá tiền & Check kho
+    Logic-->>O: Kích hoạt (Fire Event)
+    O->>UI: Dispatch lệnh "Re-render"
+    UI->>Nhân Viên: Hiển thị tổng tiền mới Tức Thời
+    deactivate C
+```
+
+### 2. Hệ Thống Thanh Toán (Strategy Pattern)
+Tương lai rạp chiếu phim có thể cần liên kết hàng chục cổng thanh toán (Visa, Apple Pay...). Kiến trúc `Strategy` được đặt ra nhằm dễ dàng `plug-and-play` mã mới.
 
 ```mermaid
 classDiagram
     class PaymentContext {
-        -PaymentStrategy strategy
-        +setPaymentStrategy(PaymentStrategy)
-        +processPayment(Invoice) void
+        -Strategy state
+        +processPayment(Invoice)
     }
-    
-    class PaymentStrategy {
+    class Strategy {
         <<interface>>
-        +processPayment(Invoice) void
+        +execute(amount)
     }
-    
-    class CashPaymentStrategy {
-        +processPayment(Invoice) void
-    }
-    
-    class MomoPaymentStrategy {
-        +processPayment(Invoice) void
-    }
-
-    PaymentContext o-- PaymentStrategy : Uses
-    PaymentStrategy <|.. CashPaymentStrategy : Implements
-    PaymentStrategy <|.. MomoPaymentStrategy : Implements
-```
-
-### B. Sơ đồ Luồng (Sequence Diagram) - Hệ Giỏ Hàng (Command & Observer)
-Mô phỏng luồng Staff nhấn thêm "Bắp rang bơ" vào giỏ hàng. UI không tự tính toán mà đẩy `AddToCartCommand` vào luồng xử lý. Sau đó `CartObserver` sẽ nhận tín hiệu để cập nhật màn hình ngay lập tức.
-
-```mermaid
-sequenceDiagram
-    actor Staff as Màn Hình POS (Staff)
-    participant UI as CartPanel (View)
-    participant C as AddToCartCommand (Command)
-    participant S as CartService (Logic)
-    participant O as CartObserver (Observer)
-
-    Staff->>UI: Bấm "Thêm Bắp Rang"
-    UI->>C: Execute Command (ProductId, Qty)
-    activate C
-    C->>S: process()
-    activate S
-    S-->>S: Kiểm tra Tồn Kho (Inventory)
-    S-->>S: Thêm vào memory/DB
-    S->>O: notifyCartChanged()
-    deactivate S
-    O-->>UI: Lệnh re-render component
-    UI-->>Staff: Hiển thị tổng tiền mới
-    deactivate C
+    PaymentContext --> Strategy : Gọi Hàm
+    Strategy <|.. Cash_TiềnMặt : Implements
+    Strategy <|.. Momo_Wallet : Implements
 ```
 
 ---
 
-## 3. Sơ Đồ Cơ Sở Dữ Liệu (ERD) 🗄️
+<h2 id="-cấu-trúc-dữ-liệu-erd" style="font-family: 'Arial Black', sans-serif;">🗄️ Cấu Trúc Dữ Liệu (ERD)</h2>
 
-Cơ sở dữ liệu được thiết kế tối ưu Query, đạt chuẩn dạng chuẩn 3 (3NF) với Hibernate ORM tự động map các Entity.
+Tổ chức Database đạt chuẩn, quản lý qua **Hibernate ORM framework**. Chuyển đổi toàn bộ Query truyền thống sang Object-Relational Mapping.
 
 ```mermaid
 erDiagram
-    MOVIE ||--o{ SHOWTIME : has
+    MOVIE ||--o{ SHOWTIME : contains
     ROOM ||--o{ SHOWTIME : hosts
-    ROOM ||--o{ SEAT : contains
-    SHOWTIME ||--o{ TICKET : generates
-    SEAT ||--o{ TICKET : assigned_to
+    SHOWTIME ||--|{ TICKET : packages
+    SEAT ||--o{ TICKET : specific
+    INVOICE ||--o{ TICKET : checkout
+    USER ||--o{ INVOICE : creates
 
-    CUSTOMER ||--o{ INVOICE : creates
-    INVOICE ||--o{ TICKET : includes
-    INVOICE ||--o{ PAYMENT : has
-    USER ||--o{ INVOICE : serves
-
-    %% Module Kho Hàng
-    PRODUCT ||--o{ INVENTORY : tracked_in
-    PRODUCT ||--o{ INVOICE_DETAIL : sold_as
-    INVOICE ||--o{ INVOICE_DETAIL : contains
-
-    USER {
-        int id PK
-        string role "ADMIN/STAFF"
-        string username
-        string password_bcrypt
-    }
     MOVIE {
-        int id PK
-        string title
-        string status "NOW_SHOWING..."
+        int MovieID PK
+        string Status "NOW_SHOWING"
     }
     INVOICE {
-        int id PK
-        float total_amount
-        string status "PAID/UNPAID"
+        int InvoiceID PK
+        string PaymentStatus
     }
 ```
 
 ---
 
-## 4. Tính Năng Chi Tiết 🚀
+<h2 id="-bắt-đầu-nhanh-getting-started" style="font-family: 'Arial Black', sans-serif;">🚀 Bắt Đầu Nhanh (Getting Started)</h2>
 
-| Phân Hệ | Nhóm Tính Năng | Mô Tả Nghiệp Vụ |
-| :--- | :--- | :--- |
-| 🛡 **Admin** | 🎬 **Quản lý Phim** | CRUD phim, phân loại, gán nhãn trạng thái (Sắp chiếu, Đang chiếu, Ngừng chiếu). |
-| | 🏢 **Phòng & Ghế** | Vẽ sơ đồ phòng chiếu, định cấu hình mảng ghế ngồi (VIP, Standard, Couple). |
-| | 📦 **Warehouse** | Kiểm soát kho hàng (Đồ ăn, thức uống), thiết lập phiếu Nhập Kho (`StockReceipt`). |
-| | 📊 **Báo cáo** | Thống kê số liệu bằng biểu đồ **JFreeChart** (Doanh thu theo ngày, tháng, rạp). |
-| 💁‍♀️ **Staff** | 🎫 **Trạm POS** | Trạm bán vé tốc độ cao tại quầy. Màn hình chia Layout linh hoạt. |
-| | 💺 **Ticketing Realtime** | Giao diện Click-to-book trên sơ đồ rạp. Tự nhận diện ghế đã có người mua. |
-| | 💳 **Khách & Payment** | Lưu log khách hàng, tích điểm. Xuất hóa đơn **PDF (OpenPDF)**. |
+Dự án đã được tự động hóa hoàn toàn luồng setup Database thông qua Container, loại bỏ nỗi lo cài đặt CSDL rườm rà.
 
----
+### Yêu Cầu Môi Trường (Prerequisites)
+- [Java Development Kit 21 LTS](https://jdk.java.net/21/)
+- [Apache Maven 3.9+](https://maven.apache.org/)
+- [Docker Engine](https://www.docker.com/) (Dành cho Database)
 
-## 5. Hướng Dẫn Triển Khai ⚙️
+### Các Bước Cài Đặt (Installation)
 
-Dự án này rất nghiêm túc trong việc tự động hóa quá trình Set-up. Mọi DB Config đều chạy bằng Container.
-
-### Bước 1: Chuẩn bị Môi trường
-- **Java 21 LTS** và **Maven 3.9+** 
-- Khởi động Docker Engine 🐳
-
-### Bước 2: Kéo Cơ Sở Dữ Liệu Lên
-Mở terminal tại thư mục dự án và chạy:
+**1. Pull & Khởi động Database (Bắt buộc)**
+Chạy script docker-compose để mount volume MySQL và Inject dữ liệu mẫu (Sample Data) từ `init.sql`:
 ```bash
 docker-compose up -d
 ```
-> *(Hệ thống sẽ kéo image `mysql:9.1.0` về, tạo database `f3_cinema`, ánh xạ cổng `3307` và tự động Inject file `init.sql`)*
 
-### Bước 3: Build & Chạy Desktop App
-Cấu hình giao diện sẽ khởi tạo song song với kết nối DB (mất khoảng 3-5 giây cho lần đầu nạp Hibernate Entity).
+**2. Biên Dịch Dự Án (Build)**
 ```bash
 mvn clean compile
+```
+
+**3. Kích Hoạt Ứng Dụng (Run)**
+```bash
 mvn exec:java -Dexec.mainClass="com.f3cinema.app.App"
 ```
 
-### 🔐 Thông Tin Đăng Nhập Hệ Thống
+### 🔑 Thông Số Vận Hành (Sandbox Credentials)
+> Để đăng nhập vào hệ thống, sử dụng tài khoản mẫu đại diện cho 2 hệ thống chính:
 
-> Mật khẩu đã được mã hóa **BCrypt** an toàn tuyệt đối dưới database. Đăng nhập qua lớp Security Controller.
+| Chức Vụ (Role) | Tài Khoản Đăng Nhập | Mật Khẩu Truy Cập | Khả năng |
+| :--- | :--- | :--- | :--- |
+| **Quản Lý Vận Hành (Admin)** | <kbd>admin</kbd> | <kbd>admin123</kbd> | Toàn quyền kiểm soát rạp |
+| **Giao Dịch Viên (Staff POS)** | <kbd>staff</kbd> | <kbd>staff123</kbd> | Quầy bán vé và đồ ăn |
 
-| Vai Trò | Username | Password |
-| :---: | :---: | :---: |
-| **Quản trị (Admin)** | <kbd>admin</kbd> | <kbd>admin123</kbd> |
-| **Bán Vé (Staff)** | <kbd>staff</kbd> | <kbd>staff123</kbd> |
+---
+
+<h2 id="-đội-ngũ-phát-triển" style="font-family: 'Arial Black', sans-serif;">🤝 Đội Ngũ Phát Triển</h2>
+
+Dự án **F3 Cinema Management System** được định hình, thiết kế và nhào nặn dưới bàn tay của bộ 3 nhà sáng lập kiêm kỹ sư phần mềm (**F3 Team**). 
+
+Đây không chỉ là một ứng dụng quản trị thông thường, mà là một sản phẩm thể hiện sự dung hòa giữa cấu trúc thuật toán nghiêm ngặt và tính nghệ thuật của điện ảnh.  
 
 <br/>
 
 <div align="center">
-  <sub>Làm bằng 🩵 và sức trẻ bởi <b>F3 Cinema</b> Development Team.</sub>
+  <sub>Mã nguồn mở phục vụ cho mục đích học thuật và vận hành phi thương mại.</sub><br/>
+  <img src="https://img.shields.io/badge/Powered_by-F3_Dev_Team-0ff?style=for-the-badge&logoColor=white" />
 </div>
