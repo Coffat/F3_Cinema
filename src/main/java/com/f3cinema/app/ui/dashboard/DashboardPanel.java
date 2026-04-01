@@ -8,6 +8,7 @@ import com.f3cinema.app.dto.dashboard.InventoryAlertRow;
 import com.f3cinema.app.dto.dashboard.NowShowingRow;
 import com.f3cinema.app.dto.dashboard.RevenueSeriesPoint;
 import com.f3cinema.app.dto.dashboard.TopMovieRow;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import org.knowm.xchart.CategoryChart;
@@ -464,9 +465,7 @@ public class DashboardPanel extends BaseDashboardModule {
                 });
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() ->
-                        JOptionPane.showMessageDialog(this,
-                                "Không tải được dashboard: " + ex.getMessage(),
-                                "Lỗi", JOptionPane.ERROR_MESSAGE));
+                        AppMessageDialogs.showError(this, "Lỗi", "Không tải được dashboard: " + ex.getMessage()));
             }
         });
     }

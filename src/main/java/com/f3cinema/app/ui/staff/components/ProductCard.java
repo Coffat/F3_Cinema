@@ -15,7 +15,7 @@ import java.util.Locale;
 
 public class ProductCard extends JPanel {
     private final ProductDTO product;
-    private JLabel imageContainer;
+    private Image backgroundImage;
 
     public ProductCard(ProductDTO product) {
         this.product = product;
@@ -30,19 +30,22 @@ public class ProductCard extends JPanel {
         putClientProperty(FlatClientProperties.STYLE, "arc: 12");
         setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        add(buildImageSection(), BorderLayout.NORTH);
-        add(buildInfoSection(), BorderLayout.CENTER);
+        if (product.imageUrl() != null && !product.imageUrl().isEmpty()) {
+            loadProductImage(product.imageUrl());
+        }
+        
+        add(buildOverlayContent(), BorderLayout.CENTER);
 
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #334155");
+                setBorder(BorderFactory.createLineBorder(Color.decode("#6366F1"), 2, true));
                 repaint();
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #1E293B");
+                setBorder(null);
                 repaint();
             }
 
@@ -53,62 +56,50 @@ public class ProductCard extends JPanel {
         });
     }
     
-    private JPanel buildImageSection() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setPreferredSize(new Dimension(160, 120));
-        panel.setOpaque(false);
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         
-        imageContainer = new JLabel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                g2.setColor(new Color(100, 100, 100, 20));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        imageContainer.setHorizontalAlignment(SwingConstants.CENTER);
-        imageContainer.setVerticalAlignment(SwingConstants.CENTER);
-        imageContainer.setOpaque(false);
+        g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
         
-        if (product.imageUrl() != null && !product.imageUrl().isEmpty()) {
-            loadProductImage(product.imageUrl());
+        if (backgroundImage != null) {
+            int imgWidth = backgroundImage.getWidth(null);
+            int imgHeight = backgroundImage.getHeight(null);
+            
+            double scale = Math.max((double) getWidth() / imgWidth, (double) getHeight() / imgHeight);
+            int scaledWidth = (int) (imgWidth * scale);
+            int scaledHeight = (int) (imgHeight * scale);
+            
+            int x = (getWidth() - scaledWidth) / 2;
+            int y = (getHeight() - scaledHeight) / 2;
+            
+            g2.drawImage(backgroundImage, x, y, scaledWidth, scaledHeight, null);
+            
+            g2.setColor(new Color(0, 0, 0, 140));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
         } else {
-            FlatSVGIcon icon = new FlatSVGIcon("icons/snacks.svg", 64, 64);
-            imageContainer.setIcon(icon);
-            imageContainer.setForeground(Color.decode("#6366F1"));
+            g2.setColor(Color.decode("#1E293B"));
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+            
+            FlatSVGIcon icon = new FlatSVGIcon("icons/snacks.svg");
+            icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> new Color(99, 102, 241, 60)));
+            icon.paintIcon(this, g2, (getWidth() - 80) / 2, (getHeight() - 80) / 2);
         }
         
-        panel.add(imageContainer, BorderLayout.CENTER);
-        
-        return panel;
+        g2.dispose();
     }
     
     private void loadProductImage(String imageUrl) {
-        new SwingWorker<ImageIcon, Void>() {
+        new SwingWorker<Image, Void>() {
             @Override
-            protected ImageIcon doInBackground() throws Exception {
+            protected Image doInBackground() throws Exception {
                 try {
                     java.net.URI uri = new java.net.URI(imageUrl);
                     ImageIcon originalIcon = new ImageIcon(uri.toURL());
-                    Image img = originalIcon.getImage();
-                    
-                    int targetWidth = 160;
-                    int targetHeight = 120;
-                    
-                    int originalWidth = img.getWidth(null);
-                    int originalHeight = img.getHeight(null);
-                    
-                    double scale = Math.max((double) targetWidth / originalWidth, (double) targetHeight / originalHeight);
-                    int scaledWidth = (int) (originalWidth * scale);
-                    int scaledHeight = (int) (originalHeight * scale);
-                    
-                    Image scaledImage = img.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
-                    return new ImageIcon(scaledImage);
+                    return originalIcon.getImage();
                 } catch (Exception e) {
                     return null;
                 }
@@ -117,75 +108,27 @@ public class ProductCard extends JPanel {
             @Override
             protected void done() {
                 try {
-                    ImageIcon icon = get();
-                    if (icon != null) {
-                        imageContainer.setIcon(new CoverImageIcon(icon.getImage(), 160, 120, 12));
-                    } else {
-                        FlatSVGIcon fallback = new FlatSVGIcon("icons/snacks.svg", 64, 64);
-                        imageContainer.setIcon(fallback);
-                        imageContainer.setForeground(Color.decode("#6366F1"));
-                    }
+                    backgroundImage = get();
+                    repaint();
                 } catch (Exception e) {
-                    FlatSVGIcon fallback = new FlatSVGIcon("icons/snacks.svg", 64, 64);
-                    imageContainer.setIcon(fallback);
-                    imageContainer.setForeground(Color.decode("#6366F1"));
+                    backgroundImage = null;
+                    repaint();
                 }
             }
         }.execute();
     }
     
-    private static class CoverImageIcon implements Icon {
-        private final Image image;
-        private final int width;
-        private final int height;
-        private final int cornerRadius;
-        
-        public CoverImageIcon(Image image, int width, int height, int cornerRadius) {
-            this.image = image;
-            this.width = width;
-            this.height = height;
-            this.cornerRadius = cornerRadius;
-        }
-        
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            
-            g2.setClip(new java.awt.geom.RoundRectangle2D.Float(x, y, width, height, cornerRadius, cornerRadius));
-            
-            int imgWidth = image.getWidth(null);
-            int imgHeight = image.getHeight(null);
-            
-            int drawX = x + (width - imgWidth) / 2;
-            int drawY = y + (height - imgHeight) / 2;
-            
-            g2.drawImage(image, drawX, drawY, imgWidth, imgHeight, null);
-            
-            g2.dispose();
-        }
-        
-        @Override
-        public int getIconWidth() {
-            return width;
-        }
-        
-        @Override
-        public int getIconHeight() {
-            return height;
-        }
-    }
-
-    private JPanel buildInfoSection() {
+    private JPanel buildOverlayContent() {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(12, 12, 16, 12));
+        
+        panel.add(Box.createVerticalGlue());
 
         JLabel nameLabel = new JLabel("<html><center>" + product.name() + "</center></html>");
         nameLabel.setFont(new Font("-apple-system", Font.BOLD, 13));
-        nameLabel.setForeground(Color.decode("#F8FAFC"));
+        nameLabel.setForeground(Color.WHITE);
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(nameLabel);
         
@@ -193,10 +136,12 @@ public class ProductCard extends JPanel {
         
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.of("vi", "VN"));
         JLabel priceLabel = new JLabel(currencyFormat.format(product.price()));
-        priceLabel.setFont(new Font("-apple-system", Font.BOLD, 15));
-        priceLabel.setForeground(Color.decode("#6366F1"));
+        priceLabel.setFont(new Font("-apple-system", Font.BOLD, 16));
+        priceLabel.setForeground(Color.WHITE);
         priceLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(priceLabel);
+        
+        panel.add(Box.createVerticalStrut(8));
 
         return panel;
     }

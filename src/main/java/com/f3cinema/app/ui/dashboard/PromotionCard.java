@@ -45,14 +45,17 @@ public class PromotionCard extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 1; borderColor: " + toHex(typeColor(item.type())));
+                setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(typeColor(item.type()), 1),
+                    new EmptyBorder(23, 23, 19, 23)
+                ));
                 revalidate();
                 repaint();
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                putClientProperty(FlatClientProperties.STYLE, "arc: 12");
+                setBorder(new EmptyBorder(24, 24, 20, 24));
                 revalidate();
                 repaint();
             }

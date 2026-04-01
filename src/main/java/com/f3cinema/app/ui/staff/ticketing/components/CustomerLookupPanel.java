@@ -3,6 +3,7 @@ package com.f3cinema.app.ui.staff.ticketing.components;
 import com.f3cinema.app.entity.Customer;
 import com.f3cinema.app.service.CustomerService;
 import com.f3cinema.app.service.impl.CustomerServiceImpl;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.staff.ticketing.TicketOrderState;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
@@ -143,7 +144,7 @@ public class CustomerLookupPanel extends JPanel {
     private void lookupCustomer() {
         String phone = txtPhone.getText().trim();
         if (phone.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập số điện thoại!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            AppMessageDialogs.showWarning(this, "Thông báo", "Vui lòng nhập số điện thoại!");
             return;
         }
 
@@ -172,9 +173,8 @@ public class CustomerLookupPanel extends JPanel {
                         btnLookup.setEnabled(true);
                         btnLookup.removeActionListener(btnLookup.getActionListeners()[0]);
                         btnLookup.addActionListener(e -> createNewCustomer(phone));
-                        JOptionPane.showMessageDialog(CustomerLookupPanel.this,
-                                "Khách hàng mới! Vui lòng nhập tên để tạo tài khoản.", 
-                                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                        AppMessageDialogs.showInfo(CustomerLookupPanel.this, "Thông báo",
+                                "Khách hàng mới! Vui lòng nhập tên để tạo tài khoản.");
                     } else {
                         state.setCustomer(customer);
                         displayCustomerInfo(customer);
@@ -183,8 +183,7 @@ public class CustomerLookupPanel extends JPanel {
                         btnLookup.setEnabled(true);
                     }
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(CustomerLookupPanel.this,
-                            "Lỗi: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(CustomerLookupPanel.this, "Lỗi", "Lỗi: " + e.getMessage());
                     btnLookup.setEnabled(true);
                     btnLookup.setText("Tra cứu");
                 }
@@ -195,7 +194,7 @@ public class CustomerLookupPanel extends JPanel {
     private void createNewCustomer(String phone) {
         String name = txtName.getText().trim();
         if (name.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên khách hàng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            AppMessageDialogs.showWarning(this, "Thông báo", "Vui lòng nhập tên khách hàng!");
             return;
         }
 
@@ -221,12 +220,10 @@ public class CustomerLookupPanel extends JPanel {
                     btnLookup.setText("Tra cứu");
                     btnLookup.setEnabled(true);
                     
-                    JOptionPane.showMessageDialog(CustomerLookupPanel.this,
-                            "Tạo tài khoản thành công cho " + customer.getFullName() + "!",
-                            "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    AppMessageDialogs.showInfo(CustomerLookupPanel.this, "Thành công",
+                            "Tạo tài khoản thành công cho " + customer.getFullName() + "!");
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(CustomerLookupPanel.this,
-                            "Lỗi tạo tài khoản: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(CustomerLookupPanel.this, "Lỗi", "Lỗi tạo tài khoản: " + e.getMessage());
                     btnLookup.setEnabled(true);
                     btnLookup.setText("Tạo mới");
                 }

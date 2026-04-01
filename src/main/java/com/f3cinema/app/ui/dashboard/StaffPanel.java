@@ -5,6 +5,7 @@ import com.f3cinema.app.entity.User;
 import com.f3cinema.app.entity.enums.UserRole;
 import com.f3cinema.app.service.UserService;
 import com.f3cinema.app.ui.admin.dialog.StaffDialog;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
@@ -161,7 +162,7 @@ public class StaffPanel extends BaseDashboardModule {
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> {
                     setBusy(false);
-                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(this, "Lỗi", ex.getMessage());
                 });
             }
         });
@@ -253,14 +254,11 @@ public class StaffPanel extends BaseDashboardModule {
     private void handleDelete(User selected) {
         if (selected == null || selected.getId() == null) return;
         String username = String.valueOf(selected.getUsername());
-        int ok = JOptionPane.showConfirmDialog(
+        if (!AppMessageDialogs.confirmYesNo(
                 this,
-                "Xóa nhân viên `" + username + "`?\nHành động này không thể hoàn tác.",
                 "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
-        );
-        if (ok != JOptionPane.YES_OPTION) return;
+                "Xóa nhân viên `" + username + "`?\nHành động này không thể hoàn tác."
+        )) return;
 
         setBusy(true);
         Thread.ofVirtual().start(() -> {
@@ -270,7 +268,7 @@ public class StaffPanel extends BaseDashboardModule {
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> {
                     setBusy(false);
-                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(this, "Lỗi", ex.getMessage());
                 });
             }
         });

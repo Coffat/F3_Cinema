@@ -2,9 +2,11 @@ package com.f3cinema.app.ui.dashboard;
 
 import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.dto.ProductDTO;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
+import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
+import com.f3cinema.app.ui.common.dialog.DialogStyle;
 import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -21,7 +23,7 @@ import com.f3cinema.app.service.impl.InventoryServiceImpl;
  * UI Component for Creating Stock Receipts.
  * Strictly adheres to Frontend Style Guide (Midnight Dark Mode, 16px radius, Indigo & Emerald Accents).
  */
-public class StockReceiptDialog extends JDialog {
+public class StockReceiptDialog extends BaseAppDialog {
     private JTextField txtSupplier, txtDate;
     private DefaultTableModel tableModel;
     private JTable itemTable;
@@ -35,11 +37,11 @@ public class StockReceiptDialog extends JDialog {
     private final List<StockReceiptItemDTO> currentItems = new ArrayList<>();
 
     public StockReceiptDialog(JFrame owner, Runnable onSuccessCallback) {
-        super(owner, "Khởi Tạo Phiếu Nhập Kho", true);
+        super(owner, "Khởi Tạo Phiếu Nhập Kho");
         this.onSuccessCallback = onSuccessCallback;
-        setSize(860, 650);
-        setLocationRelativeTo(owner);
-        getContentPane().setBackground(ThemeConfig.BG_MAIN);
+        setupBaseDialog(980, 650);
+        JPanel surface = createSurfacePanel();
+        setContentPane(surface);
         
         // 1. Phím tắt ESC để hủy
         setupEscapeKey();
@@ -47,7 +49,6 @@ public class StockReceiptDialog extends JDialog {
         // Khung chính
         JPanel mainContent = new JPanel(new BorderLayout(0, 24));
         mainContent.setOpaque(false);
-        mainContent.setBorder(new EmptyBorder(30, 40, 30, 40));
 
         // 2. Vùng NORTH: Thông tin Master
         mainContent.add(createNorthPanel(), BorderLayout.NORTH);
@@ -58,7 +59,7 @@ public class StockReceiptDialog extends JDialog {
         // 4. Vùng SOUTH: Tổng tiền và các Button chức năng
         mainContent.add(createSouthPanel(), BorderLayout.SOUTH);
 
-        add(mainContent);
+        surface.add(mainContent, BorderLayout.CENTER);
     }
 
     private void setupEscapeKey() {
@@ -77,9 +78,7 @@ public class StockReceiptDialog extends JDialog {
         JPanel northPanel = new JPanel(new BorderLayout(0, 16));
         northPanel.setOpaque(false);
         
-        JLabel lblHeader = new JLabel("THONG TIN PHIEU NHAP MOI");
-        lblHeader.setFont(ThemeConfig.FONT_H1);
-        lblHeader.setForeground(ThemeConfig.TEXT_PRIMARY);
+        JLabel lblHeader = DialogStyle.titleLabel("THONG TIN PHIEU NHAP MOI");
         northPanel.add(lblHeader, BorderLayout.NORTH);
 
         JPanel formPanel = new JPanel(new GridLayout(1, 2, 24, 0));
@@ -114,9 +113,14 @@ public class StockReceiptDialog extends JDialog {
         inlineAdd.setOpaque(false);
         cbProduct = new JComboBox<>();
         loadProducts();
-        cbProduct.setPreferredSize(new Dimension(230, 34));
+        cbProduct.setPreferredSize(new Dimension(300, 40));
         spinQuantity = new JSpinner(new SpinnerNumberModel(1, 1, 10000, 1));
         spinPrice = new JSpinner(new SpinnerNumberModel(10000.0, 0.0, 10000000.0, 500.0));
+        spinQuantity.setPreferredSize(new Dimension(90, 40));
+        spinPrice.setPreferredSize(new Dimension(140, 40));
+        DialogStyle.styleInput(cbProduct);
+        DialogStyle.styleInput(spinQuantity);
+        DialogStyle.styleInput(spinPrice);
         JButton btnAddItem = new JButton("Them san pham");
         btnAddItem.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #38BDF8; foreground: #0F172A; borderWidth: 0;");
         btnAddItem.addActionListener(e -> addInlineItem());
@@ -177,19 +181,11 @@ public class StockReceiptDialog extends JDialog {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 16, 0));
         btnPanel.setOpaque(false);
 
-        JButton btnCancel = new JButton("Hủy (ESC)");
-        btnCancel.setFont(new Font("Inter", Font.BOLD, 14));
-        btnCancel.setFocusPainted(false);
-        btnCancel.putClientProperty(FlatClientProperties.STYLE, "arc: 12; foreground: #94A3B8; background: #334155; borderWidth: 0; margin: 12,24,12,24");
+        JButton btnCancel = DialogStyle.secondaryButton("Hủy (ESC)");
         btnCancel.addActionListener(e -> dispose());
-        btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnPanel.add(btnCancel);
 
-        JButton btnSave = new JButton("Hoàn tất nhập kho");
-        btnSave.setFont(new Font("Inter", Font.BOLD, 14));
-        btnSave.setFocusPainted(false);
-        btnSave.putClientProperty(FlatClientProperties.STYLE, "arc: 12; foreground: #FFFFFF; background: #6366F1; borderWidth: 0; margin: 12,24,12,24"); // Indigo
-        btnSave.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnSave = DialogStyle.primaryButton("Hoàn tất nhập kho");
         btnSave.addActionListener(e -> saveReceipt());
         btnPanel.add(btnSave);
 
@@ -201,13 +197,11 @@ public class StockReceiptDialog extends JDialog {
     private JPanel createFieldGroup(String labelText, JComponent inputComp) {
         JPanel p = new JPanel(new BorderLayout(0, 8));
         p.setOpaque(false);
-        JLabel lbl = new JLabel(labelText);
-        lbl.setFont(ThemeConfig.FONT_BODY);
-        lbl.setForeground(ThemeConfig.TEXT_SECONDARY);
+        JLabel lbl = DialogStyle.formLabel(labelText);
         
         // Mặc định thiết kế cho tất cả các TextField
         inputComp.putClientProperty(FlatClientProperties.STYLE, "arc: 12; margin: 10,12,10,12; background: #1E293B; foreground: #F8FAFC; borderColor: #334155");
-        inputComp.setFont(ThemeConfig.FONT_BODY);
+        DialogStyle.styleInput(inputComp);
         
         if (inputComp instanceof JTextField) {
             ((JTextField) inputComp).setCaretColor(Color.WHITE);
@@ -231,7 +225,7 @@ public class StockReceiptDialog extends JDialog {
                 }
             });
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Khong the tai danh sach san pham.", "Loi", JOptionPane.ERROR_MESSAGE);
+            AppMessageDialogs.showError(this, "Loi", "Khong the tai danh sach san pham.");
         }
     }
 
@@ -280,12 +274,12 @@ public class StockReceiptDialog extends JDialog {
     private void saveReceipt() {
         String supplier = txtSupplier.getText().trim();
         if (supplier.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên Nhà cung cấp!", "Thiếu thông tin yêu cầu", JOptionPane.WARNING_MESSAGE);
+            AppMessageDialogs.showWarning(this, "Thiếu thông tin yêu cầu", "Vui lòng nhập tên Nhà cung cấp!");
             return;
         }
 
         if (currentItems.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Danh sách sản phẩm nhập không được làm trống. Phải thêm ít nhất 1 mặt hàng!", "Thiếu thông tin yêu cầu", JOptionPane.WARNING_MESSAGE);
+            AppMessageDialogs.showWarning(this, "Thiếu thông tin yêu cầu", "Danh sách sản phẩm nhập không được làm trống. Phải thêm ít nhất 1 mặt hàng!");
             return;
         }
 
@@ -308,7 +302,7 @@ public class StockReceiptDialog extends JDialog {
             protected void done() {
                 try {
                     get();
-                    JOptionPane.showMessageDialog(StockReceiptDialog.this, "Hệ thống ghi nhận việc nhập kho thành công!", "Hoàn tất thao tác", JOptionPane.INFORMATION_MESSAGE);
+                    AppMessageDialogs.showInfo(StockReceiptDialog.this, "Hoàn tất thao tác", "Hệ thống ghi nhận việc nhập kho thành công!");
                     // Trigger UI Table reload from Parent (WarehousePanel) for BOTH TABS
                     if (onSuccessCallback != null) {
                         onSuccessCallback.run();
@@ -317,7 +311,7 @@ public class StockReceiptDialog extends JDialog {
                 } catch (Exception e) {
                     // Extract exact origin error (SQL / Constraint / Transaction)
                     String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-                    JOptionPane.showMessageDialog(StockReceiptDialog.this, "Lỗi khi thiết lập tạo mới phiếu nhập: \n" + msg, "Kho Hàng", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(StockReceiptDialog.this, "Kho Hàng", "Lỗi khi thiết lập tạo mới phiếu nhập: \n" + msg);
                 }
             }
         }.execute();

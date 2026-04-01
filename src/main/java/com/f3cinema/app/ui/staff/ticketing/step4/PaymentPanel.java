@@ -6,6 +6,7 @@ import com.f3cinema.app.service.cart.CartManager;
 import com.f3cinema.app.service.impl.TicketingServiceImpl;
 import com.f3cinema.app.ui.staff.ticketing.TicketOrderState;
 import com.f3cinema.app.ui.staff.ticketing.TicketingFlowPanel;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.staff.ticketing.components.CustomerLookupPanel;
 import com.f3cinema.app.ui.staff.ticketing.components.OrderSummaryCard;
 import com.f3cinema.app.ui.staff.ticketing.components.PointRedemptionPanel;
@@ -576,16 +577,12 @@ public class PaymentPanel extends JPanel {
 
     private void confirmPayment() {
         if (!state.hasSeats() && !state.hasSnacks()) {
-            JOptionPane.showMessageDialog(this, 
-                    "Vui lòng chọn ít nhất một sản phẩm (ghế hoặc bắp nước)!", 
-                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+            AppMessageDialogs.showError(this, "Lỗi", "Vui lòng chọn ít nhất một sản phẩm (ghế hoặc bắp nước)!");
             return;
         }
 
         String confirmMsg = buildConfirmMessage();
-        int confirm = JOptionPane.showConfirmDialog(this, confirmMsg, "Xác nhận thanh toán", JOptionPane.YES_NO_OPTION);
-
-        if (confirm != JOptionPane.YES_OPTION) return;
+        if (!AppMessageDialogs.confirmYesNo(this, "Xác nhận thanh toán", confirmMsg)) return;
 
         btnConfirm.setEnabled(false);
         btnConfirm.setText("Đang xử lý...");
@@ -617,8 +614,7 @@ public class PaymentPanel extends JPanel {
                     navigator.reset();
 
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(PaymentPanel.this,
-                            "Lỗi khi đặt vé: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(PaymentPanel.this, "Lỗi", "Lỗi khi đặt vé: " + e.getMessage());
                     btnConfirm.setEnabled(true);
                     btnConfirm.setText("XÁC NHẬN THANH TOÁN");
                 }
@@ -661,7 +657,7 @@ public class PaymentPanel extends JPanel {
         JButton btnContinue = new JButton("Ban ve tiep");
         btnPrint.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155;");
         btnContinue.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #6366F1; borderWidth: 0;");
-        btnPrint.addActionListener(e -> JOptionPane.showMessageDialog(dialog, "Tinh nang in hoa don se duoc bo sung."));
+        btnPrint.addActionListener(e -> AppMessageDialogs.showInfo(dialog, "Tinh nang in hoa don se duoc bo sung."));
         btnContinue.addActionListener(e -> dialog.dispose());
         actions.add(btnPrint);
         actions.add(btnContinue);

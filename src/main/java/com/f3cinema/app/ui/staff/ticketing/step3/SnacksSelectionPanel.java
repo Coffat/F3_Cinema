@@ -4,6 +4,7 @@ import com.f3cinema.app.dto.ProductDTO;
 import com.f3cinema.app.service.cart.CartManager;
 import com.f3cinema.app.service.cart.CartObserver;
 import com.f3cinema.app.service.impl.InventoryServiceImpl;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.staff.components.CartItemPanel;
 import com.f3cinema.app.ui.staff.components.ProductCard;
 import com.f3cinema.app.ui.staff.ticketing.TicketOrderState;
@@ -242,8 +243,7 @@ public class SnacksSelectionPanel extends JPanel implements CartObserver {
                     productsContainer.revalidate();
                     productsContainer.repaint();
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(SnacksSelectionPanel.this,
-                            "Lỗi tải sản phẩm: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(SnacksSelectionPanel.this, "Lỗi", "Lỗi tải sản phẩm: " + e.getMessage());
                 }
             }
         }.execute();

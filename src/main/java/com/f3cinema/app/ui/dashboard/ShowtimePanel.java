@@ -6,6 +6,7 @@ import com.f3cinema.app.dto.MovieSummaryDTO;
 import com.f3cinema.app.entity.Room;
 import com.f3cinema.app.entity.Showtime;
 import com.f3cinema.app.service.MovieService;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.dashboard.timeline.*;
 import com.formdev.flatlaf.FlatClientProperties;
 
@@ -549,7 +550,7 @@ public class ShowtimePanel extends BaseDashboardModule {
     }
 
     public void showErrorMessage(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Lỗi Quản lý Suất chiếu", JOptionPane.ERROR_MESSAGE);
+        AppMessageDialogs.showError(this, "Lỗi Quản lý Suất chiếu", msg);
     }
 
     public LocalDate getSelectedDate() { return selectedDate; }

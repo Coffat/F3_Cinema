@@ -4,13 +4,16 @@ import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Room;
 import com.f3cinema.app.entity.enums.RoomType;
 import com.f3cinema.app.service.RoomService;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
+import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
+import com.f3cinema.app.ui.common.dialog.DialogStyle;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class RoomDialog extends JDialog {
+public class RoomDialog extends BaseAppDialog {
     private final RoomPanel roomPanel;
     private final Room editTarget;
     private JTextField txtName;
@@ -33,22 +36,19 @@ public class RoomDialog extends JDialog {
     };
 
     public RoomDialog(JFrame owner, Room room, RoomPanel parent) {
-        super(owner, room == null ? "Thêm Phòng Chiếu Mới" : "Cấu hình Phòng Chiếu", true);
+        super(owner, room == null ? "Thêm Phòng Chiếu Mới" : "Cấu hình Phòng Chiếu");
         this.roomPanel = parent;
         this.editTarget = room;
-        setSize(840, 750);
-        setLocationRelativeTo(owner);
-        getContentPane().setBackground(ThemeConfig.BG_MAIN);
+        setupBaseDialog(840, 750);
+        JPanel surface = createSurfacePanel();
+        setContentPane(surface);
 
         JPanel mainContent = new JPanel();
         mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS));
         mainContent.setOpaque(false);
-        mainContent.setBorder(new EmptyBorder(30, 40, 30, 40));
 
         // ------------- HEADER -------------
-        JLabel lblHeader = new JLabel(room == null ? "CẤU HÌNH PHÒNG MỚI" : "CHỈNH SỬA PHÒNG");
-        lblHeader.setFont(ThemeConfig.FONT_H1);
-        lblHeader.setForeground(ThemeConfig.TEXT_PRIMARY);
+        JLabel lblHeader = DialogStyle.titleLabel(room == null ? "CẤU HÌNH PHÒNG MỚI" : "CHỈNH SỬA PHÒNG");
         lblHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainContent.add(lblHeader);
         mainContent.add(Box.createRigidArea(new Dimension(0, 24)));
@@ -102,23 +102,16 @@ public class RoomDialog extends JDialog {
         btnPanel.setOpaque(false);
         btnPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton btnCancel = new JButton("Hủy bỏ");
-        btnCancel.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
-        btnCancel.setFocusPainted(false);
-        btnCancel.putClientProperty(FlatClientProperties.STYLE, "arc: 12; foreground: #94A3B8; background: #334155; borderWidth: 0; padding: 12,24,12,24");
+        JButton btnCancel = DialogStyle.secondaryButton("Hủy bỏ");
         btnCancel.addActionListener(e -> dispose());
         btnPanel.add(btnCancel);
 
-        JButton btnSave = new JButton(room == null ? "Xác Nhận & Tạo Sơ Đồ" : "Cập Nhật Phòng");
-        btnSave.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
-        btnSave.setFocusPainted(false);
-        btnSave.putClientProperty(FlatClientProperties.STYLE, "arc: 12; foreground: #FFFFFF; background: #6366F1; borderWidth: 0; padding: 12,24,12,24");
+        JButton btnSave = DialogStyle.primaryButton(room == null ? "Xác Nhận & Tạo Sơ Đồ" : "Cập Nhật Phòng");
         btnSave.addActionListener(e -> saveRoom());
-        btnSave.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnPanel.add(btnSave);
 
         mainContent.add(btnPanel);
-        add(mainContent);
+        surface.add(mainContent, BorderLayout.CENTER);
 
         if (editTarget != null) {
             prefill();
@@ -143,13 +136,11 @@ public class RoomDialog extends JDialog {
     private JPanel createFieldGroup(String labelText, JComponent inputComp) {
         JPanel p = new JPanel(new BorderLayout(0, 8));
         p.setOpaque(false);
-        JLabel lbl = new JLabel(labelText);
-        lbl.setFont(ThemeConfig.FONT_BODY);
-        lbl.setForeground(ThemeConfig.TEXT_SECONDARY);
+        JLabel lbl = DialogStyle.formLabel(labelText);
 
         if (inputComp instanceof JTextField || inputComp instanceof JComboBox || inputComp instanceof JSpinner) {
             inputComp.putClientProperty(FlatClientProperties.STYLE, "arc: 12; padding: 6,12,6,12; background: #1E293B; foreground: #F8FAFC; borderColor: #334155; focusWidth: 2");
-            inputComp.setFont(ThemeConfig.FONT_BODY);
+            DialogStyle.styleInput(inputComp);
             inputComp.setPreferredSize(new Dimension(0, 38));
             if (inputComp instanceof JTextField) {
                 ((JTextField) inputComp).setCaretColor(Color.WHITE);
@@ -186,7 +177,7 @@ public class RoomDialog extends JDialog {
 
     private void saveRoom() {
         if (txtName.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên phòng chiếu!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            AppMessageDialogs.showWarning(this, "Thiếu thông tin", "Vui lòng nhập tên phòng chiếu!");
             return;
         }
 

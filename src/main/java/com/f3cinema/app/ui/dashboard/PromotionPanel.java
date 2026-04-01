@@ -1,6 +1,7 @@
 package com.f3cinema.app.ui.dashboard;
 
 import com.f3cinema.app.config.ThemeConfig;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
@@ -131,8 +132,8 @@ public class PromotionPanel extends BaseDashboardModule {
         for (PromotionCard.PromotionItem p : promotions) {
             cards.add(new PromotionCard(p,
                     () -> new PromotionDialog(SwingUtilities.getWindowAncestor(this)).setVisible(true),
-                    () -> JOptionPane.showMessageDialog(this, "Đã nhân bản " + p.code()),
-                    () -> JOptionPane.showMessageDialog(this, "Đã tắt " + p.code())));
+                    () -> AppMessageDialogs.showInfo(this, "Đã nhân bản " + p.code()),
+                    () -> AppMessageDialogs.showInfo(this, "Đã tắt " + p.code())));
         }
         JScrollPane scroll = new JScrollPane(cards);
         scroll.setBorder(BorderFactory.createEmptyBorder());

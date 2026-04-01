@@ -6,6 +6,7 @@ import com.f3cinema.app.dto.StockReceiptDTO;
 import com.f3cinema.app.dto.StockReceiptSummaryDTO;
 import com.f3cinema.app.service.impl.InventoryServiceImpl;
 import com.f3cinema.app.service.impl.StockReceiptServiceImpl;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
@@ -44,6 +45,25 @@ public class WarehousePanel extends BaseDashboardModule {
 
         tabbedPane.addTab("Sản phẩm", new FlatSVGIcon("icons/box.svg", 20, 20), createProductTab());
         tabbedPane.addTab("Phiếu nhập kho", new FlatSVGIcon("icons/clipboard.svg", 20, 20), createHistoryTab());
+
+        JButton btnAddProduct = new JButton("Thêm Sản phẩm");
+        stylePrimaryButton(btnAddProduct);
+        btnAddProduct.setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD, 12f));
+        btnAddProduct.setPreferredSize(new Dimension(112, 28));
+        btnAddProduct.setMinimumSize(new Dimension(112, 28));
+        btnAddProduct.setMaximumSize(new Dimension(112, 28));
+        btnAddProduct.putClientProperty(FlatClientProperties.STYLE, "arc: 10; borderWidth: 0; focusWidth: 0; innerFocusWidth: 0");
+        btnAddProduct.addActionListener(e -> {
+            Window window = SwingUtilities.getWindowAncestor(this);
+            ProductDialog dialog = new ProductDialog((JFrame) window, this::loadInventoryData);
+            dialog.setVisible(true);
+        });
+        JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        trailing.setOpaque(false);
+        trailing.add(btnAddProduct);
+        tabbedPane.putClientProperty("JTabbedPane.trailingComponent", trailing);
+        tabbedPane.addChangeListener(e -> btnAddProduct.setVisible(tabbedPane.getSelectedIndex() == 0));
+        btnAddProduct.setVisible(true);
 
         contentBody.setLayout(new BorderLayout(0, 16));
         contentBody.setBackground(ThemeConfig.BG_MAIN);
@@ -92,25 +112,12 @@ public class WarehousePanel extends BaseDashboardModule {
     }
 
     private JPanel createProductTab() {
-        JPanel panel = new JPanel(new BorderLayout(0, 16));
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
         panel.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
-
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        topPanel.setOpaque(false);
-
-        JButton btnAddProduct = new JButton("Thêm Sản phẩm");
-        stylePrimaryButton(btnAddProduct);
-        btnAddProduct.addActionListener(e -> {
-            Window window = SwingUtilities.getWindowAncestor(this);
-            ProductDialog dialog = new ProductDialog((JFrame) window, this::loadInventoryData);
-            dialog.setVisible(true);
-        });
-        topPanel.add(btnAddProduct);
-
-        panel.add(topPanel, BorderLayout.NORTH);
         productsContainer = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 24, 24));
-        productsContainer.setOpaque(false);
+        productsContainer.setOpaque(true);
+        productsContainer.setBackground(ThemeConfig.BG_MAIN);
         productsContainer.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         
         JPanel inner = new JPanel(new BorderLayout());
@@ -119,7 +126,10 @@ public class WarehousePanel extends BaseDashboardModule {
         inner.add(productsContainer, BorderLayout.NORTH);
         JScrollPane scrollPane = new JScrollPane(inner);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setOpaque(true);
         scrollPane.getViewport().setBackground(ThemeConfig.BG_MAIN);
+        scrollPane.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
         panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
@@ -185,9 +195,7 @@ public class WarehousePanel extends BaseDashboardModule {
                     updateStats(products);
                 } catch (Exception e) {
                     String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-                    JOptionPane.showMessageDialog(WarehousePanel.this,
-                            "Lỗi tải dữ liệu Hệ thống: " + msg,
-                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(WarehousePanel.this, "Lỗi", "Lỗi tải dữ liệu Hệ thống: " + msg);
                 }
             }
         };
@@ -215,9 +223,7 @@ public class WarehousePanel extends BaseDashboardModule {
                     renderReceiptTimeline(get());
                 } catch (Exception e) {
                     String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-                    JOptionPane.showMessageDialog(WarehousePanel.this,
-                            "Lỗi tải dữ liệu Lịch sử Nhập kho: " + msg,
-                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(WarehousePanel.this, "Lỗi", "Lỗi tải dữ liệu Lịch sử Nhập kho: " + msg);
                 }
             }
         };
@@ -229,9 +235,9 @@ public class WarehousePanel extends BaseDashboardModule {
         for (ProductDTO p : products) {
             ProductCard card = new ProductCard(
                     p,
-                    () -> JOptionPane.showMessageDialog(this, "Chức năng sửa sản phẩm sẽ được bổ sung."),
-                    () -> JOptionPane.showMessageDialog(this, "Chức năng điều chỉnh tồn kho sẽ được bổ sung."),
-                    () -> JOptionPane.showMessageDialog(this, "Chức năng xóa sản phẩm sẽ được bổ sung."));
+                    () -> AppMessageDialogs.showInfo(this, "Chức năng sửa sản phẩm sẽ được bổ sung."),
+                    () -> AppMessageDialogs.showInfo(this, "Chức năng điều chỉnh tồn kho sẽ được bổ sung."),
+                    () -> AppMessageDialogs.showInfo(this, "Chức năng xóa sản phẩm sẽ được bổ sung."));
             productsContainer.add(card);
         }
         productsContainer.revalidate();
@@ -285,9 +291,7 @@ public class WarehousePanel extends BaseDashboardModule {
                     dialog.setVisible(true);
                 } catch (Exception ex) {
                     String msg = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
-                    JOptionPane.showMessageDialog(WarehousePanel.this,
-                            "Không thể tải chi tiết phiếu nhập: " + msg,
-                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(WarehousePanel.this, "Lỗi", "Không thể tải chi tiết phiếu nhập: " + msg);
                 }
             }
         }.execute();

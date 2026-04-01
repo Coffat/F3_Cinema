@@ -39,9 +39,10 @@ public class InventoryServiceImpl implements InventoryService {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
-            // Sử dụng FROM Product đơn giản để an toàn, Lazy fetch sẽ tự lấy
-            String hql = "FROM Product p";
+            String hql = "FROM Product p LEFT JOIN FETCH p.inventory";
             List<Product> products = session.createQuery(hql, Product.class).getResultList();
+            
+            log.info("Fetched {} products from database", products.size());
 
             List<ProductDTO> result = products.stream().map(p -> {
                 int currentQty = (p.getInventory() != null && p.getInventory().getCurrentQuantity() != null)
@@ -62,6 +63,7 @@ public class InventoryServiceImpl implements InventoryService {
             }).collect(Collectors.toList());
 
             transaction.commit();
+            log.info("Returning {} ProductDTOs", result.size());
             return result;
         } catch (Exception e) {
             if (transaction != null && transaction.isActive()) {
@@ -72,7 +74,6 @@ public class InventoryServiceImpl implements InventoryService {
                 }
             }
             log.error("Lỗi khi lấy danh sách sản phẩm & tồn kho", e);
-            // Append the root cause message to help user see the exact error
             String rootMessage = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             throw new CinemaException("Không thể lấy dữ liệu tồn kho. Chi tiết: " + rootMessage, e);
         }

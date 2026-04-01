@@ -4,6 +4,8 @@ import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Seat;
 import com.f3cinema.app.entity.enums.SeatType;
 import com.f3cinema.app.service.RoomService;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
+import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
@@ -15,7 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class SeatMapDialog extends JDialog {
+public class SeatMapDialog extends BaseAppDialog {
     private final RoomService roomService = RoomService.getInstance();
     private final Long roomId;
     private JPanel mapPanel;
@@ -27,11 +29,11 @@ public class SeatMapDialog extends JDialog {
     private List<Seat> seats;
     
     public SeatMapDialog(JFrame owner, Long roomId) {
-        super(owner, "Sơ đồ ghế (Nhấp để đổi Loại Ghế)", true);
+        super(owner, "Sơ đồ ghế (Nhấp để đổi Loại Ghế)");
         this.roomId = roomId;
-        setSize(900, 700);
-        setLocationRelativeTo(owner);
-        getContentPane().setBackground(ThemeConfig.BG_CARD);
+        setupBaseDialog(900, 700);
+        JPanel surface = createSurfacePanel();
+        setContentPane(surface);
         
         mapPanel = new JPanel();
         mapPanel.setOpaque(false);
@@ -41,7 +43,7 @@ public class SeatMapDialog extends JDialog {
         scrollPane.getViewport().setOpaque(false);
         scrollPane.setOpaque(false);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        add(scrollPane, BorderLayout.CENTER);
+        surface.add(scrollPane, BorderLayout.CENTER);
 
         topPanel = new JPanel(new BorderLayout());
         topPanel.setOpaque(false);
@@ -62,7 +64,7 @@ public class SeatMapDialog extends JDialog {
         bulkPanel.add(bulkTypeCombo);
         bulkPanel.add(applyBulkButton);
         topPanel.add(bulkPanel, BorderLayout.EAST);
-        add(topPanel, BorderLayout.NORTH);
+        surface.add(topPanel, BorderLayout.NORTH);
         
         loadSeats();
     }
@@ -208,7 +210,7 @@ public class SeatMapDialog extends JDialog {
                 roomService.updateSeat(seat);
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() ->
-                        JOptionPane.showMessageDialog(this, "Loi khi luu trang thai ghe!", "Loi", JOptionPane.ERROR_MESSAGE));
+                        AppMessageDialogs.showError(this, "Loi", "Loi khi luu trang thai ghe!"));
             }
         }).start();
     }

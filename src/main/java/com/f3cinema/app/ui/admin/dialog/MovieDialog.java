@@ -4,6 +4,8 @@ import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Movie;
 import com.f3cinema.app.entity.enums.MovieStatus;
 import com.f3cinema.app.service.MovieService;
+import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
+import com.f3cinema.app.ui.common.dialog.DialogStyle;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
@@ -19,14 +21,12 @@ import com.f3cinema.app.service.GenreService;
  * MovieDialog — Add / Edit Movie form.
  * Updated to include Movie Poster URL field.
  */
-public class MovieDialog extends JDialog {
+public class MovieDialog extends BaseAppDialog {
 
-    private static final Color C_BG_SURFACE  = new Color(30, 41, 59, 220);
     private static final Color C_ACCENT      = ThemeConfig.ACCENT_COLOR;
     private static final Color C_DANGER      = ThemeConfig.TEXT_DANGER;
     private static final Color C_TEXT_PRIMARY= ThemeConfig.TEXT_PRIMARY;
     private static final Color C_TEXT_HINT   = ThemeConfig.TEXT_SECONDARY;
-    private static final Color C_BORDER      = new Color(255, 255, 255, 25);
 
     private JTextField txtTitle;
     private JTextField txtPosterUrl;
@@ -41,7 +41,7 @@ public class MovieDialog extends JDialog {
     private boolean saved = false;
 
     public MovieDialog(Window owner, Movie movie, MovieService movieService) {
-        super(owner, movie == null ? "Thêm Phim Mới" : "Chỉnh sửa Phim", ModalityType.APPLICATION_MODAL);
+        super(owner, movie == null ? "Thêm Phim Mới" : "Chỉnh sửa Phim");
         this.editTarget = movie;
         this.movieService = movieService;
         initUI();
@@ -52,32 +52,11 @@ public class MovieDialog extends JDialog {
     public boolean isSaved() { return saved; }
 
     private void initUI() {
-        setUndecorated(true);
-        setSize(500, 640);
-        setLocationRelativeTo(getOwner());
-        setBackground(new Color(0, 0, 0, 0));
+        setupBaseDialog(500, 640);
 
-        JPanel glass = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(C_BG_SURFACE);
-                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 24, 24);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.setColor(C_BORDER);
-                g2.drawRoundRect(0, 0, getWidth() - 7, getHeight() - 7, 24, 24);
-                g2.setColor(C_ACCENT);
-                g2.fillRoundRect(0, 0, getWidth() - 6, 4, 4, 4);
-                g2.dispose();
-            }
-        };
-        glass.setOpaque(false);
-        glass.setBorder(BorderFactory.createEmptyBorder(28, 36, 28, 36));
+        JPanel glass = createSurfacePanel();
 
-        JLabel lblTitle = new JLabel(editTarget == null ? "Thêm Phim Mới" : "Chỉnh sửa Phim");
-        lblTitle.setFont(ThemeConfig.FONT_H1);
-        lblTitle.setForeground(C_TEXT_PRIMARY);
+        JLabel lblTitle = DialogStyle.titleLabel(editTarget == null ? "Thêm Phim Mới" : "Chỉnh sửa Phim");
         lblTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
 
         JPanel form = new JPanel(new GridBagLayout());
@@ -85,28 +64,59 @@ public class MovieDialog extends JDialog {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
+
+        // Title (full width)
+        gbc.gridx = 0;
+        gbc.gridy = 0;
         gbc.gridwidth = 2;
-
-        // Title
         gbc.insets = new Insets(10, 0, 4, 0);
-        gbc.gridy = 0; form.add(buildLabel("Tên phim *"), gbc);
+        form.add(buildLabel("Tên phim *"), gbc);
+        gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 14, 0);
-        gbc.gridy = 1; txtTitle = new JTextField(); styleTextField(txtTitle, ""); form.add(txtTitle, gbc);
+        txtTitle = new JTextField();
+        styleTextField(txtTitle, "");
+        form.add(txtTitle, gbc);
 
-        // Poster URL
-        gbc.insets = new Insets(6, 0, 4, 0);
-        gbc.gridy = 2; form.add(buildLabel("Đường dẫn ảnh (URL)"), gbc);
-        gbc.insets = new Insets(0, 0, 8, 0);
-        gbc.gridy = 3; txtPosterUrl = new JTextField(); styleTextField(txtPosterUrl, ""); form.add(txtPosterUrl, gbc);
+        // Row 1: Poster URL + Duration
+        gbc.gridwidth = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.insets = new Insets(6, 0, 4, 8);
+        form.add(buildLabel("Đường dẫn ảnh (URL)"), gbc);
+        gbc.gridx = 1;
+        gbc.insets = new Insets(6, 8, 4, 0);
+        form.add(buildLabel("Thời lượng (phút) *"), gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.insets = new Insets(0, 0, 12, 8);
+        txtPosterUrl = new JTextField();
+        styleTextField(txtPosterUrl, "");
+        form.add(txtPosterUrl, gbc);
         txtPosterUrl.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
                 updatePosterPreview();
             }
         });
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 8, 12, 0);
+        txtDuration = new JTextField();
+        styleTextField(txtDuration, "Vi du: 120");
+        form.add(txtDuration, gbc);
 
-        gbc.insets = new Insets(0, 0, 12, 0);
+        // Row 2: Preview + Status
+        gbc.gridx = 0;
         gbc.gridy = 4;
+        gbc.insets = new Insets(0, 0, 4, 8);
+        form.add(buildLabel("Preview poster"), gbc);
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 8, 4, 0);
+        form.add(buildLabel("Trạng thái *"), gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.insets = new Insets(0, 0, 12, 8);
         lblPosterPreview = new JLabel("Preview: chua co poster");
         lblPosterPreview.setOpaque(true);
         lblPosterPreview.setBackground(new Color(15, 23, 42, 170));
@@ -115,22 +125,18 @@ public class MovieDialog extends JDialog {
         lblPosterPreview.putClientProperty(FlatClientProperties.STYLE, "arc: 12");
         lblPosterPreview.setFont(ThemeConfig.FONT_SMALL);
         form.add(lblPosterPreview, gbc);
-
-        // Duration
-        gbc.insets = new Insets(6, 0, 4, 0);
-        gbc.gridy = 5; form.add(buildLabel("Thời lượng (phút) *"), gbc);
-        gbc.insets = new Insets(0, 0, 12, 0);
-        gbc.gridy = 6; txtDuration = new JTextField(); styleTextField(txtDuration, "Vi du: 120"); form.add(txtDuration, gbc);
-
-        // Status
-        gbc.insets = new Insets(6, 0, 4, 0);
-        gbc.gridy = 7; form.add(buildLabel("Trạng thái *"), gbc);
-        gbc.insets = new Insets(0, 0, 12, 0);
-        gbc.gridy = 8; cmbStatus = new JComboBox<>(MovieStatus.values()); styleComboBox(cmbStatus); form.add(cmbStatus, gbc);
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 8, 12, 0);
+        cmbStatus = new JComboBox<>(MovieStatus.values());
+        styleComboBox(cmbStatus);
+        form.add(cmbStatus, gbc);
 
         // Genres
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.gridwidth = 2;
         gbc.insets = new Insets(6, 0, 4, 0);
-        gbc.gridy = 9; form.add(buildLabel("Thể loại phim"), gbc);
+        form.add(buildLabel("Thể loại phim"), gbc);
         
         JPanel pnlGenres = new JPanel(new GridLayout(0, 3, 5, 5));
         pnlGenres.setOpaque(false);
@@ -144,23 +150,35 @@ public class MovieDialog extends JDialog {
             genreCheckboxes.add(chk);
             pnlGenres.add(chk);
         }
+        gbc.gridy = 7;
         gbc.insets = new Insets(0, 0, 12, 0);
-        gbc.gridy = 10; form.add(pnlGenres, gbc);
+        form.add(pnlGenres, gbc);
 
         // Error
+        gbc.gridy = 8;
         gbc.insets = new Insets(4, 0, 0, 0);
-        gbc.gridy = 11; lblError = new JLabel(" "); lblError.setFont(ThemeConfig.FONT_SMALL); lblError.setForeground(C_DANGER); form.add(lblError, gbc);
+        lblError = new JLabel(" ");
+        lblError.setFont(ThemeConfig.FONT_SMALL);
+        lblError.setForeground(C_DANGER);
+        form.add(lblError, gbc);
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnPanel.setOpaque(false);
-        JButton btnCancel = buildCancelButton("Hủy");
-        JButton btnSave   = buildSaveButton("Lưu");
+        JButton btnCancel = DialogStyle.secondaryButton("Hủy");
+        JButton btnSave   = DialogStyle.primaryButton("Lưu");
         btnCancel.addActionListener(e -> dispose());
         btnSave.addActionListener(e -> handleSave());
         btnPanel.add(btnCancel); btnPanel.add(btnSave);
 
+        JScrollPane formScrollPane = new JScrollPane(form);
+        formScrollPane.setOpaque(false);
+        formScrollPane.getViewport().setOpaque(false);
+        formScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        formScrollPane.getVerticalScrollBar().setUnitIncrement(14);
+        formScrollPane.getHorizontalScrollBar().setUnitIncrement(14);
+
         glass.add(lblTitle, BorderLayout.NORTH);
-        glass.add(form, BorderLayout.CENTER);
+        glass.add(formScrollPane, BorderLayout.CENTER);
         glass.add(btnPanel, BorderLayout.SOUTH);
         setContentPane(glass);
     }
@@ -222,10 +240,7 @@ public class MovieDialog extends JDialog {
     }
 
     private JLabel buildLabel(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(ThemeConfig.FONT_BODY);
-        lbl.setForeground(C_TEXT_HINT);
-        return lbl;
+        return DialogStyle.formLabel(text);
     }
 
     private void styleTextField(JTextField field, String placeholder) {
@@ -237,7 +252,7 @@ public class MovieDialog extends JDialog {
             "margin: 4, 12, 4, 12; " +
             "focusWidth: 2; " +
             "innerFocusWidth: 0;");
-        field.setFont(ThemeConfig.FONT_BODY);
+        DialogStyle.styleInput(field);
         field.setBackground(new Color(15, 23, 42, 180));
         field.setForeground(C_TEXT_PRIMARY);
         field.setPreferredSize(new Dimension(0, 44));
@@ -253,27 +268,6 @@ public class MovieDialog extends JDialog {
         combo.setBackground(new Color(15, 23, 42, 180));
         combo.setForeground(C_TEXT_PRIMARY);
         combo.setPreferredSize(new Dimension(0, 44));
-    }
-
-    private JButton buildSaveButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
-        btn.setBackground(C_ACCENT);
-        btn.setForeground(Color.WHITE);
-        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 16; borderWidth: 0; margin: 10, 22, 10, 22;");
-        btn.setPreferredSize(new Dimension(120, 42));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
-
-    private JButton buildCancelButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setForeground(C_TEXT_HINT);
-        btn.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_BORDERLESS);
-        btn.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
-        btn.putClientProperty(FlatClientProperties.STYLE, "margin: 6, 20, 6, 20; hoverBackground: null;");
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
     }
 
     private void updatePosterPreview() {

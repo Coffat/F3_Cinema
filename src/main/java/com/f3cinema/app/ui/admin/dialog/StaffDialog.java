@@ -1,6 +1,8 @@
 package com.f3cinema.app.ui.admin.dialog;
 
 import com.f3cinema.app.config.ThemeConfig;
+import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
+import com.f3cinema.app.ui.common.dialog.DialogStyle;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
@@ -12,14 +14,12 @@ import java.awt.event.KeyEvent;
  * StaffDialog — Add / Edit staff account.
  * Password field is optional; blank means keep existing (edit) or default "1" (add).
  */
-public class StaffDialog extends JDialog {
+public class StaffDialog extends BaseAppDialog {
 
-    private static final Color C_BG_SURFACE = new Color(30, 41, 59, 220);
     private static final Color C_ACCENT = ThemeConfig.ACCENT_COLOR;
     private static final Color C_DANGER = ThemeConfig.TEXT_DANGER;
     private static final Color C_TEXT_PRIMARY = ThemeConfig.TEXT_PRIMARY;
     private static final Color C_TEXT_HINT = ThemeConfig.TEXT_SECONDARY;
-    private static final Color C_BORDER = new Color(255, 255, 255, 25);
 
     private final boolean editMode;
     private JTextField txtUsername;
@@ -32,7 +32,7 @@ public class StaffDialog extends JDialog {
     private boolean saved = false;
 
     public StaffDialog(Window owner, boolean editMode) {
-        super(owner, editMode ? "Chỉnh sửa nhân viên" : "Thêm nhân viên", ModalityType.APPLICATION_MODAL);
+        super(owner, editMode ? "Chỉnh sửa nhân viên" : "Thêm nhân viên");
         this.editMode = editMode;
         initUI();
         setupKeyBindings();
@@ -74,32 +74,11 @@ public class StaffDialog extends JDialog {
     }
 
     private void initUI() {
-        setUndecorated(true);
-        setSize(520, 460);
-        setLocationRelativeTo(getOwner());
-        setBackground(new Color(0, 0, 0, 0));
+        setupBaseDialog(520, 460);
 
-        JPanel glass = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(C_BG_SURFACE);
-                g2.fillRoundRect(0, 0, getWidth() - 6, getHeight() - 6, 24, 24);
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.setColor(C_BORDER);
-                g2.drawRoundRect(0, 0, getWidth() - 7, getHeight() - 7, 24, 24);
-                g2.setColor(C_ACCENT);
-                g2.fillRoundRect(0, 0, getWidth() - 6, 4, 4, 4);
-                g2.dispose();
-            }
-        };
-        glass.setOpaque(false);
-        glass.setBorder(BorderFactory.createEmptyBorder(28, 36, 28, 36));
+        JPanel glass = createSurfacePanel();
 
-        JLabel lblTitle = new JLabel(editMode ? "Chỉnh sửa Nhân viên" : "Thêm Nhân viên");
-        lblTitle.setFont(ThemeConfig.FONT_H1);
-        lblTitle.setForeground(C_TEXT_PRIMARY);
+        JLabel lblTitle = DialogStyle.titleLabel(editMode ? "Chỉnh sửa Nhân viên" : "Thêm Nhân viên");
         lblTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
 
         JPanel form = new JPanel(new GridBagLayout());
@@ -167,8 +146,8 @@ public class StaffDialog extends JDialog {
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnPanel.setOpaque(false);
-        JButton btnCancel = buildCancelButton("Hủy");
-        btnSave = buildSaveButton("Lưu");
+        JButton btnCancel = DialogStyle.secondaryButton("Hủy");
+        btnSave = DialogStyle.primaryButton("Lưu");
         btnCancel.addActionListener(e -> dispose());
         btnPanel.add(btnCancel);
         btnPanel.add(btnSave);
@@ -191,10 +170,7 @@ public class StaffDialog extends JDialog {
     }
 
     private JLabel buildLabel(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(ThemeConfig.FONT_BODY);
-        lbl.setForeground(C_TEXT_HINT);
-        return lbl;
+        return DialogStyle.formLabel(text);
     }
 
     private void styleTextField(JTextField field, String placeholder) {
@@ -206,31 +182,11 @@ public class StaffDialog extends JDialog {
                         "margin: 4, 12, 4, 12; " +
                         "focusWidth: 2; " +
                         "innerFocusWidth: 0;");
-        field.setFont(ThemeConfig.FONT_BODY);
+        DialogStyle.styleInput(field);
         field.setBackground(new Color(15, 23, 42, 180));
         field.setForeground(C_TEXT_PRIMARY);
         field.setPreferredSize(new Dimension(0, 44));
         field.setCaretColor(C_ACCENT);
-    }
-
-    private JButton buildSaveButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
-        btn.setBackground(C_ACCENT);
-        btn.setForeground(Color.WHITE);
-        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 16; borderWidth: 0; margin: 6, 20, 6, 20;");
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
-
-    private JButton buildCancelButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setForeground(C_TEXT_HINT);
-        btn.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_BORDERLESS);
-        btn.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
-        btn.putClientProperty(FlatClientProperties.STYLE, "margin: 6, 20, 6, 20; hoverBackground: null;");
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
     }
 
     private void updatePasswordStrength() {

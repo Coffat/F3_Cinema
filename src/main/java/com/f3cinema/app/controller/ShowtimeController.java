@@ -5,6 +5,7 @@ import com.f3cinema.app.entity.Showtime;
 import com.f3cinema.app.service.RoomService;
 import com.f3cinema.app.service.ShowtimeService;
 import com.f3cinema.app.ui.admin.dialog.ShowtimeDialog;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.dashboard.ShowtimePanel;
 
 import javax.swing.*;
@@ -96,11 +97,8 @@ public class ShowtimeController {
     public void handleDeleteAction(Showtime selected) {
         if (selected == null) return;
 
-        int confirm = JOptionPane.showConfirmDialog(view,
-                "Bạn có chắc muốn xóa suất chiếu lúc " + selected.getStartTime() + " không?",
-                "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-
-        if (confirm == JOptionPane.YES_OPTION) {
+        if (AppMessageDialogs.confirmYesNo(view, "Xác nhận xóa",
+                "Bạn có chắc muốn xóa suất chiếu lúc " + selected.getStartTime() + " không?")) {
             try {
                 showtimeService.deleteShowtime(selected.getId());
                 loadShowtimes(view.getSelectedDate(), view.getSelectedMovieId(), view.getSelectedRoomId());

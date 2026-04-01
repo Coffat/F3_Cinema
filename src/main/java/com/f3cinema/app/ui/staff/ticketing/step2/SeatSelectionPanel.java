@@ -6,6 +6,7 @@ import com.f3cinema.app.service.TicketingService;
 import com.f3cinema.app.service.impl.TicketingServiceImpl;
 import com.f3cinema.app.ui.staff.ticketing.TicketOrderState;
 import com.f3cinema.app.ui.staff.ticketing.TicketingFlowPanel;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.staff.ticketing.components.OrderSummaryCard;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
@@ -276,8 +277,7 @@ public class SeatSelectionPanel extends JPanel {
                     renderSummary(result.summary);
                     renderSeatMap(result.seats);
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(SeatSelectionPanel.this,
-                            "Lỗi khi tải sơ đồ ghế: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(SeatSelectionPanel.this, "Lỗi", "Lỗi khi tải sơ đồ ghế: " + e.getMessage());
                 }
             }
         }.execute();

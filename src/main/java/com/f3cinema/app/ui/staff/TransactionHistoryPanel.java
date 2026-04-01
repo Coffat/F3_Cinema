@@ -11,6 +11,7 @@ import com.f3cinema.app.service.TransactionHistoryService;
 import com.f3cinema.app.service.impl.TransactionHistoryServiceImpl;
 import com.f3cinema.app.ui.staff.components.TransactionCard;
 import com.f3cinema.app.ui.staff.components.TransactionDetailPanel;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.util.SessionManager;
 import com.f3cinema.app.util.pdf.InvoiceExportService;
 import com.formdev.flatlaf.FlatClientProperties;
@@ -131,8 +132,7 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
                     List<TransactionRowDTO> rows = get();
                     refreshTimeline(rows);
                 } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(TransactionHistoryPanel.this,
-                            "Không tải được lịch sử: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(TransactionHistoryPanel.this, "Lỗi", "Không tải được lịch sử: " + ex.getMessage());
                 }
             }
         }.execute();
@@ -157,7 +157,7 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
                                         selectedDetail = historyService.getTransactionDetail(selectedInvoiceId);
                                         performExport();
                                     } catch (Exception ex) {
-                                        JOptionPane.showMessageDialog(this, "Khong tai duoc chi tiet de xuat hoa don.", "Loi", JOptionPane.ERROR_MESSAGE);
+                                        AppMessageDialogs.showError(this, "Loi", "Khong tai duoc chi tiet de xuat hoa don.");
                                     }
                                 },
                                 () -> {
@@ -217,7 +217,7 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
         try {
             detail = historyService.getTransactionDetail(invoiceId);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Không tải được chi tiết: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            AppMessageDialogs.showError(this, "Lỗi", "Không tải được chi tiết: " + ex.getMessage());
             return;
         }
 
@@ -253,17 +253,17 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
         if (selectedInvoiceId == null) {
             return;
         }
-        String reason = JOptionPane.showInputDialog(this, "Nhập lý do hủy đơn:");
+        String reason = AppMessageDialogs.promptInput(this, "Hủy đơn", "Nhập lý do hủy đơn:");
         if (reason == null) {
             return;
         }
         try {
             Long actor = SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null;
             historyService.cancelInvoice(selectedInvoiceId, reason, actor);
-            JOptionPane.showMessageDialog(this, "Đã hủy hóa đơn #" + selectedInvoiceId, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            AppMessageDialogs.showInfo(this, "Thành công", "Đã hủy hóa đơn #" + selectedInvoiceId);
             loadTimeline();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Không thể hủy", JOptionPane.ERROR_MESSAGE);
+            AppMessageDialogs.showError(this, "Không thể hủy", ex.getMessage());
         }
     }
 
@@ -271,17 +271,17 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
         if (selectedInvoiceId == null) {
             return;
         }
-        String reason = JOptionPane.showInputDialog(this, "Nhập lý do hoàn tiền:");
+        String reason = AppMessageDialogs.promptInput(this, "Hoàn tiền", "Nhập lý do hoàn tiền:");
         if (reason == null) {
             return;
         }
         try {
             Long actor = SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null;
             historyService.refundInvoice(selectedInvoiceId, reason, actor);
-            JOptionPane.showMessageDialog(this, "Hoàn tiền thành công cho hóa đơn #" + selectedInvoiceId, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            AppMessageDialogs.showInfo(this, "Thành công", "Hoàn tiền thành công cho hóa đơn #" + selectedInvoiceId);
             loadTimeline();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Không thể hoàn tiền", JOptionPane.ERROR_MESSAGE);
+            AppMessageDialogs.showError(this, "Không thể hoàn tiền", ex.getMessage());
         }
     }
 
@@ -298,9 +298,9 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
         try {
             Path output = chooser.getSelectedFile().toPath();
             InvoiceExportService.getInstance().exportInvoice(selectedDetail, output);
-            JOptionPane.showMessageDialog(this, "Đã xuất: " + output, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            AppMessageDialogs.showInfo(this, "Thành công", "Đã xuất: " + output);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi xuất PDF", JOptionPane.ERROR_MESSAGE);
+            AppMessageDialogs.showError(this, "Lỗi xuất PDF", ex.getMessage());
         }
     }
 }

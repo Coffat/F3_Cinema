@@ -43,8 +43,6 @@ public class MovieCard extends JPanel {
     // Design Tokens
     private static final Color C_CARD_BG = ThemeConfig.BG_CARD;
     private static final Color C_ACCENT = ThemeConfig.ACCENT_COLOR;
-    private static final Color C_TEXT_MAIN = ThemeConfig.TEXT_PRIMARY;
-    private static final Color C_TEXT_SUB = ThemeConfig.TEXT_SECONDARY;
     private static final Color C_GLOW = new Color(99, 102, 241, 90);
 
     public MovieCard(Movie movie, Runnable onEdit, Runnable onDelete) {
@@ -188,14 +186,14 @@ public class MovieCard extends JPanel {
         g2.setColor(C_CARD_BG);
         g2.fillRoundRect(0, 0, w, h, ThemeConfig.RADIUS_CARD, ThemeConfig.RADIUS_CARD);
 
-        // Poster Area
+        // Full-card poster cover
         Shape oldClip = g2.getClip();
-        RoundRectangle2D posterRect = new RoundRectangle2D.Float(10, 10, w - 20, h - 105, 16, 16);
-        g2.clip(posterRect); // Intersects with existing clip (like JViewport) to keep it inside boundaries
-        drawPoster(g2, 10, 10, w - 20, h - 105);
-        g2.setClip(oldClip); // Restore the previous clip correctly
+        RoundRectangle2D fullCardRect = new RoundRectangle2D.Float(0, 0, w, h, ThemeConfig.RADIUS_CARD, ThemeConfig.RADIUS_CARD);
+        g2.clip(fullCardRect);
+        drawPoster(g2, 0, 0, w, h);
+        g2.setClip(oldClip);
 
-        drawStatusBadge(g2, movie.getStatus(), w - 90, 16);
+        drawStatusBadge(g2, movie.getStatus(), w - 90, 12);
         drawInfoArea(g2, w, h);
 
         // Border Glow
@@ -217,9 +215,9 @@ public class MovieCard extends JPanel {
 
         if (img != null) {
             g2.drawImage(img, x, y, w, h, null);
-            GradientPaint bottomGrad = new GradientPaint(x, y + h - 60, new Color(15, 23, 42, 0), x, y + h, new Color(15, 23, 42, 210));
+            GradientPaint bottomGrad = new GradientPaint(x, y + h - 130, new Color(15, 23, 42, 0), x, y + h, new Color(15, 23, 42, 230));
             g2.setPaint(bottomGrad);
-            g2.fillRect(x, y + h - 60, w, 60);
+            g2.fillRect(x, y + h - 130, w, 130);
         } else {
             // Placeholder: Animated Loading or Icon
             GradientPaint grad = new GradientPaint(x, y, new Color(30, 41, 59), x, y + h, new Color(15, 23, 42));
@@ -241,32 +239,41 @@ public class MovieCard extends JPanel {
     }
 
     private void drawInfoArea(Graphics2D g2, int w, int h) {
-        g2.setColor(C_TEXT_MAIN);
+        g2.setColor(new Color(8, 12, 22, 180));
+        g2.fillRoundRect(10, h - 92, w - 20, 78, 12, 12);
+
+        g2.setColor(Color.WHITE);
         g2.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         String title = movie.getTitle();
         FontMetrics fm = g2.getFontMetrics();
         if (fm.stringWidth(title) > w - 40) {
             title = title.substring(0, 15) + "...";
         }
-        g2.drawString(title, 16, h - 62);
+        drawShadowText(g2, title, 16, h - 62, Color.WHITE);
 
         String genresStr = movie.getGenres() != null && !movie.getGenres().isEmpty() ? 
             movie.getGenres().stream().map(Genre::getName).limit(3).collect(Collectors.joining(", ")) : "";
         if (movie.getGenres() != null && movie.getGenres().size() > 3) genresStr += "...";
 
         g2.setFont(ThemeConfig.FONT_SMALL);
-        g2.setColor(C_TEXT_SUB);
-        g2.drawString(movie.getDuration() + " phut", 16, h - 42);
+        drawShadowText(g2, movie.getDuration() + " phut", 16, h - 42, new Color(226, 232, 240));
 
         if (!genresStr.isEmpty()) {
             g2.setFont(ThemeConfig.FONT_SMALL.deriveFont(11f));
-            g2.setColor(new Color(148, 163, 184, 160));
+            g2.setColor(new Color(203, 213, 225));
             FontMetrics fmGen = g2.getFontMetrics();
             if (fmGen.stringWidth(genresStr) > w - 32) {
                 genresStr = genresStr.substring(0, 20) + "...";
             }
-            g2.drawString(genresStr, 16, h - 22);
+            drawShadowText(g2, genresStr, 16, h - 22, new Color(203, 213, 225));
         }
+    }
+
+    private void drawShadowText(Graphics2D g2, String text, int x, int y, Color color) {
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.drawString(text, x + 1, y + 1);
+        g2.setColor(color);
+        g2.drawString(text, x, y);
     }
 
     private void drawStatusBadge(Graphics2D g2, MovieStatus status, int x, int y) {

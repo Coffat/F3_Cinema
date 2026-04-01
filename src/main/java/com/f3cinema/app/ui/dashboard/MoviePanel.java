@@ -3,6 +3,7 @@ package com.f3cinema.app.ui.dashboard;
 import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Movie;
 import com.f3cinema.app.controller.MovieController;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
@@ -201,7 +202,7 @@ public class MoviePanel extends BaseDashboardModule {
     }
 
     public void showErrorMessage(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
+        AppMessageDialogs.showError(this, "Lỗi hệ thống", msg);
     }
 
     public String getSearchText() { return txtSearch.getText(); }
