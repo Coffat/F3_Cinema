@@ -37,5 +37,6 @@
         <mapping class="com.f3cinema.app.entity.Ticket"/>
         <mapping class="com.f3cinema.app.entity.InvoiceItem"/>
         <mapping class="com.f3cinema.app.entity.Payment"/>
+        <mapping class="com.f3cinema.app.entity.Voucher"/>
     </session-factory>
 </hibernate-configuration>

@@ -23,6 +23,8 @@ public class StaffMainFrame extends JFrame {
     public static final String CARD_CUSTOMERS = "CUSTOMERS";
     public static final String CARD_TRANSACTIONS = "TRANSACTIONS";
 
+    private TicketingPanel ticketingPanel;
+
     public StaffMainFrame(User user) {
         this.loggedInUser = user;
         initialize();
@@ -63,7 +65,11 @@ public class StaffMainFrame extends JFrame {
     }
 
     private void injectModules() {
-        contentArea.add(new TicketingPanel(), CARD_TICKETING);
+        ticketingPanel = new TicketingPanel();
+        ticketingPanel.setOnNavigateToSnacks(() -> {
+            contentController.handleMenuSelection(CARD_SNACKS);
+        });
+        contentArea.add(ticketingPanel, CARD_TICKETING);
         contentArea.add(new SnacksPanel(), CARD_SNACKS);
         contentArea.add(new SearchShowtimePanel(), CARD_SEARCH);
         contentArea.add(new CustomerPanel(), CARD_CUSTOMERS);

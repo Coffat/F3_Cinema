@@ -3,6 +3,7 @@ package com.f3cinema.app.ui.staff;
 import com.f3cinema.app.dto.SeatDTO;
 import com.f3cinema.app.dto.ShowtimeSummaryDTO;
 import com.f3cinema.app.service.TicketingService;
+import com.f3cinema.app.service.cart.TicketSessionManager;
 import com.f3cinema.app.service.impl.TicketingServiceImpl;
 import com.formdev.flatlaf.FlatClientProperties;
 
@@ -40,9 +41,12 @@ public class SeatSelectionView extends JPanel {
     private JLabel lblRoomAndTime;
     private JTextArea txtSelectedSeatsList;
     private JLabel lblTotalPrice;
+    private JTextField txtVoucher;
     private JButton btnPay;
+    private JButton btnAddSnacks;
 
     private TicketingService ticketingService;
+    private TicketSessionManager sessionManager;
     private Long currentShowtimeId; // Theo dõi cờ phiên Giao dịch hiện tại
 
     // State Management
@@ -52,6 +56,7 @@ public class SeatSelectionView extends JPanel {
     public SeatSelectionView(TicketingPanel navigator) {
         this.navigator = navigator;
         this.ticketingService = TicketingServiceImpl.getInstance();
+        this.sessionManager = TicketSessionManager.getInstance();
         initLayout();
         setupKeyboardBindings();
     }
@@ -160,6 +165,36 @@ public class SeatSelectionView extends JPanel {
         selectedSeatsPanel.add(txtSelectedSeatsList, BorderLayout.CENTER);
         invoicePanel.add(selectedSeatsPanel, BorderLayout.CENTER);
 
+        JPanel voucherPanel = new JPanel(new BorderLayout(0, 8));
+        voucherPanel.setOpaque(false);
+        voucherPanel.setBorder(new EmptyBorder(16, 0, 16, 0));
+
+        JLabel lblVoucher = new JLabel("Mã Voucher:");
+        lblVoucher.setFont(new Font("-apple-system", Font.BOLD, 14));
+        lblVoucher.setForeground(TEXT_PRIMARY);
+
+        txtVoucher = new JTextField();
+        txtVoucher.setFont(new Font("-apple-system", Font.PLAIN, 14));
+        txtVoucher.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #0F172A; borderColor: #334155");
+        txtVoucher.setForeground(TEXT_PRIMARY);
+        txtVoucher.setCaretColor(TEXT_PRIMARY);
+
+        JButton btnApplyVoucher = new JButton("Áp dụng");
+        btnApplyVoucher.setFont(new Font("-apple-system", Font.BOLD, 12));
+        btnApplyVoucher.setForeground(Color.WHITE);
+        btnApplyVoucher.setBackground(new Color(0x475569));
+        btnApplyVoucher.putClientProperty(FlatClientProperties.STYLE, "arc: 10; borderWidth: 0; focusWidth: 0;");
+        btnApplyVoucher.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnApplyVoucher.addActionListener(e -> applyVoucher());
+
+        JPanel voucherInputPanel = new JPanel(new BorderLayout(0, 0));
+        voucherInputPanel.setOpaque(false);
+        voucherInputPanel.add(txtVoucher, BorderLayout.CENTER);
+        voucherInputPanel.add(btnApplyVoucher, BorderLayout.EAST);
+
+        voucherPanel.add(lblVoucher, BorderLayout.NORTH);
+        voucherPanel.add(voucherInputPanel, BorderLayout.CENTER);
+
         JPanel bottomInvoice = new JPanel(new BorderLayout(0, 16));
         bottomInvoice.setOpaque(false);
 
@@ -196,8 +231,25 @@ public class SeatSelectionView extends JPanel {
         bottomWrapper.setOpaque(false);
         bottomWrapper.add(sepBottom);
         bottomWrapper.add(priceRow);
-        bottomWrapper.add(Box.createVerticalStrut(20));
-        bottomWrapper.add(btnPay);
+        bottomWrapper.add(voucherPanel);
+        bottomWrapper.add(Box.createVerticalStrut(10));
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        buttonPanel.setOpaque(false);
+
+        btnAddSnacks = new JButton("🍿 Thêm Bắp Nước");
+        btnAddSnacks.setFont(new Font("-apple-system", Font.BOLD, 14));
+        btnAddSnacks.setForeground(Color.WHITE);
+        btnAddSnacks.setBackground(new Color(0x475569));
+        btnAddSnacks.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnAddSnacks.setPreferredSize(new Dimension(0, 45));
+        btnAddSnacks.putClientProperty(FlatClientProperties.STYLE, "arc: 16; borderWidth: 0; focusWidth: 0;");
+        btnAddSnacks.addActionListener(e -> addSnacksAndCheckout());
+
+        buttonPanel.add(btnAddSnacks);
+        buttonPanel.add(btnPay);
+
+        bottomWrapper.add(buttonPanel);
 
         bottomInvoice.add(bottomWrapper, BorderLayout.SOUTH);
         invoicePanel.add(bottomInvoice, BorderLayout.SOUTH);
@@ -421,5 +473,34 @@ public class SeatSelectionView extends JPanel {
         // ghế
         loadSeatMap(currentShowtimeId);
         // --------------------------------------------------------------------------------
+    }
+
+    private void applyVoucher() {
+        String code = txtVoucher.getText().trim().toUpperCase();
+        if (code.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã voucher!", "Voucher", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        UIManager.put("OptionPane.messageFont", new Font("-apple-system", Font.PLAIN, 14));
+        if (code.equals("F3CINEMA10")) {
+            JOptionPane.showMessageDialog(this, "✅ Áp dụng thành công! Giảm 10%", "Voucher", JOptionPane.INFORMATION_MESSAGE);
+        } else if (code.equals("F3CINEMA20")) {
+            JOptionPane.showMessageDialog(this, "✅ Áp dụng thành công! Giảm 20%", "Voucher", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "❌ Mã voucher không hợp lệ hoặc đã hết hạn!", "Voucher", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void addSnacksAndCheckout() {
+        if (selectedSeats.isEmpty()) {
+            UIManager.put("OptionPane.messageFont", new Font("-apple-system", Font.PLAIN, 14));
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 ghế trước khi thêm bắp nước!",
+                    "Chưa chọn ghế", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        sessionManager.startTicketSession(currentShowtimeId, lblMovieTitle.getText(), 
+                lblRoomAndTime.getText(), "");
+        sessionManager.setSelectedSeats(selectedSeats);
+        navigator.navigateToSnacks();
     }
 }

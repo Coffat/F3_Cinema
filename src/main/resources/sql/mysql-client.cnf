@@ -1,0 +1,4 @@
+[client]
+# Ensure mysql client used by docker-entrypoint-initdb.d reads SQL files as UTF-8.
+default-character-set=utf8mb4
+

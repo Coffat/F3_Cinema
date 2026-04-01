@@ -1,6 +1,8 @@
 package com.f3cinema.app.controller;
 
+import com.f3cinema.app.entity.Room;
 import com.f3cinema.app.entity.Showtime;
+import com.f3cinema.app.service.RoomService;
 import com.f3cinema.app.service.ShowtimeService;
 import com.f3cinema.app.ui.admin.dialog.ShowtimeDialog;
 import com.f3cinema.app.ui.dashboard.ShowtimePanel;
@@ -8,11 +10,12 @@ import com.f3cinema.app.ui.dashboard.ShowtimePanel;
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
+import java.util.*;
 import java.util.List;
 
 /**
- * ShowtimeController - Điều phối giữa UI Quản lý Suất chiếu và Service.
- * Tuân thủ chuẩn Controller: Xử lý sự kiện và chạy tác vụ nền (Async).
+ * ShowtimeController — Orchestrates between the Timeline View and Service layer.
+ * Loads showtimes grouped by room for the visual scheduling timeline.
  */
 public class ShowtimeController {
 
@@ -31,18 +34,37 @@ public class ShowtimeController {
     public void loadShowtimes(LocalDate date, Long movieId, Long roomId) {
         view.setLoadingState(true);
 
-        new SwingWorker<List<Showtime>, Void>() {
+        new SwingWorker<TimelineData, Void>() {
             @Override
-            protected List<Showtime> doInBackground() {
-                // Sử dụng DAO trực tiếp để lấy entity thô cho admin quản lý
-                return new com.f3cinema.app.repository.ShowtimeRepositoryImpl().findByFilter(date, movieId, roomId);
+            protected TimelineData doInBackground() {
+                List<Showtime> showtimes = new com.f3cinema.app.repository.ShowtimeRepositoryImpl()
+                        .findByFilter(date, movieId, roomId);
+
+                // All rooms (or just the filtered one) for the sidebar
+                List<Room> rooms;
+                if (roomId != null) {
+                    Room single = RoomService.getInstance().getRoomById(roomId);
+                    rooms = single != null ? List.of(single) : List.of();
+                } else {
+                    rooms = RoomService.getInstance().getAllRooms();
+                    rooms.sort(Comparator.comparing(Room::getName));
+                }
+
+                // Group showtimes by room ID
+                Map<Long, List<Showtime>> grouped = new LinkedHashMap<>();
+                for (Room r : rooms) grouped.put(r.getId(), new ArrayList<>());
+                for (Showtime s : showtimes) {
+                    grouped.computeIfAbsent(s.getRoom().getId(), k -> new ArrayList<>()).add(s);
+                }
+
+                return new TimelineData(rooms, grouped);
             }
 
             @Override
             protected void done() {
                 try {
-                    List<Showtime> data = get();
-                    view.updateTableData(data);
+                    TimelineData result = get();
+                    view.updateTimelineData(result.rooms, result.grouped);
                 } catch (Exception ex) {
                     view.showErrorMessage("Lỗi kết nối cơ sở dữ liệu: " + ex.getMessage());
                 } finally {
@@ -51,9 +73,6 @@ public class ShowtimeController {
             }
         }.execute();
     }
-    
-    // Lưu ý: Logic lấy danh sách gốc ở trên hơi rườm rà do tôi đang cố reuse filter. 
-    // Tốt nhất là thêm hàm getAllShowtimesByFilter vào Service.
 
     public void handleAddAction() {
         Window owner = SwingUtilities.getWindowAncestor(view);
@@ -80,7 +99,7 @@ public class ShowtimeController {
         int confirm = JOptionPane.showConfirmDialog(view,
                 "Bạn có chắc muốn xóa suất chiếu lúc " + selected.getStartTime() + " không?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        
+
         if (confirm == JOptionPane.YES_OPTION) {
             try {
                 showtimeService.deleteShowtime(selected.getId());
@@ -90,4 +109,6 @@ public class ShowtimeController {
             }
         }
     }
+
+    private record TimelineData(List<Room> rooms, Map<Long, List<Showtime>> grouped) {}
 }

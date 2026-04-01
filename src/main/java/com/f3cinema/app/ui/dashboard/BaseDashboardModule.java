@@ -19,29 +19,13 @@ public abstract class BaseDashboardModule extends JPanel {
     }
 
     private void setupUI() {
-        setLayout(new BorderLayout(0, 24));
+        // Remove module header to maximize content area
+        setLayout(new BorderLayout(0, 0));
         setOpaque(false);
-        setBorder(BorderFactory.createEmptyBorder(32, 40, 40, 40));
+        // Tighter padding so content fills more of the frame
+        setBorder(BorderFactory.createEmptyBorder(12, 16, 16, 16));
 
-        // 1. Header Section (Refined Hierarchy)
-        JPanel headerPanel = new JPanel(new BorderLayout(12, 4));
-        headerPanel.setOpaque(false);
-
-        JLabel lblTitle = new JLabel(title);
-        lblTitle.setFont(new Font("Inter", Font.BOLD, 36)); // Larger, Bolder
-        lblTitle.setForeground(Color.WHITE);
-
-        JPanel breadcrumbContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        breadcrumbContainer.setOpaque(false);
-        JLabel lblBreadcrumb = new JLabel(breadcrumb);
-        lblBreadcrumb.setFont(new Font("Inter", Font.PLAIN, 13));
-        lblBreadcrumb.setForeground(Color.decode("#6366F1")); // Indigo Accent
-        breadcrumbContainer.add(lblBreadcrumb);
-
-        headerPanel.add(lblTitle, BorderLayout.WEST);
-        headerPanel.add(breadcrumbContainer, BorderLayout.SOUTH);
-
-        // 2. Pro Max Glassmorphism Body
+        // Glassmorphism body
         contentBody = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -63,9 +47,8 @@ public abstract class BaseDashboardModule extends JPanel {
         };
         contentBody.setLayout(new BorderLayout());
         contentBody.setOpaque(false);
-        contentBody.setBorder(BorderFactory.createEmptyBorder(24, 24, 24, 24));
+        contentBody.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
 
-        add(headerPanel, BorderLayout.NORTH);
         add(contentBody, BorderLayout.CENTER);
     }
 }

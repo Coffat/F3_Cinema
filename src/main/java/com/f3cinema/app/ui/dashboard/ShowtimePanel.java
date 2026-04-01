@@ -2,43 +2,46 @@ package com.f3cinema.app.ui.dashboard;
 
 import com.f3cinema.app.controller.ShowtimeController;
 import com.f3cinema.app.dto.MovieSummaryDTO;
+import com.f3cinema.app.entity.Room;
 import com.f3cinema.app.entity.Showtime;
 import com.f3cinema.app.service.MovieService;
+import com.f3cinema.app.ui.dashboard.timeline.*;
 import com.formdev.flatlaf.FlatClientProperties;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.List;
 
+import static com.f3cinema.app.ui.dashboard.timeline.TimelineConstants.*;
+
 /**
- * ShowtimePanel - Giao diện Quản lý Suất chiếu dành cho Admin.
- * Tuân thủ Frontend Style Guide: Midnight Dark Mode & Table Management.
+ * ShowtimePanel — Admin "Quản lý Lịch chiếu" with Timeline View.
+ * Displays showtimes as color-coded blocks on a room x time grid.
  */
 public class ShowtimePanel extends BaseDashboardModule {
 
-    // ── Design Tokens ────────────────────────────────────────────
-    private static final Color BG_MAIN      = new Color(0x0F172A);
-    private static final Color BG_SURFACE   = new Color(0x1E293B);
-    private static final Color BG_ELEVATED  = new Color(0x334155);
-    private static final Color TEXT_PRIMARY = new Color(0xF8FAFC);
-    private static final Color TEXT_MUTED   = new Color(0x94A3B8);
-    private static final Color ACCENT       = new Color(0x6366F1);
-
-    private JTable showtimeTable;
-    private DefaultTableModel tableModel;
     private JComboBox<MovieSummaryDTO> cbMovies;
-    private JComboBox<com.f3cinema.app.entity.Room> cbRooms;
+    private JComboBox<Room> cbRooms;
 
-    // Custom Date Picker
     private JButton btnDatePicker;
     private LocalDate selectedDate = LocalDate.now();
     private static final DateTimeFormatter PICKER_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DateTimeFormatter TIME_FORMATTER   = DateTimeFormatter.ofPattern("HH:mm");
+
+    private TimelinePanel timelinePanel;
+    private TimeRulerHeader timeRulerHeader;
+    private RoomSidebar roomSidebar;
+    private JScrollPane timelineScroll;
+    private JPanel legendPanel;
+
+    private JButton btnZoomIn;
+    private JButton btnZoomOut;
 
     private final ShowtimeController controller;
 
@@ -46,46 +49,78 @@ public class ShowtimePanel extends BaseDashboardModule {
         super("Quản lý Lịch chiếu", "Home > Showtime Management");
         this.controller = new ShowtimeController(this);
         initUI();
-        loadMoviesToComboBox();
+        loadFilterData();
         controller.init();
     }
 
     private void initUI() {
         contentBody.add(createToolbar(), BorderLayout.NORTH);
+        contentBody.add(createTimelineArea(), BorderLayout.CENTER);
+        legendPanel = createLegendPanel();
+        contentBody.add(legendPanel, BorderLayout.SOUTH);
+    }
 
-        String[] cols = {"ID", "Phim", "Phòng chiếu", "Bắt đầu", "Kết thúc", "Giá vé (VNĐ)", "Hành động"};
-        tableModel = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return c == 6; }
+    // ─────────────────────────────────────────────────────────────────────────
+    // TIMELINE AREA
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private JPanel createTimelineArea() {
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+
+        timelinePanel = new TimelinePanel();
+        timeRulerHeader = new TimeRulerHeader();
+        roomSidebar = new RoomSidebar();
+
+        timelineScroll = new JScrollPane(timelinePanel);
+        timelineScroll.setBorder(BorderFactory.createEmptyBorder());
+        timelineScroll.getViewport().setBackground(BG_MAIN);
+        timelineScroll.setRowHeaderView(roomSidebar);
+        timelineScroll.setColumnHeaderView(timeRulerHeader);
+        timelineScroll.getHorizontalScrollBar().setUnitIncrement(20);
+        timelineScroll.getVerticalScrollBar().setUnitIncrement(20);
+
+        // Corner panel (top-left intersection of ruler and sidebar)
+        JPanel corner = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(ROW_SEPARATOR);
+                g2.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight());
+                g2.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
+                g2.dispose();
+            }
         };
-        showtimeTable = createStyledTable(tableModel);
-        setupTableActions();
+        corner.setBackground(BG_MAIN);
+        corner.setPreferredSize(new Dimension(SIDEBAR_WIDTH, RULER_HEIGHT));
+        timelineScroll.setCorner(JScrollPane.UPPER_LEFT_CORNER, corner);
 
-        JScrollPane sp = new JScrollPane(showtimeTable);
-        sp.setBorder(BorderFactory.createEmptyBorder());
-        sp.getViewport().setBackground(BG_SURFACE);
-        contentBody.add(sp, BorderLayout.CENTER);
+        wrapper.add(timelineScroll, BorderLayout.CENTER);
+        return wrapper;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // TOOLBAR
     // ─────────────────────────────────────────────────────────────────────────
+
     private JPanel createToolbar() {
         JPanel toolbar = new JPanel();
         toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.X_AXIS));
         toolbar.setOpaque(false);
-        toolbar.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+        toolbar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftPanel.setOpaque(false);
 
-        // ── Custom Calendar Button ─────────────────────────────────────────
+        // Calendar button
         btnDatePicker = new JButton("\uD83D\uDCC5  " + selectedDate.format(PICKER_FORMATTER));
         btnDatePicker.setFont(new Font("Inter", Font.PLAIN, 14));
         btnDatePicker.setForeground(TEXT_PRIMARY);
         btnDatePicker.setBackground(BG_SURFACE);
-        btnDatePicker.setPreferredSize(new Dimension(175, 40));
-        btnDatePicker.setMaximumSize(new Dimension(175, 40));
-        btnDatePicker.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnDatePicker.setPreferredSize(new Dimension(175, 36));
+        btnDatePicker.setMaximumSize(new Dimension(175, 36));
+        btnDatePicker.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnDatePicker.setHorizontalAlignment(SwingConstants.LEFT);
         btnDatePicker.putClientProperty(FlatClientProperties.STYLE,
                 "arc: 12; borderWidth: 0; background: #1E293B; foreground: #FFFFFF;");
@@ -94,44 +129,129 @@ public class ShowtimePanel extends BaseDashboardModule {
             popup.show(btnDatePicker, 0, btnDatePicker.getHeight() + 4);
         });
 
-        // ── Combo Phim ────────────────────────────────────────────────────
+        // Movie filter
         cbMovies = new JComboBox<>();
         styleToolbarComponent(cbMovies, 200);
         cbMovies.addActionListener(e ->
                 controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId()));
 
-        // ── Combo Phòng ───────────────────────────────────────────────────
+        // Room filter
         cbRooms = new JComboBox<>();
         styleToolbarComponent(cbRooms, 180);
         cbRooms.addActionListener(e ->
                 controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId()));
 
         leftPanel.add(btnDatePicker);
-        leftPanel.add(new JLabel("\uD83C\uDFAC"));
         leftPanel.add(cbMovies);
-        leftPanel.add(new JLabel("\uD83C\uDFE0"));
         leftPanel.add(cbRooms);
 
-        // ── Nút Thêm ─────────────────────────────────────────────────────
+        // Zoom controls
+        JPanel zoomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
+        zoomPanel.setOpaque(false);
+
+        btnZoomOut = createToolbarIconButton("−");
+        btnZoomOut.addActionListener(e -> zoom(-ZOOM_STEP));
+        btnZoomIn = createToolbarIconButton("+");
+        btnZoomIn.addActionListener(e -> zoom(ZOOM_STEP));
+
+        zoomPanel.add(btnZoomOut);
+        zoomPanel.add(btnZoomIn);
+
+        // Add button
         JButton btnAdd = new JButton("+ Thêm suất chiếu");
         btnAdd.setBackground(ACCENT);
         btnAdd.setForeground(Color.WHITE);
         btnAdd.setFont(new Font("Inter", Font.BOLD, 14));
-        btnAdd.setPreferredSize(new Dimension(180, 40));
-        btnAdd.setMaximumSize(new Dimension(180, 40));
+        btnAdd.setPreferredSize(new Dimension(180, 36));
+        btnAdd.setMaximumSize(new Dimension(180, 36));
         btnAdd.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0;");
-        btnAdd.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnAdd.addActionListener(e -> controller.handleAddAction());
 
         toolbar.add(leftPanel);
         toolbar.add(Box.createHorizontalGlue());
+        toolbar.add(zoomPanel);
+        toolbar.add(Box.createHorizontalStrut(8));
         toolbar.add(btnAdd);
         return toolbar;
     }
 
+    private JButton createToolbarIconButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Inter", Font.BOLD, 16));
+        btn.setForeground(TEXT_PRIMARY);
+        btn.setBackground(BG_SURFACE);
+        btn.setPreferredSize(new Dimension(36, 36));
+        btn.setMaximumSize(new Dimension(36, 36));
+        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 10; borderWidth: 0;");
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return btn;
+    }
+
+    private void zoom(double delta) {
+        double current = timelinePanel.getPixelsPerMinute();
+        double next = Math.max(MIN_PIXELS_PER_MINUTE, Math.min(MAX_PIXELS_PER_MINUTE, current + delta));
+        timelinePanel.setPixelsPerMinute(next);
+        timeRulerHeader.setPixelsPerMinute(next);
+        timelineScroll.revalidate();
+        timelineScroll.repaint();
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
-    // INNER CLASS: CalendarPopup
+    // LEGEND PANEL
     // ─────────────────────────────────────────────────────────────────────────
+
+    private JPanel createLegendPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 4));
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 12));
+        return panel;
+    }
+
+    private void updateLegend() {
+        legendPanel.removeAll();
+        MovieColorPalette palette = timelinePanel.getPalette();
+        Set<String> seen = new LinkedHashSet<>();
+
+        for (ShowtimeBlock block : timelinePanel.getBlocks()) {
+            String title = block.getShowtime().getMovie().getTitle();
+            if (seen.add(title)) {
+                Long movieId = block.getShowtime().getMovie().getId();
+                Color color = palette.getColor(movieId);
+
+                JPanel swatch = new JPanel() {
+                    @Override
+                    protected void paintComponent(Graphics g) {
+                        super.paintComponent(g);
+                        Graphics2D g2 = (Graphics2D) g.create();
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(color);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
+                        g2.dispose();
+                    }
+                };
+                swatch.setOpaque(false);
+                swatch.setPreferredSize(new Dimension(12, 12));
+
+                JLabel label = new JLabel(title);
+                label.setFont(new Font("Inter", Font.PLAIN, 12));
+                label.setForeground(TEXT_MUTED);
+
+                JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+                item.setOpaque(false);
+                item.add(swatch);
+                item.add(label);
+                legendPanel.add(item);
+            }
+        }
+        legendPanel.revalidate();
+        legendPanel.repaint();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // INNER CLASS: CalendarPopup (preserved from original)
+    // ─────────────────────────────────────────────────────────────────────────
+
     private class CalendarPopup extends JPopupMenu {
 
         private YearMonth currentYearMonth;
@@ -157,7 +277,6 @@ public class ShowtimePanel extends BaseDashboardModule {
             renderGrid();
         }
 
-        // ── Header: điều hướng tháng/năm ─────────────────────────────────
         private JPanel buildHeader() {
             JPanel header = new JPanel(new BorderLayout(4, 0));
             header.setOpaque(false);
@@ -192,13 +311,11 @@ public class ShowtimePanel extends BaseDashboardModule {
             return header;
         }
 
-        // ── Render lưới ngày ─────────────────────────────────────────────
         private void renderGrid() {
             lblMonthYear.setText("Tháng " + currentYearMonth.getMonthValue()
                     + "  Năm " + currentYearMonth.getYear());
             gridPanel.removeAll();
 
-            // Tiêu đề thứ (Mon → Sun theo chuẩn VN)
             for (String d : new String[]{"T2", "T3", "T4", "T5", "T6", "T7", "CN"}) {
                 JLabel lbl = new JLabel(d, SwingConstants.CENTER);
                 lbl.setFont(new Font("Inter", Font.BOLD, 12));
@@ -206,12 +323,10 @@ public class ShowtimePanel extends BaseDashboardModule {
                 gridPanel.add(lbl);
             }
 
-            // Offset: Mon=0 … Sun=6
             LocalDate firstDay = currentYearMonth.atDay(1);
             int offset = firstDay.getDayOfWeek().getValue() - 1;
             for (int i = 0; i < offset; i++) gridPanel.add(new JLabel(""));
 
-            // Nút từng ngày
             for (int day = 1; day <= currentYearMonth.lengthOfMonth(); day++) {
                 LocalDate date = currentYearMonth.atDay(day);
                 gridPanel.add(dayBtn(day, date));
@@ -222,15 +337,14 @@ public class ShowtimePanel extends BaseDashboardModule {
             pack();
         }
 
-        // ── Factory: nút ngày ─────────────────────────────────────────────
         private JButton dayBtn(int day, LocalDate date) {
             JButton btn = new JButton(String.valueOf(day));
             btn.setFont(new Font("Inter", Font.PLAIN, 13));
             btn.setHorizontalAlignment(SwingConstants.CENTER);
-            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             btn.setFocusPainted(false);
             btn.setBorderPainted(false);
-            btn.setMargin(new java.awt.Insets(0, 0, 0, 0)); // Xóa margin để chữ số 2 ký tự không bị '...'
+            btn.setMargin(new Insets(0, 0, 0, 0));
             btn.setPreferredSize(new Dimension(36, 36));
             btn.setOpaque(true);
 
@@ -256,7 +370,6 @@ public class ShowtimePanel extends BaseDashboardModule {
             return btn;
         }
 
-        // ── Factory: nút điều hướng ───────────────────────────────────────
         private JButton navBtn(String text) {
             JButton btn = new JButton(text);
             btn.setFont(new Font("Inter", Font.BOLD, 13));
@@ -265,7 +378,7 @@ public class ShowtimePanel extends BaseDashboardModule {
             btn.setFocusPainted(false);
             btn.setBorderPainted(false);
             btn.setOpaque(true);
-            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             btn.setPreferredSize(new Dimension(30, 28));
             btn.addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override public void mouseEntered(java.awt.event.MouseEvent e) { btn.setBackground(BG_ELEVATED); }
@@ -278,15 +391,16 @@ public class ShowtimePanel extends BaseDashboardModule {
     // ─────────────────────────────────────────────────────────────────────────
     // HELPERS
     // ─────────────────────────────────────────────────────────────────────────
+
     private void styleToolbarComponent(JComponent c, int width) {
-        c.setPreferredSize(new Dimension(width, 40));
-        c.setMaximumSize(new Dimension(width, 40));
+        c.setPreferredSize(new Dimension(width, 36));
+        c.setMaximumSize(new Dimension(width, 36));
         c.putClientProperty(FlatClientProperties.STYLE,
                 "arc: 12; background: #1E293B; foreground: #FFFFFF; borderWidth: 0;");
         c.setFont(new Font("Inter", Font.PLAIN, 14));
     }
 
-    private void loadMoviesToComboBox() {
+    private void loadFilterData() {
         cbMovies.addItem(new MovieSummaryDTO(null, "Tất cả các phim"));
         for (MovieSummaryDTO m : MovieService.getInstance().getMovieSummaries()) cbMovies.addItem(m);
 
@@ -297,88 +411,79 @@ public class ShowtimePanel extends BaseDashboardModule {
                     int idx, boolean sel, boolean focus) {
                 super.getListCellRendererComponent(list, value, idx, sel, focus);
                 if (value == null) setText("Tất cả phòng");
-                else if (value instanceof com.f3cinema.app.entity.Room r) setText(r.getName());
+                else if (value instanceof Room r) setText(r.getName());
                 return this;
             }
         });
-        for (com.f3cinema.app.entity.Room r : com.f3cinema.app.service.RoomService.getInstance().getAllRooms()) {
+        for (Room r : com.f3cinema.app.service.RoomService.getInstance().getAllRooms()) {
             cbRooms.addItem(r);
         }
     }
 
-    private JTable createStyledTable(DefaultTableModel model) {
-        JTable table = new JTable(model);
-        table.setFillsViewportHeight(true);
-        table.setBackground(BG_SURFACE);
-        table.setForeground(TEXT_PRIMARY);
-        table.setRowHeight(45);
-        table.setShowVerticalLines(false);
-        table.setGridColor(BG_MAIN);
-        table.getTableHeader().setBackground(BG_MAIN);
-        table.getTableHeader().setForeground(TEXT_MUTED);
-        table.getTableHeader().setFont(new Font("Inter", Font.BOLD, 13));
-        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable t, Object v,
-                    boolean sel, boolean focus, int row, int col) {
-                super.getTableCellRendererComponent(t, v, sel, focus, row, col);
-                setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12));
-                setBackground(sel ? BG_ELEVATED : BG_SURFACE);
-                return this;
-            }
-        });
-        return table;
-    }
-
-    private void setupTableActions() {
-        showtimeTable.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                int row = showtimeTable.rowAtPoint(e.getPoint());
-                if (row >= 0) {
-                    Long id = (Long) tableModel.getValueAt(row, 0);
-                    showPopupMenu(e.getComponent(), e.getX(), e.getY(), id);
-                }
-            }
-        });
-    }
-
-    private void showPopupMenu(Component invoker, int x, int y, Long id) {
+    private void showBlockPopupMenu(ShowtimeBlock block, int x, int y) {
+        Showtime st = block.getShowtime();
         JPopupMenu menu = new JPopupMenu();
-        JMenuItem itemEdit   = new JMenuItem("✏  Chỉnh sửa");
+
+        JMenuItem itemEdit = new JMenuItem("✏  Chỉnh sửa");
         JMenuItem itemDelete = new JMenuItem("\uD83D\uDDD1  Xóa suất chiếu");
-        itemDelete.setForeground(Color.RED);
+        itemDelete.setForeground(new Color(0xEF4444));
 
         itemEdit.addActionListener(e -> {
-            Showtime s = com.f3cinema.app.service.ShowtimeService.getInstance().getShowtimeById(id);
-            controller.handleEditAction(s);
+            Showtime fresh = com.f3cinema.app.service.ShowtimeService.getInstance().getShowtimeById(st.getId());
+            controller.handleEditAction(fresh);
         });
         itemDelete.addActionListener(e -> {
-            Showtime s = com.f3cinema.app.service.ShowtimeService.getInstance().getShowtimeById(id);
-            controller.handleDeleteAction(s);
+            Showtime fresh = com.f3cinema.app.service.ShowtimeService.getInstance().getShowtimeById(st.getId());
+            controller.handleDeleteAction(fresh);
         });
+
         menu.add(itemEdit);
         menu.add(itemDelete);
-        menu.show(invoker, x, y);
+        menu.show(block, x, y);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // PUBLIC API (Controller ↔ View)
     // ─────────────────────────────────────────────────────────────────────────
-    public void updateTableData(List<Showtime> data) {
-        tableModel.setRowCount(0);
-        for (Showtime s : data) {
-            tableModel.addRow(new Object[]{
-                s.getId(),
-                s.getMovie().getTitle(),
-                s.getRoom().getName(),
-                s.getStartTime().format(TIME_FORMATTER),
-                s.getEndTime().format(TIME_FORMATTER),
-                String.format("%,.0f", s.getBasePrice()),
-                "⚙ Thao tác"
+
+    /**
+     * Replaces the old updateTableData. Receives rooms and showtimes grouped by room ID.
+     */
+    public void updateTimelineData(List<Room> rooms, Map<Long, List<Showtime>> grouped) {
+        roomSidebar.setRooms(rooms);
+        timelinePanel.setData(rooms, grouped);
+
+        // Wire click listeners on all blocks
+        for (ShowtimeBlock block : timelinePanel.getBlocks()) {
+            block.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (SwingUtilities.isRightMouseButton(e) || e.getClickCount() == 1) {
+                        showBlockPopupMenu(block, e.getX(), e.getY());
+                    }
+                }
             });
         }
+
+        updateLegend();
+        timelineScroll.revalidate();
+        timelineScroll.repaint();
+    }
+
+    /** @deprecated Use updateTimelineData instead. Kept for backward compatibility during migration. */
+    @Deprecated
+    public void updateTableData(List<Showtime> data) {
+        // Group by room for timeline display
+        Map<Long, List<Showtime>> grouped = new LinkedHashMap<>();
+        Set<Room> roomSet = new LinkedHashSet<>();
+        for (Showtime s : data) {
+            Room room = s.getRoom();
+            roomSet.add(room);
+            grouped.computeIfAbsent(room.getId(), k -> new ArrayList<>()).add(s);
+        }
+        List<Room> rooms = new ArrayList<>(roomSet);
+        rooms.sort(Comparator.comparing(Room::getName));
+        updateTimelineData(rooms, grouped);
     }
 
     public void setLoadingState(boolean isLoading) {
@@ -397,7 +502,7 @@ public class ShowtimePanel extends BaseDashboardModule {
     }
 
     public Long getSelectedRoomId() {
-        com.f3cinema.app.entity.Room sel = (com.f3cinema.app.entity.Room) cbRooms.getSelectedItem();
+        Room sel = (Room) cbRooms.getSelectedItem();
         return (sel != null) ? sel.getId() : null;
     }
 }

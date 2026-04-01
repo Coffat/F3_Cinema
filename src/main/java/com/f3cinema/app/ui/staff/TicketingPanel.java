@@ -16,9 +16,15 @@ public class TicketingPanel extends JPanel {
     
     private ShowtimeListView showtimeListView;
     private SeatSelectionView seatSelectionView;
+    
+    private Runnable onNavigateToSnacks;
 
     public TicketingPanel() {
         initLayout();
+    }
+    
+    public void setOnNavigateToSnacks(Runnable callback) {
+        this.onNavigateToSnacks = callback;
     }
 
     private void initLayout() {
@@ -57,5 +63,11 @@ public class TicketingPanel extends JPanel {
      */
     public void navigateToShowtimes() {
         cardLayout.show(mainContainer, CARD_SHOWTIME_LIST);
+    }
+    
+    public void navigateToSnacks() {
+        if (onNavigateToSnacks != null) {
+            onNavigateToSnacks.run();
+        }
     }
 }

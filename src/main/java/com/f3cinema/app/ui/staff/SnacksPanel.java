@@ -3,6 +3,7 @@ package com.f3cinema.app.ui.staff;
 import com.f3cinema.app.dto.ProductDTO;
 import com.f3cinema.app.service.cart.CartManager;
 import com.f3cinema.app.service.cart.CartObserver;
+import com.f3cinema.app.service.cart.TicketSessionManager;
 import com.f3cinema.app.service.cart.command.ClearCartCommand;
 import com.f3cinema.app.service.impl.InventoryServiceImpl;
 import com.f3cinema.app.service.payment.CashPaymentStrategy;
@@ -33,11 +34,15 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
     private JPanel productsContainer;
     private JPanel cartItemsContainer;
     private JLabel lblTotal;
+    private JLabel lblTicketInfo;
     private FlatButton btnCheckout;
     private JComboBox<String> cbPaymentMethod;
+    
+    private TicketSessionManager sessionManager;
 
     public SnacksPanel() {
         super("Bắp nước", "Trang chủ / Bắp nước");
+        this.sessionManager = TicketSessionManager.getInstance();
         initUI();
         CartManager.getInstance().addObserver(this);
         loadProducts();
@@ -64,6 +69,18 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
         cartPanel.setPreferredSize(new Dimension(350, 0));
         cartPanel.putClientProperty(FlatClientProperties.STYLE, "arc: 16; background: #1E293B"); // Slate 800
         cartPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        // Ticket Info Panel (if coming from ticket selection)
+        JPanel ticketInfoPanel = new JPanel();
+        ticketInfoPanel.setLayout(new BoxLayout(ticketInfoPanel, BoxLayout.Y_AXIS));
+        ticketInfoPanel.setOpaque(false);
+        ticketInfoPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
+        
+        lblTicketInfo = new JLabel();
+        lblTicketInfo.setFont(new Font("-apple-system", Font.PLAIN, 13));
+        lblTicketInfo.setForeground(new Color(0x94A3B8));
+        lblTicketInfo.setVisible(false);
+        ticketInfoPanel.add(lblTicketInfo);
 
         // Right Header
         JPanel cartHeader = new JPanel(new BorderLayout());
@@ -125,8 +142,13 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
         cartFooter.add(totalPanel, BorderLayout.NORTH);
         cartFooter.add(checkoutActionPanel, BorderLayout.SOUTH);
 
-        cartPanel.add(cartHeader, BorderLayout.NORTH);
-        cartPanel.add(scrollCart, BorderLayout.CENTER);
+        JPanel centerPanel = new JPanel(new BorderLayout(0, 15));
+        centerPanel.setOpaque(false);
+        centerPanel.add(cartHeader, BorderLayout.NORTH);
+        centerPanel.add(scrollCart, BorderLayout.CENTER);
+        
+        cartPanel.add(ticketInfoPanel, BorderLayout.NORTH);
+        cartPanel.add(centerPanel, BorderLayout.CENTER);
         cartPanel.add(cartFooter, BorderLayout.SOUTH);
 
         mainContent.add(scrollProducts, BorderLayout.CENTER);
@@ -170,6 +192,17 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
 
     @Override
     public void onCartUpdated() {
+        // Update ticket info if coming from ticket selection
+        if (sessionManager.hasActiveTicketSession()) {
+            String ticketInfo = "🎬 " + sessionManager.getMovieTitle() + "\n" +
+                    "📍 " + sessionManager.getRoomName() + " | Ghế: " + sessionManager.getSelectedSeatsDisplay() + "\n" +
+                    "💰 Vé: " + String.format("%,.0f VNĐ", sessionManager.getTicketPrice());
+            lblTicketInfo.setText(ticketInfo);
+            lblTicketInfo.setVisible(true);
+        } else {
+            lblTicketInfo.setVisible(false);
+        }
+
         cartItemsContainer.removeAll();
         Map<ProductDTO, Integer> items = CartManager.getInstance().getItems();
         
@@ -179,7 +212,14 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
         
         BigDecimal total = CartManager.getInstance().getTotalPrice();
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(Locale.of("vi", "VN"));
-        lblTotal.setText(currencyFormat.format(total));
+        
+        // Calculate total including tickets if session active
+        BigDecimal finalTotal = total;
+        if (sessionManager.hasActiveTicketSession()) {
+            finalTotal = finalTotal.add(BigDecimal.valueOf(sessionManager.getTicketPrice()));
+        }
+        
+        lblTotal.setText(currencyFormat.format(finalTotal));
 
         btnCheckout.setEnabled(!items.isEmpty());
 
@@ -188,10 +228,14 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
     }
 
     private void processCheckout() {
-        if (CartManager.getInstance().getItems().isEmpty()) {
+        if (CartManager.getInstance().getItems().isEmpty() && !sessionManager.hasActiveTicketSession()) {
             JOptionPane.showMessageDialog(this, "Giỏ hàng rỗng!");
             return;
         }
+
+        BigDecimal snacksTotal = CartManager.getInstance().getTotalPrice();
+        double ticketTotal = sessionManager.hasActiveTicketSession() ? sessionManager.getTicketPrice() : 0;
+        double grandTotal = snacksTotal.doubleValue() + ticketTotal;
 
         PaymentContext context = new PaymentContext();
         String selectedMethod = (String) cbPaymentMethod.getSelectedItem();
@@ -202,14 +246,12 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
             context.setPaymentStrategy(new CashPaymentStrategy());
         }
 
-        com.f3cinema.app.entity.Invoice tempInvoice = new com.f3cinema.app.entity.Invoice();
-        tempInvoice.setId((long) (Math.random() * 10000));
-        tempInvoice.setTotalAmount(CartManager.getInstance().getTotalPrice());
-        
-        // Strategy Execution
-        context.processPayment(tempInvoice);
-        
-        // Complete flow by executing ClearCart Command
+        UIManager.put("OptionPane.messageFont", new Font("-apple-system", Font.BOLD, 14));
+        String msg = String.format("Thanh toán thành công!\nTổng tiền: %,.0f VNĐ", grandTotal);
+        JOptionPane.showMessageDialog(this, msg, "Xác nhận", JOptionPane.INFORMATION_MESSAGE);
+
+        // Clear cart and session
         new ClearCartCommand().execute();
+        sessionManager.clearSession();
     }
 }
