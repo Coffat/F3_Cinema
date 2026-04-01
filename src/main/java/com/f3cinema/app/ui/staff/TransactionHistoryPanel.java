@@ -1,6 +1,7 @@
 package com.f3cinema.app.ui.staff;
 
 import com.f3cinema.app.ui.dashboard.BaseDashboardModule;
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.dto.transaction.TransactionDetailDTO;
 import com.f3cinema.app.dto.transaction.TransactionRowDTO;
 import com.f3cinema.app.dto.transaction.TransactionSearchRequest;
@@ -8,6 +9,7 @@ import com.f3cinema.app.entity.enums.InvoiceStatus;
 import com.f3cinema.app.entity.enums.PaymentStatus;
 import com.f3cinema.app.service.TransactionHistoryService;
 import com.f3cinema.app.service.impl.TransactionHistoryServiceImpl;
+import com.f3cinema.app.ui.staff.components.TransactionCard;
 import com.f3cinema.app.ui.staff.components.TransactionDetailPanel;
 import com.f3cinema.app.util.SessionManager;
 import com.f3cinema.app.util.pdf.InvoiceExportService;
@@ -15,17 +17,16 @@ import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class TransactionHistoryPanel extends BaseDashboardModule {
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final int PAGE_SIZE = 20;
 
     private final TransactionHistoryService historyService = TransactionHistoryServiceImpl.getInstance();
@@ -37,15 +38,7 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
     private final JSpinner spTo = new JSpinner(new SpinnerDateModel());
     private final JButton btnRefresh = new JButton("Làm mới");
 
-    private final DefaultTableModel tableModel = new DefaultTableModel(
-            new Object[]{"Mã đơn", "Thời gian", "Khách hàng", "Nhân viên", "Tổng tiền", "Hóa đơn", "Thanh toán"}, 0
-    ) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    };
-    private JTable table;
+    private JPanel timelineContainer;
     private Long selectedInvoiceId;
     private TransactionDetailDTO selectedDetail;
 
@@ -53,7 +46,7 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
         super("Lịch sử giao dịch", "Trang chủ / Giao dịch");
         initUI();
         bindEvents();
-        loadTable();
+        loadTimeline();
     }
 
     private void initUI() {
@@ -62,26 +55,26 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
         JPanel toolbar = buildToolbar();
         contentBody.add(toolbar, BorderLayout.NORTH);
 
-        table = new JTable(tableModel);
-        table.setRowHeight(34);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setShowGrid(false);
-        table.setForeground(Color.decode("#F8FAFC"));
-        table.setBackground(Color.decode("#0F172A"));
-        table.getTableHeader().setReorderingAllowed(false);
-        table.putClientProperty(FlatClientProperties.STYLE, "showHorizontalLines: true; showVerticalLines: false");
-
-        JScrollPane tableScroll = new JScrollPane(table);
-        tableScroll.setBorder(BorderFactory.createEmptyBorder());
-        tableScroll.getViewport().setBackground(Color.decode("#0F172A"));
-        tableScroll.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
-        contentBody.add(tableScroll, BorderLayout.CENTER);
+        timelineContainer = new JPanel();
+        timelineContainer.setLayout(new BoxLayout(timelineContainer, BoxLayout.Y_AXIS));
+        timelineContainer.setOpaque(false);
+        timelineContainer.setBorder(new EmptyBorder(0, 24, 16, 24));
+        JScrollPane scroll = new JScrollPane(timelineContainer);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.getViewport().setBackground(Color.decode("#0F172A"));
+        contentBody.add(scroll, BorderLayout.CENTER);
     }
 
     private JPanel buildToolbar() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
-        panel.setBorder(new EmptyBorder(0, 0, 4, 0));
+        panel.setBorder(new EmptyBorder(12, 24, 4, 24));
+
+        JPanel control = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        control.setOpaque(true);
+        control.setBackground(ThemeConfig.BG_CARD);
+        control.setBorder(new EmptyBorder(12, 12, 12, 12));
+        control.putClientProperty(FlatClientProperties.STYLE, "arc: 20");
 
         txtSearch.setPreferredSize(new Dimension(220, 36));
         txtSearch.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Mã đơn / KH / SĐT");
@@ -95,13 +88,14 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
         btnRefresh.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnRefresh.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #6366F1; borderWidth: 0; foreground: #FFFFFF");
 
-        panel.add(txtSearch);
-        panel.add(cbInvoiceStatus);
-        panel.add(cbPaymentStatus);
-        panel.add(cbStaff);
-        panel.add(spFrom);
-        panel.add(spTo);
-        panel.add(btnRefresh);
+        control.add(txtSearch);
+        control.add(cbInvoiceStatus);
+        control.add(cbPaymentStatus);
+        control.add(cbStaff);
+        control.add(spFrom);
+        control.add(spTo);
+        control.add(btnRefresh);
+        panel.add(control, BorderLayout.CENTER);
         return panel;
     }
 
@@ -116,26 +110,14 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
     }
 
     private void bindEvents() {
-        btnRefresh.addActionListener(e -> loadTable());
-        txtSearch.addActionListener(e -> loadTable());
-        cbInvoiceStatus.addActionListener(e -> loadTable());
-        cbPaymentStatus.addActionListener(e -> loadTable());
-        cbStaff.addActionListener(e -> loadTable());
-
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                int row = table.rowAtPoint(e.getPoint());
-                if (row < 0) {
-                    return;
-                }
-                selectedInvoiceId = (Long) tableModel.getValueAt(row, 0);
-                openDetailDialog(selectedInvoiceId);
-            }
-        });
+        btnRefresh.addActionListener(e -> loadTimeline());
+        txtSearch.addActionListener(e -> loadTimeline());
+        cbInvoiceStatus.addActionListener(e -> loadTimeline());
+        cbPaymentStatus.addActionListener(e -> loadTimeline());
+        cbStaff.addActionListener(e -> loadTimeline());
     }
 
-    private void loadTable() {
+    private void loadTimeline() {
         TransactionSearchRequest request = buildRequest();
         new SwingWorker<List<TransactionRowDTO>, Void>() {
             @Override
@@ -147,24 +129,56 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
             protected void done() {
                 try {
                     List<TransactionRowDTO> rows = get();
-                    tableModel.setRowCount(0);
-                    for (TransactionRowDTO r : rows) {
-                        tableModel.addRow(new Object[]{
-                                r.invoiceId(),
-                                r.createdAt() == null ? "-" : DATE_TIME_FORMATTER.format(r.createdAt()),
-                                r.customerName(),
-                                r.staffName(),
-                                r.totalAmount(),
-                                r.invoiceStatus(),
-                                r.paymentStatus()
-                        });
-                    }
+                    refreshTimeline(rows);
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(TransactionHistoryPanel.this,
                             "Không tải được lịch sử: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
+    }
+
+    private void refreshTimeline(List<TransactionRowDTO> rows) {
+        timelineContainer.removeAll();
+        Map<LocalDate, List<TransactionRowDTO>> grouped = rows.stream()
+                .collect(Collectors.groupingBy(r -> r.createdAt() != null ? r.createdAt().toLocalDate() : LocalDate.now()));
+        grouped.entrySet().stream()
+                .sorted(Map.Entry.<LocalDate, List<TransactionRowDTO>>comparingByKey(Comparator.reverseOrder()))
+                .forEach(entry -> {
+                    timelineContainer.add(createDateHeader(entry.getKey()));
+                    timelineContainer.add(Box.createVerticalStrut(10));
+                    for (TransactionRowDTO row : entry.getValue()) {
+                        timelineContainer.add(new TransactionCard(
+                                row,
+                                () -> openDetailDialog(row.invoiceId()),
+                                () -> {
+                                    selectedInvoiceId = row.invoiceId();
+                                    try {
+                                        selectedDetail = historyService.getTransactionDetail(selectedInvoiceId);
+                                        performExport();
+                                    } catch (Exception ex) {
+                                        JOptionPane.showMessageDialog(this, "Khong tai duoc chi tiet de xuat hoa don.", "Loi", JOptionPane.ERROR_MESSAGE);
+                                    }
+                                },
+                                () -> {
+                                    selectedInvoiceId = row.invoiceId();
+                                    performRefund();
+                                }));
+                        timelineContainer.add(Box.createVerticalStrut(10));
+                    }
+                    timelineContainer.add(Box.createVerticalStrut(8));
+                });
+        timelineContainer.revalidate();
+        timelineContainer.repaint();
+    }
+
+    private JLabel createDateHeader(LocalDate date) {
+        String dateText = date.equals(LocalDate.now()) ? "Hom nay" : date.format(DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy"));
+        JLabel header = new JLabel(dateText);
+        header.setFont(new Font("Inter", Font.BOLD, 16));
+        header.setForeground(Color.decode("#F8FAFC"));
+        header.setAlignmentX(LEFT_ALIGNMENT);
+        return header;
     }
 
     private TransactionSearchRequest buildRequest() {
@@ -247,7 +261,7 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
             Long actor = SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null;
             historyService.cancelInvoice(selectedInvoiceId, reason, actor);
             JOptionPane.showMessageDialog(this, "Đã hủy hóa đơn #" + selectedInvoiceId, "Thành công", JOptionPane.INFORMATION_MESSAGE);
-            loadTable();
+            loadTimeline();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Không thể hủy", JOptionPane.ERROR_MESSAGE);
         }
@@ -265,7 +279,7 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
             Long actor = SessionManager.getCurrentUser() != null ? SessionManager.getCurrentUser().getId() : null;
             historyService.refundInvoice(selectedInvoiceId, reason, actor);
             JOptionPane.showMessageDialog(this, "Hoàn tiền thành công cho hóa đơn #" + selectedInvoiceId, "Thành công", JOptionPane.INFORMATION_MESSAGE);
-            loadTable();
+            loadTimeline();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Không thể hoàn tiền", JOptionPane.ERROR_MESSAGE);
         }

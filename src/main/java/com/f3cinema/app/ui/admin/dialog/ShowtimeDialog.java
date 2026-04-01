@@ -46,6 +46,7 @@ public class ShowtimeDialog extends JDialog {
     private JSpinner spMinute;
 
     private JTextField txtPrice;
+    private JLabel lblPreview;
     private JLabel lblError;
 
     private final Showtime editTarget;
@@ -188,11 +189,36 @@ public class ShowtimeDialog extends JDialog {
         gbc.insets = new Insets(0, 0, 4, 0);
         glass.add(txtPrice, gbc);
 
+        JPanel templateRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        templateRow.setOpaque(false);
+        JButton btnMorning = new JButton("Morning");
+        JButton btnAfternoon = new JButton("Afternoon");
+        JButton btnEvening = new JButton("Evening");
+        styleSecondaryChip(btnMorning);
+        styleSecondaryChip(btnAfternoon);
+        styleSecondaryChip(btnEvening);
+        btnMorning.addActionListener(e -> setTemplateTime(9, 0));
+        btnAfternoon.addActionListener(e -> setTemplateTime(14, 0));
+        btnEvening.addActionListener(e -> setTemplateTime(19, 0));
+        templateRow.add(btnMorning);
+        templateRow.add(btnAfternoon);
+        templateRow.add(btnEvening);
+        gbc.gridy = 11;
+        gbc.insets = new Insets(0, 0, 8, 0);
+        glass.add(templateRow, gbc);
+
+        lblPreview = new JLabel("Preview: --");
+        lblPreview.setForeground(TEXT_MUTED);
+        lblPreview.setFont(new Font("Inter", Font.PLAIN, 12));
+        gbc.gridy = 12;
+        gbc.insets = new Insets(0, 0, 6, 0);
+        glass.add(lblPreview, gbc);
+
         // ── Error label ──────────────────────────────────────────
         lblError = new JLabel(" ");
         lblError.setForeground(DANGER);
         lblError.setFont(new Font("Inter", Font.PLAIN, 12));
-        gbc.gridy = 11;
+        gbc.gridy = 13;
         gbc.insets = new Insets(0, 0, 0, 0);
         glass.add(lblError, gbc);
 
@@ -210,7 +236,7 @@ public class ShowtimeDialog extends JDialog {
 
         footer.add(btnCancel);
         footer.add(btnSave);
-        gbc.gridy = 12;
+        gbc.gridy = 14;
         gbc.insets = new Insets(16, 0, 0, 0);
         glass.add(footer, gbc);
 
@@ -434,6 +460,7 @@ public class ShowtimeDialog extends JDialog {
     // ─────────────────────────────────────────────────────────────────────────
     private void handleSave() {
         lblError.setText(" ");
+        updatePreview();
 
         // 1. Kiểm tra Phim
         MovieSummaryDTO movie = (MovieSummaryDTO) cbMovie.getSelectedItem();
@@ -618,6 +645,24 @@ public class ShowtimeDialog extends JDialog {
         b.setForeground(TEXT_MUTED);
         b.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_BORDERLESS);
         b.setFont(new Font("Inter", Font.BOLD, 14));
+    }
+
+    private void styleSecondaryChip(JButton b) {
+        b.setFont(new Font("Inter", Font.PLAIN, 12));
+        b.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155; borderWidth: 0;");
+        b.setForeground(TEXT_WHITE);
+    }
+
+    private void setTemplateTime(int hour, int minute) {
+        spHour.setValue(hour);
+        spMinute.setValue(minute);
+        updatePreview();
+    }
+
+    private void updatePreview() {
+        int hour = (int) spHour.getValue();
+        int minute = (int) spMinute.getValue();
+        lblPreview.setText("Preview: " + selectedDate.format(DATE_FMT) + " " + String.format("%02d:%02d", hour, minute));
     }
 
     public boolean isSaved() {

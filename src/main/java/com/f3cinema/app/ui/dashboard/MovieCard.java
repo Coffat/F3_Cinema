@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.dashboard;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Movie;
 import com.f3cinema.app.entity.enums.MovieStatus;
 import com.formdev.flatlaf.FlatClientProperties;
@@ -32,17 +33,19 @@ public class MovieCard extends JPanel {
     private boolean isHovered = false;
     private double hoverAnim = 0.0;
     private Timer animTimer;
+    private JButton editButton;
+    private JButton deleteButton;
     
     // Thread-safe Cache
     private static final Map<String, Image> imageCache = new ConcurrentHashMap<>();
     private boolean isLoading = false;
 
     // Design Tokens
-    private static final Color C_CARD_BG        = new Color(15, 23, 42, 220);
-    private static final Color C_ACCENT         = Color.decode("#6366F1");
-    private static final Color C_TEXT_MAIN      = Color.decode("#F8FAFC");
-    private static final Color C_TEXT_SUB       = Color.decode("#94A3B8");
-    private static final Color C_GLOW           = new Color(99, 102, 241, 100);
+    private static final Color C_CARD_BG = ThemeConfig.BG_CARD;
+    private static final Color C_ACCENT = ThemeConfig.ACCENT_COLOR;
+    private static final Color C_TEXT_MAIN = ThemeConfig.TEXT_PRIMARY;
+    private static final Color C_TEXT_SUB = ThemeConfig.TEXT_SECONDARY;
+    private static final Color C_GLOW = new Color(99, 102, 241, 90);
 
     public MovieCard(Movie movie, Runnable onEdit, Runnable onDelete) {
         this.movie = movie;
@@ -53,7 +56,8 @@ public class MovieCard extends JPanel {
     }
 
     private void initUI() {
-        setPreferredSize(new Dimension(240, 380));
+        setLayout(null);
+        setPreferredSize(new Dimension(240, 360));
         setOpaque(false);
         setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -68,16 +72,47 @@ public class MovieCard extends JPanel {
             if (getParent() != null) {
                 getParent().repaint(getX() - 20, getY() - 20, getWidth() + 40, getHeight() + 40);
             }
+            updateActionVisibility();
         });
 
         addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { isHovered = true; if (!animTimer.isRunning()) animTimer.start(); }
-            @Override public void mouseExited(MouseEvent e) { isHovered = false; if (!animTimer.isRunning()) animTimer.start(); }
+            @Override public void mouseEntered(MouseEvent e) { isHovered = true; if (!animTimer.isRunning()) animTimer.start(); updateActionVisibility(); }
+            @Override public void mouseExited(MouseEvent e) { isHovered = false; if (!animTimer.isRunning()) animTimer.start(); updateActionVisibility(); }
             @Override public void mouseClicked(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) showContextMenu(e);
                 else onEdit.run();
             }
         });
+
+        editButton = buildActionButton("Sua");
+        editButton.setBounds(12, 12, 48, 28);
+        editButton.addActionListener(e -> onEdit.run());
+        add(editButton);
+
+        deleteButton = buildActionButton("Xoa");
+        deleteButton.setBounds(66, 12, 48, 28);
+        deleteButton.setForeground(ThemeConfig.TEXT_DANGER);
+        deleteButton.addActionListener(e -> onDelete.run());
+        add(deleteButton);
+        updateActionVisibility();
+    }
+
+    private JButton buildActionButton(String text) {
+        JButton button = new JButton(text);
+        button.setVisible(false);
+        button.setFocusable(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 10; background: #0F172A; borderWidth: 0; margin: 2,8,2,8;");
+        button.setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD));
+        button.setForeground(ThemeConfig.TEXT_PRIMARY);
+        return button;
+    }
+
+    private void updateActionVisibility() {
+        boolean visible = hoverAnim > 0.4 || isHovered;
+        if (editButton != null) editButton.setVisible(visible);
+        if (deleteButton != null) deleteButton.setVisible(visible);
     }
 
     private void triggerAsyncLoad() {
@@ -99,10 +134,10 @@ public class MovieCard extends JPanel {
                     }
                     
                     if (rawImg != null) {
-                        BufferedImage resized = new BufferedImage(240, 320, BufferedImage.TYPE_INT_ARGB);
+                        BufferedImage resized = new BufferedImage(240, 260, BufferedImage.TYPE_INT_ARGB);
                         Graphics2D g = resized.createGraphics();
                         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                        g.drawImage(rawImg, 0, 0, 240, 320, null);
+                        g.drawImage(rawImg, 0, 0, 240, 260, null);
                         g.dispose();
                         return resized;
                     }
@@ -134,7 +169,7 @@ public class MovieCard extends JPanel {
         int w = getWidth();
         int h = getHeight();
 
-        double currentScale = 1.0 + (0.04 * hoverAnim);
+        double currentScale = 1.0 + (0.02 * hoverAnim);
 
         if (hoverAnim > 0) {
             double tx = (w * (currentScale - 1.0)) / 2.0;
@@ -143,22 +178,24 @@ public class MovieCard extends JPanel {
             g2.scale(currentScale, currentScale);
         }
 
-        // Shadow & Body
+        int shadowAlpha = (int) (28 + (30 * hoverAnim));
+        g2.setColor(new Color(0, 0, 0, shadowAlpha));
+        g2.fillRoundRect(4, 6, w - 8, h - 8, ThemeConfig.RADIUS_CARD, ThemeConfig.RADIUS_CARD);
         if (hoverAnim > 0) {
-            g2.setColor(new Color(C_GLOW.getRed(), C_GLOW.getGreen(), C_GLOW.getBlue(), (int)(100 * hoverAnim)));
-            g2.fillRoundRect(0, 4, w, h, 24, 24);
+            g2.setColor(new Color(C_GLOW.getRed(), C_GLOW.getGreen(), C_GLOW.getBlue(), (int) (70 * hoverAnim)));
+            g2.drawRoundRect(2, 2, w - 4, h - 4, ThemeConfig.RADIUS_CARD, ThemeConfig.RADIUS_CARD);
         }
         g2.setColor(C_CARD_BG);
-        g2.fillRoundRect(0, 0, w, h, 24, 24);
+        g2.fillRoundRect(0, 0, w, h, ThemeConfig.RADIUS_CARD, ThemeConfig.RADIUS_CARD);
 
         // Poster Area
         Shape oldClip = g2.getClip();
-        RoundRectangle2D posterRect = new RoundRectangle2D.Float(8, 8, w - 16, h - 90, 20, 20);
+        RoundRectangle2D posterRect = new RoundRectangle2D.Float(10, 10, w - 20, h - 105, 16, 16);
         g2.clip(posterRect); // Intersects with existing clip (like JViewport) to keep it inside boundaries
-        drawPoster(g2, 8, 8, w - 16, h - 90);
+        drawPoster(g2, 10, 10, w - 20, h - 105);
         g2.setClip(oldClip); // Restore the previous clip correctly
 
-        // Text Content
+        drawStatusBadge(g2, movie.getStatus(), w - 90, 16);
         drawInfoArea(g2, w, h);
 
         // Border Glow
@@ -169,7 +206,7 @@ public class MovieCard extends JPanel {
         int b = (int)(borderStart.getBlue() + (C_ACCENT.getBlue() - borderStart.getBlue()) * hoverAnim);
         int a = (int)(borderStart.getAlpha() + (C_ACCENT.getAlpha() - borderStart.getAlpha()) * hoverAnim);
         g2.setColor(new Color(r, cg, b, a));
-        g2.drawRoundRect(0, 0, w - 1, h - 1, 24, 24);
+        g2.drawRoundRect(0, 0, w - 1, h - 1, ThemeConfig.RADIUS_CARD, ThemeConfig.RADIUS_CARD);
 
         g2.dispose();
     }
@@ -205,33 +242,31 @@ public class MovieCard extends JPanel {
 
     private void drawInfoArea(Graphics2D g2, int w, int h) {
         g2.setColor(C_TEXT_MAIN);
-        g2.setFont(new Font("Inter", Font.BOLD, 15));
+        g2.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         String title = movie.getTitle();
         FontMetrics fm = g2.getFontMetrics();
         if (fm.stringWidth(title) > w - 40) {
             title = title.substring(0, 15) + "...";
         }
-        g2.drawString(title, 16, h - 55);
+        g2.drawString(title, 16, h - 62);
 
         String genresStr = movie.getGenres() != null && !movie.getGenres().isEmpty() ? 
             movie.getGenres().stream().map(Genre::getName).limit(3).collect(Collectors.joining(", ")) : "";
         if (movie.getGenres() != null && movie.getGenres().size() > 3) genresStr += "...";
 
-        g2.setFont(new Font("Inter", Font.PLAIN, 12));
+        g2.setFont(ThemeConfig.FONT_SMALL);
         g2.setColor(C_TEXT_SUB);
-        g2.drawString(movie.getDuration() + " phút", 16, h - 35);
+        g2.drawString(movie.getDuration() + " phut", 16, h - 42);
 
         if (!genresStr.isEmpty()) {
-            g2.setFont(new Font("Inter", Font.PLAIN, 11));
+            g2.setFont(ThemeConfig.FONT_SMALL.deriveFont(11f));
             g2.setColor(new Color(148, 163, 184, 160));
             FontMetrics fmGen = g2.getFontMetrics();
             if (fmGen.stringWidth(genresStr) > w - 32) {
                 genresStr = genresStr.substring(0, 20) + "...";
             }
-            g2.drawString(genresStr, 16, h - 16);
+            g2.drawString(genresStr, 16, h - 22);
         }
-
-        drawStatusBadge(g2, movie.getStatus(), w - 95, h - 48);
     }
 
     private void drawStatusBadge(Graphics2D g2, MovieStatus status, int x, int y) {

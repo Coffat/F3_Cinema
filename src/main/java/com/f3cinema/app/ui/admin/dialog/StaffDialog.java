@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.admin.dialog;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
@@ -14,16 +15,18 @@ import java.awt.event.KeyEvent;
 public class StaffDialog extends JDialog {
 
     private static final Color C_BG_SURFACE = new Color(30, 41, 59, 220);
-    private static final Color C_ACCENT = Color.decode("#6366F1");
-    private static final Color C_DANGER = Color.decode("#F43F5E");
-    private static final Color C_TEXT_PRIMARY = Color.decode("#F8FAFC");
-    private static final Color C_TEXT_HINT = Color.decode("#94A3B8");
+    private static final Color C_ACCENT = ThemeConfig.ACCENT_COLOR;
+    private static final Color C_DANGER = ThemeConfig.TEXT_DANGER;
+    private static final Color C_TEXT_PRIMARY = ThemeConfig.TEXT_PRIMARY;
+    private static final Color C_TEXT_HINT = ThemeConfig.TEXT_SECONDARY;
     private static final Color C_BORDER = new Color(255, 255, 255, 25);
 
     private final boolean editMode;
     private JTextField txtUsername;
     private JTextField txtFullName;
     private JPasswordField txtPassword;
+    private JCheckBox chkShowPassword;
+    private JLabel lblPasswordStrength;
     private JLabel lblError;
     private JButton btnSave;
     private boolean saved = false;
@@ -95,7 +98,7 @@ public class StaffDialog extends JDialog {
         glass.setBorder(BorderFactory.createEmptyBorder(28, 36, 28, 36));
 
         JLabel lblTitle = new JLabel(editMode ? "Chỉnh sửa Nhân viên" : "Thêm Nhân viên");
-        lblTitle.setFont(new Font("Inter", Font.BOLD, 20));
+        lblTitle.setFont(ThemeConfig.FONT_H1);
         lblTitle.setForeground(C_TEXT_PRIMARY);
         lblTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
 
@@ -133,10 +136,32 @@ public class StaffDialog extends JDialog {
         styleTextField(txtPassword, "");
         form.add(txtPassword, gbc);
 
-        gbc.insets = new Insets(4, 0, 0, 0);
+        gbc.insets = new Insets(0, 0, 8, 0);
         gbc.gridy = 6;
+        JPanel pwOptions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        pwOptions.setOpaque(false);
+        chkShowPassword = new JCheckBox("Hiện mật khẩu");
+        chkShowPassword.setOpaque(false);
+        chkShowPassword.setForeground(C_TEXT_HINT);
+        chkShowPassword.setFont(ThemeConfig.FONT_SMALL);
+        chkShowPassword.addActionListener(e -> txtPassword.setEchoChar(chkShowPassword.isSelected() ? (char) 0 : '\u2022'));
+        lblPasswordStrength = new JLabel(" ");
+        lblPasswordStrength.setForeground(C_TEXT_HINT);
+        lblPasswordStrength.setFont(ThemeConfig.FONT_SMALL);
+        pwOptions.add(chkShowPassword);
+        pwOptions.add(lblPasswordStrength);
+        form.add(pwOptions, gbc);
+
+        txtPassword.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { updatePasswordStrength(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { updatePasswordStrength(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { updatePasswordStrength(); }
+        });
+
+        gbc.insets = new Insets(4, 0, 0, 0);
+        gbc.gridy = 7;
         lblError = new JLabel(" ");
-        lblError.setFont(new Font("Inter", Font.PLAIN, 12));
+        lblError.setFont(ThemeConfig.FONT_SMALL);
         lblError.setForeground(C_DANGER);
         form.add(lblError, gbc);
 
@@ -167,7 +192,7 @@ public class StaffDialog extends JDialog {
 
     private JLabel buildLabel(String text) {
         JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("Inter", Font.BOLD, 13));
+        lbl.setFont(ThemeConfig.FONT_BODY);
         lbl.setForeground(C_TEXT_HINT);
         return lbl;
     }
@@ -181,7 +206,7 @@ public class StaffDialog extends JDialog {
                         "margin: 4, 12, 4, 12; " +
                         "focusWidth: 2; " +
                         "innerFocusWidth: 0;");
-        field.setFont(new Font("Inter", Font.PLAIN, 15));
+        field.setFont(ThemeConfig.FONT_BODY);
         field.setBackground(new Color(15, 23, 42, 180));
         field.setForeground(C_TEXT_PRIMARY);
         field.setPreferredSize(new Dimension(0, 44));
@@ -190,7 +215,7 @@ public class StaffDialog extends JDialog {
 
     private JButton buildSaveButton(String text) {
         JButton btn = new JButton(text);
-        btn.setFont(new Font("Inter", Font.BOLD, 15));
+        btn.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         btn.setBackground(C_ACCENT);
         btn.setForeground(Color.WHITE);
         btn.putClientProperty(FlatClientProperties.STYLE, "arc: 16; borderWidth: 0; margin: 6, 20, 6, 20;");
@@ -202,10 +227,34 @@ public class StaffDialog extends JDialog {
         JButton btn = new JButton(text);
         btn.setForeground(C_TEXT_HINT);
         btn.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_BORDERLESS);
-        btn.setFont(new Font("Inter", Font.BOLD, 15));
+        btn.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         btn.putClientProperty(FlatClientProperties.STYLE, "margin: 6, 20, 6, 20; hoverBackground: null;");
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
+    }
+
+    private void updatePasswordStrength() {
+        if (lblPasswordStrength == null) return;
+        String pw = getPassword();
+        if (pw.isBlank()) {
+            lblPasswordStrength.setText(" ");
+            return;
+        }
+        int score = 0;
+        if (pw.length() >= 8) score++;
+        if (pw.matches(".*[A-Z].*")) score++;
+        if (pw.matches(".*\\d.*")) score++;
+        if (pw.matches(".*[^A-Za-z0-9].*")) score++;
+        if (score <= 1) {
+            lblPasswordStrength.setText("Yeu");
+            lblPasswordStrength.setForeground(C_DANGER);
+        } else if (score <= 3) {
+            lblPasswordStrength.setText("Trung binh");
+            lblPasswordStrength.setForeground(Color.decode("#F59E0B"));
+        } else {
+            lblPasswordStrength.setText("Manh");
+            lblPasswordStrength.setForeground(ThemeConfig.TEXT_SUCCESS);
+        }
     }
 }
 

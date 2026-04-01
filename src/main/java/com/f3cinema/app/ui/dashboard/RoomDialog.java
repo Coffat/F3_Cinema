@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.dashboard;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Room;
 import com.f3cinema.app.entity.enums.RoomType;
 import com.f3cinema.app.service.RoomService;
@@ -37,7 +38,7 @@ public class RoomDialog extends JDialog {
         this.editTarget = room;
         setSize(840, 750);
         setLocationRelativeTo(owner);
-        getContentPane().setBackground(Color.decode("#0F172A")); // Slate 900
+        getContentPane().setBackground(ThemeConfig.BG_MAIN);
 
         JPanel mainContent = new JPanel();
         mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS));
@@ -46,8 +47,8 @@ public class RoomDialog extends JDialog {
 
         // ------------- HEADER -------------
         JLabel lblHeader = new JLabel(room == null ? "CẤU HÌNH PHÒNG MỚI" : "CHỈNH SỬA PHÒNG");
-        lblHeader.setFont(new Font("Inter", Font.BOLD, 22));
-        lblHeader.setForeground(Color.decode("#F8FAFC"));
+        lblHeader.setFont(ThemeConfig.FONT_H1);
+        lblHeader.setForeground(ThemeConfig.TEXT_PRIMARY);
         lblHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainContent.add(lblHeader);
         mainContent.add(Box.createRigidArea(new Dimension(0, 24)));
@@ -73,8 +74,8 @@ public class RoomDialog extends JDialog {
 
         // ------------- PREVIEW SECTION -------------
         JLabel lblPreviewHeader = new JLabel("BẢN XEM TRƯỚC SƠ ĐỒ GHẾ");
-        lblPreviewHeader.setFont(new Font("Inter", Font.BOLD, 14));
-        lblPreviewHeader.setForeground(Color.decode("#94A3B8"));
+        lblPreviewHeader.setFont(ThemeConfig.FONT_H3);
+        lblPreviewHeader.setForeground(ThemeConfig.TEXT_SECONDARY);
         lblPreviewHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainContent.add(lblPreviewHeader);
         mainContent.add(Box.createRigidArea(new Dimension(0, 16)));
@@ -102,14 +103,14 @@ public class RoomDialog extends JDialog {
         btnPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JButton btnCancel = new JButton("Hủy bỏ");
-        btnCancel.setFont(new Font("Inter", Font.BOLD, 14));
+        btnCancel.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         btnCancel.setFocusPainted(false);
         btnCancel.putClientProperty(FlatClientProperties.STYLE, "arc: 12; foreground: #94A3B8; background: #334155; borderWidth: 0; padding: 12,24,12,24");
         btnCancel.addActionListener(e -> dispose());
         btnPanel.add(btnCancel);
 
         JButton btnSave = new JButton(room == null ? "Xác Nhận & Tạo Sơ Đồ" : "Cập Nhật Phòng");
-        btnSave.setFont(new Font("Inter", Font.BOLD, 14));
+        btnSave.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         btnSave.setFocusPainted(false);
         btnSave.putClientProperty(FlatClientProperties.STYLE, "arc: 12; foreground: #FFFFFF; background: #6366F1; borderWidth: 0; padding: 12,24,12,24");
         btnSave.addActionListener(e -> saveRoom());
@@ -143,12 +144,13 @@ public class RoomDialog extends JDialog {
         JPanel p = new JPanel(new BorderLayout(0, 8));
         p.setOpaque(false);
         JLabel lbl = new JLabel(labelText);
-        lbl.setFont(new Font("Inter", Font.BOLD, 12));
-        lbl.setForeground(Color.decode("#94A3B8"));
+        lbl.setFont(ThemeConfig.FONT_BODY);
+        lbl.setForeground(ThemeConfig.TEXT_SECONDARY);
 
         if (inputComp instanceof JTextField || inputComp instanceof JComboBox || inputComp instanceof JSpinner) {
             inputComp.putClientProperty(FlatClientProperties.STYLE, "arc: 12; padding: 6,12,6,12; background: #1E293B; foreground: #F8FAFC; borderColor: #334155; focusWidth: 2");
-            inputComp.setFont(new Font("Inter", Font.PLAIN, 15));
+            inputComp.setFont(ThemeConfig.FONT_BODY);
+            inputComp.setPreferredSize(new Dimension(0, 38));
             if (inputComp instanceof JTextField) {
                 ((JTextField) inputComp).setCaretColor(Color.WHITE);
             }

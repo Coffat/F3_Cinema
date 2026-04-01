@@ -7,7 +7,7 @@ import javax.swing.SwingUtilities;
 /**
  * F3 Cinema Management System — Application Entry Point.
  */
-public class App {
+public class App {  
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // 1. Initialize Modern Midnight theme BEFORE any UI is created

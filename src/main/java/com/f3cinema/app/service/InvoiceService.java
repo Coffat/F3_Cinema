@@ -1,9 +1,12 @@
 package com.f3cinema.app.service;
 
 import com.f3cinema.app.dto.dashboard.DashboardFinance;
+import com.f3cinema.app.dto.dashboard.TopMovieRow;
 import com.f3cinema.app.repository.DashboardRepository;
 import com.f3cinema.app.repository.DashboardRepositoryImpl;
 import lombok.extern.log4j.Log4j2;
+
+import java.util.List;
 
 /**
  * Invoice-related business logic and dashboard finance aggregates.
@@ -31,5 +34,13 @@ public class InvoiceService {
     public DashboardFinance getDashboardFinance() {
         log.debug("Loading dashboard finance aggregates");
         return dashboardRepository.loadFinance();
+    }
+    
+    /**
+     * Top movies by tickets sold in the last N days.
+     */
+    public List<TopMovieRow> getTopMovies(int lastNDays, int limit) {
+        log.debug("Loading top {} movies for last {} days", limit, lastNDays);
+        return dashboardRepository.loadTopMovies(lastNDays, limit);
     }
 }

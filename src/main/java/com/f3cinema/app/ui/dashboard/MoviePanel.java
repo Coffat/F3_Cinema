@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.dashboard;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Movie;
 import com.f3cinema.app.controller.MovieController;
 import com.formdev.flatlaf.FlatClientProperties;
@@ -21,6 +22,10 @@ public class MoviePanel extends BaseDashboardModule {
     private JComboBox<Genre> cmbGenreFilter;
     private JButton btnAdd;
     private JPanel cardContainer;
+    private JPanel statePanel;
+    private CardLayout stateLayout;
+    private JLabel loadingLabel;
+    private JLabel emptyLabel;
     private final MovieController controller;
 
     public MoviePanel() {
@@ -34,8 +39,7 @@ public class MoviePanel extends BaseDashboardModule {
         JPanel toolbar = buildToolbar();
         JScrollPane scrollPane = buildCardView();
 
-        // Overall Main Background for depth
-        contentBody.setBackground(new Color(15, 23, 42)); 
+        contentBody.setBackground(ThemeConfig.BG_MAIN);
         contentBody.add(toolbar, BorderLayout.NORTH);
         contentBody.add(scrollPane, BorderLayout.CENTER);
 
@@ -47,18 +51,23 @@ public class MoviePanel extends BaseDashboardModule {
     }
 
     private JPanel buildToolbar() {
-        JPanel toolbar = new JPanel(new BorderLayout());
+        JPanel toolbar = new JPanel(new BorderLayout(16, 0));
         toolbar.setOpaque(false);
-        toolbar.setBorder(BorderFactory.createEmptyBorder(10, 20, 30, 20));
+        toolbar.setBorder(BorderFactory.createEmptyBorder(12, 24, 16, 24));
 
-        // ── Modern Search ──
+        JPanel controlBar = new JPanel(new BorderLayout(16, 0));
+        controlBar.setOpaque(true);
+        controlBar.setBackground(ThemeConfig.BG_CARD);
+        controlBar.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
+        controlBar.putClientProperty(FlatClientProperties.STYLE, "arc: 20");
+
         txtSearch = new JTextField(25);
-        txtSearch.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "🔍  Tìm kiếm tên phim (phím tắt Ctrl+F)...");
-        txtSearch.putClientProperty(FlatClientProperties.STYLE, "arc: 16; background: #1E293B; foreground: #F8FAFC; caretColor: #6366F1;");
-        txtSearch.setFont(new Font("Inter", Font.PLAIN, 15));
+        txtSearch.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Tìm kiếm tên phim (Ctrl+F)...");
+        txtSearch.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 12; background: #0F172A; foreground: #F8FAFC; caretColor: #6366F1; margin: 6,10,6,10;");
+        txtSearch.setFont(ThemeConfig.FONT_BODY);
         txtSearch.setPreferredSize(new Dimension(300, 40));
-        
-        // ── Genre Combo Box ──
+
         cmbGenreFilter = new JComboBox<>();
         cmbGenreFilter.addItem(Genre.builder().id(-1L).name("All Genres").build());
         for (Genre g : GenreService.getInstance().getAllGenres()) {
@@ -74,8 +83,9 @@ public class MoviePanel extends BaseDashboardModule {
                 return this;
             }
         });
-        cmbGenreFilter.putClientProperty(FlatClientProperties.STYLE, "arc: 16; background: #1E293B; foreground: #F8FAFC; focusWidth: 0;");
-        cmbGenreFilter.setFont(new Font("Inter", Font.BOLD, 14));
+        cmbGenreFilter.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 12; background: #0F172A; foreground: #F8FAFC; focusWidth: 1; innerFocusWidth: 0;");
+        cmbGenreFilter.setFont(ThemeConfig.FONT_BODY);
         cmbGenreFilter.setPreferredSize(new Dimension(180, 40));
         cmbGenreFilter.addActionListener(e -> controller.loadMovies(txtSearch.getText(), getSelectedGenreId()));
 
@@ -85,44 +95,53 @@ public class MoviePanel extends BaseDashboardModule {
             @Override public void keyReleased(KeyEvent e) { searchTimer.restart(); }
         });
 
-        btnAdd = new JButton("+ Tạo phim mới");
-        btnAdd.setFont(new Font("Inter", Font.BOLD, 14));
-        btnAdd.setBackground(Color.decode("#6366F1"));
-        btnAdd.setForeground(Color.WHITE);
+        btnAdd = new JButton("Thêm phim mới");
+        btnAdd.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
+        btnAdd.setBackground(ThemeConfig.ACCENT_COLOR);
+        btnAdd.setForeground(ThemeConfig.TEXT_PRIMARY);
         btnAdd.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnAdd.putClientProperty(FlatClientProperties.STYLE, "arc: 16; margin: 0, 20, 0, 20; borderWidth: 0;");
-        btnAdd.setPreferredSize(new Dimension(160, 40));
+        btnAdd.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 15; margin: 4,18,4,18; borderWidth: 0; focusWidth: 0;");
+        btnAdd.setPreferredSize(new Dimension(170, 40));
         btnAdd.addActionListener(e -> controller.handleAddAction());
 
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         leftPanel.setOpaque(false);
         leftPanel.add(txtSearch);
         leftPanel.add(cmbGenreFilter);
 
-        toolbar.add(leftPanel, BorderLayout.WEST);
-        toolbar.add(btnAdd, BorderLayout.EAST);
+        controlBar.add(leftPanel, BorderLayout.WEST);
+        controlBar.add(btnAdd, BorderLayout.EAST);
+        toolbar.add(controlBar, BorderLayout.CENTER);
         return toolbar;
     }
 
     private JScrollPane buildCardView() {
-        cardContainer = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 32, 32));
-        cardContainer.setOpaque(true); // Must be opaque to clear background correctly during custom card hover repaints
-        cardContainer.setBackground(new Color(15, 23, 42));
+        cardContainer = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 22, 22));
+        cardContainer.setOpaque(false);
+        cardContainer.setBackground(ThemeConfig.BG_MAIN);
 
-        // Inner wrapper to force cards to stay at top if list is short
+        stateLayout = new CardLayout();
+        statePanel = new JPanel(stateLayout);
+        statePanel.setOpaque(false);
+        statePanel.add(buildLoadingState(), "loading");
+        statePanel.add(buildEmptyState(), "empty");
+        statePanel.add(cardContainer, "cards");
+
         JPanel inner = new JPanel(new BorderLayout());
         inner.setOpaque(true);
-        inner.setBackground(new Color(15, 23, 42)); // Slate 900 — matches bg-main
-        inner.add(cardContainer, BorderLayout.NORTH);
+        inner.setBackground(ThemeConfig.BG_MAIN);
+        inner.setBorder(BorderFactory.createEmptyBorder(8, 24, 24, 24));
+        inner.add(statePanel, BorderLayout.NORTH);
 
         JScrollPane scroll = new JScrollPane(inner);
         scroll.setBorder(null);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(true);
-        scroll.getViewport().setBackground(new Color(15, 23, 42));
-        // SIMPLE_SCROLL_MODE prevents "ghosting" artifacts common with semi-transparent components and BLIT.
+        scroll.getViewport().setBackground(ThemeConfig.BG_MAIN);
         scroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
         scroll.getVerticalScrollBar().setUnitIncrement(20);
+        scroll.getVerticalScrollBar().putClientProperty(FlatClientProperties.STYLE, "trackArc: 999; thumbArc: 999;");
 
         return scroll;
     }
@@ -130,7 +149,7 @@ public class MoviePanel extends BaseDashboardModule {
     public void updateTableData(List<Movie> movies) {
         cardContainer.removeAll();
         if (movies.isEmpty()) {
-            showNoDataFound();
+            stateLayout.show(statePanel, "empty");
         } else {
             for (Movie m : movies) {
                 MovieCard card = new MovieCard(m, 
@@ -139,21 +158,46 @@ public class MoviePanel extends BaseDashboardModule {
                 );
                 cardContainer.add(card);
             }
+            stateLayout.show(statePanel, "cards");
         }
-        cardContainer.revalidate();
-        cardContainer.repaint();
+        statePanel.revalidate();
+        statePanel.repaint();
     }
 
-    private void showNoDataFound() {
-        JLabel lbl = new JLabel("Không tìm thấy kết quả nào. Hãy thử từ khóa khác! 🍿");
-        lbl.setForeground(Color.decode("#6366F1"));
-        lbl.setFont(new Font("Inter", Font.BOLD, 18));
-        lbl.setBorder(BorderFactory.createEmptyBorder(60, 40, 0, 0));
-        cardContainer.add(lbl);
+    private JPanel buildLoadingState() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(80, 0, 0, 0));
+        loadingLabel = new JLabel("Dang tai du lieu phim...");
+        loadingLabel.setFont(ThemeConfig.FONT_BODY);
+        loadingLabel.setForeground(ThemeConfig.TEXT_SECONDARY);
+        loadingLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(loadingLabel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildEmptyState() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(80, 0, 0, 0));
+
+        JLabel icon = new JLabel(new com.formdev.flatlaf.extras.FlatSVGIcon("icons/video.svg", 56, 56));
+        icon.setAlignmentX(Component.CENTER_ALIGNMENT);
+        emptyLabel = new JLabel("Chua co phim nao");
+        emptyLabel.setFont(ThemeConfig.FONT_H2);
+        emptyLabel.setForeground(ThemeConfig.TEXT_SECONDARY);
+        emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        panel.add(icon);
+        panel.add(Box.createVerticalStrut(12));
+        panel.add(emptyLabel);
+        return panel;
     }
 
     public void setLoadingState(boolean isLoading) {
         setCursor(isLoading ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
+        stateLayout.show(statePanel, isLoading ? "loading" : "cards");
     }
 
     public void showErrorMessage(String msg) {

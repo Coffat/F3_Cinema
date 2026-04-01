@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.staff.ticketing;
 
+import com.f3cinema.app.ui.staff.ticketing.components.ModernStepper;
 import com.f3cinema.app.ui.staff.ticketing.step1.ShowtimeSelectionPanel;
 import com.f3cinema.app.ui.staff.ticketing.step2.SeatSelectionPanel;
 import com.f3cinema.app.ui.staff.ticketing.step3.SnacksSelectionPanel;
@@ -22,6 +23,7 @@ public class TicketingFlowPanel extends JPanel {
     private final CardLayout cardLayout;
     private final JPanel cardContainer;
     private final TicketOrderState state;
+    private ModernStepper stepper;
 
     private ShowtimeSelectionPanel step1;
     private SeatSelectionPanel step2;
@@ -38,6 +40,8 @@ public class TicketingFlowPanel extends JPanel {
         cardContainer.setOpaque(false);
 
         initSteps();
+        stepper = new ModernStepper("Suat chieu", "Ghe", "Bap nuoc", "Thanh toan");
+        add(stepper, BorderLayout.NORTH);
         add(cardContainer, BorderLayout.CENTER);
 
         state.setCurrentStep(1);
@@ -87,10 +91,15 @@ public class TicketingFlowPanel extends JPanel {
                 step4.onStepActivated();
             }
         }
+        refreshStepper();
     }
 
     public void reset() {
         state.reset();
         showStep(1);
+    }
+
+    private void refreshStepper() {
+        if (stepper != null) stepper.setCurrentStep(state.getCurrentStep());
     }
 }

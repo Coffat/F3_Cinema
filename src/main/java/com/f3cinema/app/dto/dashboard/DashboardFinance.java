@@ -11,6 +11,10 @@ public record DashboardFinance(
         long ticketsSoldToday,
         double occupancyPercent,
         long newCustomersToday,
+        BigDecimal revenueYesterday,
+        long ticketsYesterday,
+        double occupancyYesterday,
+        long newCustomersYesterday,
         List<RevenueSeriesPoint> revenueLast7Days,
         BigDecimal ticketRevenue7d,
         BigDecimal fnbRevenue7d

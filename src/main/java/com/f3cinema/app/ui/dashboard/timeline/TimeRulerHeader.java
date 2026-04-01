@@ -1,5 +1,7 @@
 package com.f3cinema.app.ui.dashboard.timeline;
 
+import com.f3cinema.app.config.ThemeConfig;
+
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalTime;
@@ -32,46 +34,40 @@ public class TimeRulerHeader extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
 
         int w = getWidth();
         int h = getHeight();
+        g2.setColor(ThemeConfig.BG_CARD);
+        g2.fillRect(0, 0, w, h);
 
-        // Bottom border line
         g2.setColor(ROW_SEPARATOR);
         g2.drawLine(0, h - 1, w, h - 1);
 
-        // Draw hour and half-hour marks
         for (int hour = TIMELINE_START_HOUR; hour <= TIMELINE_END_HOUR; hour++) {
             int minuteOffset = (hour - TIMELINE_START_HOUR) * 60;
             int x = (int) (minuteOffset * pixelsPerMinute);
 
-            // Hour tick (full height)
             g2.setColor(GRID_LINE_HOUR);
+            g2.setStroke(new BasicStroke(2f));
             g2.drawLine(x, h - 16, x, h - 1);
 
-            // Hour label
             String label = String.format("%02d:00", hour == 24 ? 0 : hour);
-            g2.setFont(FONT_RULER_BOLD);
-            g2.setColor(TEXT_PRIMARY);
-            g2.drawString(label, x + 6, h - 20);
+            g2.setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD));
+            g2.setColor(ThemeConfig.TEXT_SECONDARY);
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(label, x - fm.stringWidth(label) / 2, h - 18);
 
-            // Half-hour tick (shorter)
             if (hour < TIMELINE_END_HOUR) {
                 int halfX = (int) ((minuteOffset + 30) * pixelsPerMinute);
                 g2.setColor(GRID_LINE);
+                g2.setStroke(new BasicStroke(1f));
                 g2.drawLine(halfX, h - 10, halfX, h - 1);
-
-                g2.setFont(FONT_RULER);
-                g2.setColor(TEXT_MUTED);
-                g2.drawString(String.format("%02d:30", hour == 24 ? 0 : hour), halfX + 4, h - 20);
             }
         }
 
-        // NOW indicator
         drawNowIndicator(g2, h);
 
         g2.dispose();
@@ -85,16 +81,12 @@ public class TimeRulerHeader extends JPanel {
 
         if (nowMinutes >= startMinutes && nowMinutes <= endMinutes) {
             int x = (int) ((nowMinutes - startMinutes) * pixelsPerMinute);
-
-            // Red triangle indicator at the bottom of the ruler
             g2.setColor(COLOR_ERROR);
             int[] xPoints = {x - 5, x + 5, x};
             int[] yPoints = {h - 1, h - 1, h - 8};
             g2.fillPolygon(xPoints, yPoints, 3);
-
-            // Vertical line extending down
             g2.setStroke(new BasicStroke(2f));
-            g2.drawLine(x, h - 8, x, h - 1);
+            g2.drawLine(x, 0, x, h);
         }
     }
 }

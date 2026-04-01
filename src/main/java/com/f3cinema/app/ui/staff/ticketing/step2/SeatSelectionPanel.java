@@ -11,7 +11,6 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeEvent;
@@ -25,8 +24,6 @@ import java.util.List;
  */
 public class SeatSelectionPanel extends JPanel {
 
-    private static final Color BG_MAIN = new Color(0x0F172A);
-    private static final Color BG_ELEVATED = new Color(0x334155);
     private static final Color TEXT_PRIMARY = new Color(0xF8FAFC);
     private static final Color TEXT_SECONDARY = new Color(0x94A3B8);
     private static final Color ACCENT_PRIMARY = new Color(0x6366F1);
@@ -159,32 +156,7 @@ public class SeatSelectionPanel extends JPanel {
         JPanel area = new JPanel(new BorderLayout(0, 16));
         area.setOpaque(false);
 
-        JPanel screenPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                g2.setPaint(new LinearGradientPaint(0, 0, getWidth(), 0,
-                        new float[]{0f, 0.5f, 1f},
-                        new Color[]{new Color(99, 102, 241, 0), new Color(99, 102, 241, 100), new Color(99, 102, 241, 0)}));
-                g2.fillRoundRect(0, 0, getWidth(), 8, 8, 8);
-                
-                g2.dispose();
-            }
-        };
-        screenPanel.setPreferredSize(new Dimension(0, 30));
-        screenPanel.setOpaque(false);
-
-        JLabel lblScreen = new JLabel("MÀN HÌNH", SwingConstants.CENTER);
-        lblScreen.setFont(new Font("Inter", Font.BOLD, 12));
-        lblScreen.setForeground(TEXT_SECONDARY);
-        lblScreen.setVerticalAlignment(SwingConstants.BOTTOM);
-
-        JPanel screenWrapper = new JPanel(new BorderLayout());
-        screenWrapper.setOpaque(false);
-        screenWrapper.add(screenPanel, BorderLayout.NORTH);
-        screenWrapper.add(lblScreen, BorderLayout.CENTER);
+        JPanel screenWrapper = buildScreenIndicator();
 
         seatMapContainer = new JPanel();
         seatMapContainer.setOpaque(false);
@@ -346,7 +318,7 @@ public class SeatSelectionPanel extends JPanel {
     private JToggleButton createSeatButton(SeatDTO seat) {
         String label = String.format("%02d", seat.number());
         JToggleButton btn = new JToggleButton(label);
-        btn.setPreferredSize(new Dimension(42, 42));
+        btn.setPreferredSize(new Dimension(48, 48));
         btn.setFont(new Font("Inter", Font.BOLD, 11));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setMargin(new Insets(0, 0, 0, 0));
@@ -364,6 +336,7 @@ public class SeatSelectionPanel extends JPanel {
         } else {
             btn.setBackground(baseColor);
             btn.setForeground(textColor);
+            btn.setToolTipText(seat.rowChar() + String.valueOf(seat.number()) + " - " + seat.seatType() + " - " + String.format("%,.0f", seat.price()) + " đ");
 
             final Color finalBase = baseColor;
             final Color finalText = textColor;
@@ -386,8 +359,49 @@ public class SeatSelectionPanel extends JPanel {
                     state.removeSeat(seat.id());
                 }
             });
+            btn.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    if (!btn.isSelected()) {
+                        btn.setBorder(BorderFactory.createLineBorder(ACCENT_PRIMARY, 2));
+                        btn.setPreferredSize(new Dimension(50, 50));
+                    }
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    if (!btn.isSelected()) {
+                        btn.setBorder(null);
+                        btn.setPreferredSize(new Dimension(48, 48));
+                    }
+                }
+            });
         }
         return btn;
+    }
+
+    private JPanel buildScreenIndicator() {
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int[] xPoints = {20, getWidth() - 20, getWidth() - 40, 40};
+                int[] yPoints = {0, 0, getHeight(), getHeight()};
+                g2.setPaint(new GradientPaint(0, 0, ACCENT_PRIMARY, getWidth(), 0, new Color(129, 140, 248)));
+                g2.fillPolygon(xPoints, yPoints, 4);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Inter", Font.BOLD, 12));
+                String text = "MAN HINH";
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(text, (getWidth() - fm.stringWidth(text)) / 2, getHeight() / 2 + 4);
+                g2.dispose();
+            }
+        };
+        panel.setPreferredSize(new Dimension(0, 40));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        panel.setOpaque(false);
+        return panel;
     }
 
     private record LoadResult(ShowtimeSummaryDTO summary, List<SeatDTO> seats) {}

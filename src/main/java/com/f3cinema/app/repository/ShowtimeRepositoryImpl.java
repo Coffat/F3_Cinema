@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * ShowtimeRepositoryImpl - Triển khai các truy vấn liên quan đến suất chiếu.
@@ -19,14 +20,47 @@ public class ShowtimeRepositoryImpl extends BaseRepositoryImpl<Showtime, Long> i
     }
 
     @Override
+    public Optional<Showtime> findById(Long id) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            Showtime showtime = session.createQuery(
+                "SELECT s FROM Showtime s " +
+                "JOIN FETCH s.movie " +
+                "JOIN FETCH s.room r " +
+                "LEFT JOIN FETCH r.seats " +
+                "WHERE s.id = :id", Showtime.class)
+                .setParameter("id", id)
+                .uniqueResult();
+            return Optional.ofNullable(showtime);
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    @Override
+    public List<Showtime> findAll() {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                "SELECT DISTINCT s FROM Showtime s " +
+                "JOIN FETCH s.movie " +
+                "JOIN FETCH s.room r " +
+                "LEFT JOIN FETCH r.seats " +
+                "ORDER BY s.startTime ASC", Showtime.class)
+                .getResultList();
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    @Override
     public List<Showtime> findByFilter(LocalDate date, Long movieId, Long roomId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             LocalDateTime startOfDay = date.atStartOfDay();
             LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
 
-            StringBuilder hql = new StringBuilder("SELECT s FROM Showtime s ");
+            StringBuilder hql = new StringBuilder("SELECT DISTINCT s FROM Showtime s ");
             hql.append("JOIN FETCH s.movie ");
-            hql.append("JOIN FETCH s.room ");
+            hql.append("JOIN FETCH s.room r ");
+            hql.append("LEFT JOIN FETCH r.seats ");
             hql.append("WHERE s.startTime >= :start AND s.startTime <= :end ");
 
             if (movieId != null) {

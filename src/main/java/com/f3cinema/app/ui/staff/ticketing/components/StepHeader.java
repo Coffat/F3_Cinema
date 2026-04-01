@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.staff.ticketing.components;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
@@ -13,9 +14,9 @@ import java.awt.event.ActionListener;
  */
 public class StepHeader extends JPanel {
 
-    private static final Color BG_SURFACE = new Color(0x1E293B);
-    private static final Color TEXT_PRIMARY = new Color(0xF8FAFC);
-    private static final Color TEXT_MUTED = new Color(0x94A3B8);
+    private static final Color BG_SURFACE = ThemeConfig.BG_CARD;
+    private static final Color TEXT_PRIMARY = ThemeConfig.TEXT_PRIMARY;
+    private static final Color TEXT_MUTED = ThemeConfig.TEXT_SECONDARY;
 
     public StepHeader(int currentStep, int totalSteps, String stepTitle, ActionListener backAction) {
         setLayout(new BorderLayout());
@@ -43,11 +44,11 @@ public class StepHeader extends JPanel {
         centerPanel.setOpaque(false);
 
         JLabel lblStep = new JLabel(String.format("Bước %d/%d:", currentStep, totalSteps));
-        lblStep.setFont(new Font("Inter", Font.PLAIN, 16));
+        lblStep.setFont(ThemeConfig.FONT_BODY);
         lblStep.setForeground(TEXT_MUTED);
 
         JLabel lblTitle = new JLabel(stepTitle);
-        lblTitle.setFont(new Font("Inter", Font.BOLD, 18));
+        lblTitle.setFont(ThemeConfig.FONT_H2);
         lblTitle.setForeground(TEXT_PRIMARY);
 
         centerPanel.add(lblStep);

@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.dashboard;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.controller.ShowtimeController;
 import com.f3cinema.app.dto.MovieSummaryDTO;
 import com.f3cinema.app.entity.Room;
@@ -42,6 +43,8 @@ public class ShowtimePanel extends BaseDashboardModule {
 
     private JButton btnZoomIn;
     private JButton btnZoomOut;
+    private JSlider zoomSlider;
+    private final Set<Long> hiddenMovieIds = new HashSet<>();
 
     private final ShowtimeController controller;
 
@@ -105,28 +108,50 @@ public class ShowtimePanel extends BaseDashboardModule {
     // ─────────────────────────────────────────────────────────────────────────
 
     private JPanel createToolbar() {
-        JPanel toolbar = new JPanel();
-        toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.X_AXIS));
+        JPanel toolbar = new JPanel(new BorderLayout(16, 0));
         toolbar.setOpaque(false);
-        toolbar.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        toolbar.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
+
+        JPanel controlBar = new JPanel();
+        controlBar.setLayout(new BoxLayout(controlBar, BoxLayout.X_AXIS));
+        controlBar.setBackground(ThemeConfig.BG_CARD);
+        controlBar.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
+        controlBar.putClientProperty(FlatClientProperties.STYLE, "arc: 20");
 
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftPanel.setOpaque(false);
 
         // Calendar button
         btnDatePicker = new JButton("\uD83D\uDCC5  " + selectedDate.format(PICKER_FORMATTER));
-        btnDatePicker.setFont(new Font("Inter", Font.PLAIN, 14));
+        btnDatePicker.setFont(ThemeConfig.FONT_BODY);
         btnDatePicker.setForeground(TEXT_PRIMARY);
         btnDatePicker.setBackground(BG_SURFACE);
         btnDatePicker.setPreferredSize(new Dimension(175, 36));
         btnDatePicker.setMaximumSize(new Dimension(175, 36));
         btnDatePicker.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnDatePicker.setHorizontalAlignment(SwingConstants.LEFT);
-        btnDatePicker.putClientProperty(FlatClientProperties.STYLE,
-                "arc: 12; borderWidth: 0; background: #1E293B; foreground: #FFFFFF;");
+        btnDatePicker.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0; background: #0F172A; foreground: #FFFFFF;");
         btnDatePicker.addActionListener(e -> {
             CalendarPopup popup = new CalendarPopup();
             popup.show(btnDatePicker, 0, btnDatePicker.getHeight() + 4);
+        });
+        JButton btnPrev = createToolbarIconButton("<");
+        btnPrev.addActionListener(e -> {
+            selectedDate = selectedDate.minusDays(1);
+            btnDatePicker.setText("\uD83D\uDCC5  " + selectedDate.format(PICKER_FORMATTER));
+            controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId());
+        });
+        JButton btnToday = createToolbarIconButton("•");
+        btnToday.addActionListener(e -> {
+            selectedDate = LocalDate.now();
+            btnDatePicker.setText("\uD83D\uDCC5  " + selectedDate.format(PICKER_FORMATTER));
+            controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId());
+        });
+        JButton btnNext = createToolbarIconButton(">");
+        btnNext.addActionListener(e -> {
+            selectedDate = selectedDate.plusDays(1);
+            btnDatePicker.setText("\uD83D\uDCC5  " + selectedDate.format(PICKER_FORMATTER));
+            controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId());
         });
 
         // Movie filter
@@ -142,6 +167,9 @@ public class ShowtimePanel extends BaseDashboardModule {
                 controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId()));
 
         leftPanel.add(btnDatePicker);
+        leftPanel.add(btnPrev);
+        leftPanel.add(btnToday);
+        leftPanel.add(btnNext);
         leftPanel.add(cbMovies);
         leftPanel.add(cbRooms);
 
@@ -153,26 +181,39 @@ public class ShowtimePanel extends BaseDashboardModule {
         btnZoomOut.addActionListener(e -> zoom(-ZOOM_STEP));
         btnZoomIn = createToolbarIconButton("+");
         btnZoomIn.addActionListener(e -> zoom(ZOOM_STEP));
+        zoomSlider = new JSlider(100, 200, 100);
+        zoomSlider.setOpaque(false);
+        zoomSlider.setPreferredSize(new Dimension(120, 24));
+        zoomSlider.addChangeListener(e -> {
+            double target = zoomSlider.getValue() / 100.0;
+            double next = DEFAULT_PIXELS_PER_MINUTE * target;
+            timelinePanel.setPixelsPerMinute(next);
+            timeRulerHeader.setPixelsPerMinute(next);
+            timelineScroll.revalidate();
+            timelineScroll.repaint();
+        });
 
         zoomPanel.add(btnZoomOut);
         zoomPanel.add(btnZoomIn);
+        zoomPanel.add(zoomSlider);
 
         // Add button
         JButton btnAdd = new JButton("+ Thêm suất chiếu");
-        btnAdd.setBackground(ACCENT);
+        btnAdd.setBackground(ThemeConfig.ACCENT_COLOR);
         btnAdd.setForeground(Color.WHITE);
-        btnAdd.setFont(new Font("Inter", Font.BOLD, 14));
+        btnAdd.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         btnAdd.setPreferredSize(new Dimension(180, 36));
         btnAdd.setMaximumSize(new Dimension(180, 36));
         btnAdd.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0;");
         btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnAdd.addActionListener(e -> controller.handleAddAction());
 
-        toolbar.add(leftPanel);
-        toolbar.add(Box.createHorizontalGlue());
-        toolbar.add(zoomPanel);
-        toolbar.add(Box.createHorizontalStrut(8));
-        toolbar.add(btnAdd);
+        controlBar.add(leftPanel);
+        controlBar.add(Box.createHorizontalGlue());
+        controlBar.add(zoomPanel);
+        controlBar.add(Box.createHorizontalStrut(8));
+        controlBar.add(btnAdd);
+        toolbar.add(controlBar, BorderLayout.CENTER);
         return toolbar;
     }
 
@@ -241,11 +282,28 @@ public class ShowtimePanel extends BaseDashboardModule {
                 item.setOpaque(false);
                 item.add(swatch);
                 item.add(label);
+                JToggleButton toggle = new JToggleButton("ON", !hiddenMovieIds.contains(movieId));
+                toggle.setFont(new Font("Inter", Font.PLAIN, 10));
+                toggle.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #1E293B;");
+                toggle.addActionListener(e -> {
+                    if (toggle.isSelected()) hiddenMovieIds.remove(movieId);
+                    else hiddenMovieIds.add(movieId);
+                    applyLegendVisibility();
+                });
+                item.add(toggle);
                 legendPanel.add(item);
             }
         }
         legendPanel.revalidate();
         legendPanel.repaint();
+    }
+
+    private void applyLegendVisibility() {
+        for (ShowtimeBlock block : timelinePanel.getBlocks()) {
+            Long movieId = block.getShowtime().getMovie().getId();
+            block.setVisible(!hiddenMovieIds.contains(movieId));
+        }
+        timelinePanel.repaint();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -396,8 +454,8 @@ public class ShowtimePanel extends BaseDashboardModule {
         c.setPreferredSize(new Dimension(width, 36));
         c.setMaximumSize(new Dimension(width, 36));
         c.putClientProperty(FlatClientProperties.STYLE,
-                "arc: 12; background: #1E293B; foreground: #FFFFFF; borderWidth: 0;");
-        c.setFont(new Font("Inter", Font.PLAIN, 14));
+                "arc: 12; background: #0F172A; foreground: #FFFFFF; borderWidth: 0;");
+        c.setFont(ThemeConfig.FONT_BODY);
     }
 
     private void loadFilterData() {

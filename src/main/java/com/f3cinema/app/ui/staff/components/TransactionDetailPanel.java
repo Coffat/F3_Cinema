@@ -19,7 +19,7 @@ public class TransactionDetailPanel extends JPanel {
     private static final DecimalFormat MONEY = new DecimalFormat("#,##0");
 
     private final JLabel lblHeader = new JLabel("Chọn giao dịch để xem chi tiết");
-    private final JTextArea txtContent = new JTextArea();
+    private final JTextPane txtContent = new JTextPane();
     private final JButton btnExport = new JButton("In/Xuất hóa đơn");
     private final JButton btnRefund = new JButton("Hoàn tiền");
     private final JButton btnCancel = new JButton("Hủy đơn");
@@ -37,10 +37,9 @@ public class TransactionDetailPanel extends JPanel {
         txtContent.setOpaque(false);
         txtContent.setForeground(TEXT_SECONDARY);
         txtContent.setFont(new Font("Inter", Font.PLAIN, 13));
-        txtContent.setLineWrap(true);
-        txtContent.setWrapStyleWord(true);
         txtContent.setBorder(new EmptyBorder(0, 0, 0, 0));
-        txtContent.setText("Không có dữ liệu");
+        txtContent.setContentType("text/html");
+        txtContent.setText("<html>Khong co du lieu</html>");
 
         JPanel actions = new JPanel(new GridLayout(1, 3, 8, 0));
         actions.setOpaque(false);
@@ -52,7 +51,11 @@ public class TransactionDetailPanel extends JPanel {
         actions.add(btnCancel);
 
         add(lblHeader, BorderLayout.NORTH);
-        add(new JScrollPane(txtContent), BorderLayout.CENTER);
+        JScrollPane sc = new JScrollPane(txtContent);
+        sc.setBorder(BorderFactory.createEmptyBorder());
+        sc.getViewport().setOpaque(false);
+        sc.setOpaque(false);
+        add(sc, BorderLayout.CENTER);
         add(actions, BorderLayout.SOUTH);
     }
 
@@ -85,37 +88,39 @@ public class TransactionDetailPanel extends JPanel {
     public void render(TransactionDetailDTO detail) {
         if (detail == null) {
             lblHeader.setText("Chọn giao dịch để xem chi tiết");
-            txtContent.setText("Không có dữ liệu");
+            txtContent.setText("<html>Khong co du lieu</html>");
             return;
         }
         lblHeader.setText("Hóa đơn #" + detail.invoiceId());
-        StringBuilder sb = new StringBuilder();
-        sb.append("Thời gian: ").append(detail.createdAt() != null ? DATE_TIME_FORMATTER.format(detail.createdAt()) : "N/A").append("\n");
-        sb.append("Trạng thái: ").append(detail.invoiceStatus()).append("\n");
-        sb.append("Khách hàng: ").append(valueOr(detail.customerName(), "Khách lẻ")).append("\n");
-        sb.append("SĐT: ").append(valueOr(detail.customerPhone(), "-")).append("\n");
-        sb.append("Nhân viên: ").append(valueOr(detail.staffName(), "-")).append("\n");
-        sb.append("Tổng tiền: ").append(formatMoney(detail.totalAmount())).append(" VNĐ\n");
-        sb.append("Điểm dùng/tích: ").append(safeInt(detail.pointsUsed())).append(" / ").append(safeInt(detail.pointsEarned())).append("\n\n");
-
-        sb.append("Vé:\n");
+        StringBuilder sb = new StringBuilder("<html><div style='font-family:Inter; color:#F8FAFC'>");
+        sb.append("<h2 style='margin:0'>F3 CINEMA</h2>");
+        sb.append("<div>Hoa don #").append(detail.invoiceId()).append("</div><hr/>");
+        sb.append("<div>Thoi gian: ").append(detail.createdAt() != null ? DATE_TIME_FORMATTER.format(detail.createdAt()) : "N/A").append("</div>");
+        sb.append("<div>Trang thai: ").append(detail.invoiceStatus()).append("</div>");
+        sb.append("<div>Khach hang: ").append(valueOr(detail.customerName(), "Khach le")).append("</div>");
+        sb.append("<div>SDT: ").append(valueOr(detail.customerPhone(), "-")).append("</div>");
+        sb.append("<div>Nhan vien: ").append(valueOr(detail.staffName(), "-")).append("</div>");
+        sb.append("<div style='margin-top:8px'><b>Tong tien: ").append(formatMoney(detail.totalAmount())).append(" VNĐ</b></div>");
+        sb.append("<div>Diem dung/tich: ").append(safeInt(detail.pointsUsed())).append(" / ").append(safeInt(detail.pointsEarned())).append("</div>");
+        sb.append("<hr/><b>VE XEM PHIM</b><br/>");
         for (TicketLineDTO t : detail.tickets()) {
-            sb.append("- ").append(valueOr(t.movieTitle(), "N/A")).append(" | ")
+            sb.append("• ").append(valueOr(t.movieTitle(), "N/A")).append(" | ")
                     .append(valueOr(t.seatLabel(), "N/A")).append(" | ")
-                    .append(formatMoney(t.finalPrice())).append(" VNĐ\n");
+                    .append(formatMoney(t.finalPrice())).append(" VNĐ<br/>");
         }
-        sb.append("\nBắp nước:\n");
+        sb.append("<br/><b>BAP NUOC</b><br/>");
         for (SnackLineDTO s : detail.snacks()) {
-            sb.append("- ").append(valueOr(s.productName(), "N/A")).append(" x")
+            sb.append("• ").append(valueOr(s.productName(), "N/A")).append(" x")
                     .append(safeInt(s.quantity())).append(" | ")
-                    .append(formatMoney(s.lineTotal())).append(" VNĐ\n");
+                    .append(formatMoney(s.lineTotal())).append(" VNĐ<br/>");
         }
-        sb.append("\nThanh toán:\n");
+        sb.append("<br/><b>THANH TOAN</b><br/>");
         for (PaymentLineDTO p : detail.payments()) {
-            sb.append("- ").append(p.method()).append(" | ")
+            sb.append("• ").append(p.method()).append(" | ")
                     .append(p.status()).append(" | ")
-                    .append(formatMoney(p.amount())).append(" VNĐ\n");
+                    .append(formatMoney(p.amount())).append(" VNĐ<br/>");
         }
+        sb.append("</div></html>");
         txtContent.setText(sb.toString());
         txtContent.setCaretPosition(0);
     }

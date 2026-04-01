@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS products (
     name VARCHAR(255) NOT NULL,
     price DECIMAL(19, 2) NOT NULL,
     unit VARCHAR(50),
+    image_url TEXT,
     deleted_at DATETIME DEFAULT NULL
 );
 
@@ -252,17 +253,17 @@ INSERT IGNORE INTO showtimes (movie_id, room_id, start_time, end_time, base_pric
 (4, 1, DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '20:00:00' HOUR_SECOND), DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '22:07:00' HOUR_SECOND), 90000.00);
 
 -- 9. Products (Snacks & Drinks)
-INSERT IGNORE INTO products (id, name, price, unit) VALUES 
-(1, N'Bắp rang Caramel (L)', 65000.00, N'Hộp'),
-(2, N'Bắp rang Phô mai (L)', 65000.00, N'Hộp'),
-(3, N'Bắp rang Caramel (M)', 55000.00, N'Hộp'),
-(4, N'Bắp rang Phô mai (M)', 55000.00, N'Hộp'),
-(5, 'Coca Cola (L)', 35000.00, 'Ly'),
-(6, 'Sprite (L)', 35000.00, 'Ly'),
-(7, 'Fanta (L)', 35000.00, 'Ly'),
-(8, N'Nước suối Dasani', 20000.00, 'Chai'),
-(9, N'Combo Solo (1 Bắp L + 1 Nước L)', 85000.00, 'Combo'),
-(10, N'Combo Couple (1 Bắp L + 2 Nước L)', 105000.00, 'Combo');
+INSERT IGNORE INTO products (id, name, price, unit, image_url) VALUES 
+(1, N'Bắp rang Caramel (L)', 65000.00, N'Hộp', 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400'),
+(2, N'Bắp rang Phô mai (L)', 65000.00, N'Hộp', 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=400'),
+(3, N'Bắp rang Caramel (M)', 55000.00, N'Hộp', 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400'),
+(4, N'Bắp rang Phô mai (M)', 55000.00, N'Hộp', 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=400'),
+(5, 'Coca Cola (L)', 35000.00, 'Ly', 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400'),
+(6, 'Sprite (L)', 35000.00, 'Ly', 'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?w=400'),
+(7, 'Fanta (L)', 35000.00, 'Ly', 'https://images.unsplash.com/photo-1624517452488-04869289c4ca?w=400'),
+(8, N'Nước suối Dasani', 20000.00, 'Chai', 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400'),
+(9, N'Combo Solo (1 Bắp L + 1 Nước L)', 85000.00, 'Combo', 'https://images.unsplash.com/photo-1627662235654-e188a0c1b8df?w=400'),
+(10, N'Combo Couple (1 Bắp L + 2 Nước L)', 105000.00, 'Combo', 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=400');
 
 -- 10. Inventories
 INSERT IGNORE INTO inventories (product_id, current_quantity, min_threshold) VALUES 

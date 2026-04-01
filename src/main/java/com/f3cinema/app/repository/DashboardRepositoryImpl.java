@@ -5,6 +5,7 @@ import com.f3cinema.app.dto.dashboard.DashboardFinance;
 import com.f3cinema.app.dto.dashboard.InventoryAlertRow;
 import com.f3cinema.app.dto.dashboard.NowShowingRow;
 import com.f3cinema.app.dto.dashboard.RevenueSeriesPoint;
+import com.f3cinema.app.dto.dashboard.TopMovieRow;
 import lombok.extern.log4j.Log4j2;
 import org.hibernate.Session;
 
@@ -34,23 +35,27 @@ public class DashboardRepositoryImpl implements DashboardRepository {
     @Override
     public DashboardFinance loadFinance() {
         LocalDate today = LocalDate.now();
-        LocalDateTime dayStart = today.atStartOfDay();
-        LocalDateTime dayEnd = today.plusDays(1).atStartOfDay();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.plusDays(1).atStartOfDay();
+        LocalDateTime yesterdayStart = yesterday.atStartOfDay();
+        LocalDateTime yesterdayEnd = today.atStartOfDay();
         LocalDate seriesStart = today.minusDays(6);
         LocalDateTime rangeStart = seriesStart.atStartOfDay();
         LocalDateTime rangeEnd = today.plusDays(1).atStartOfDay();
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            // Today metrics
             BigDecimal revenueToday = queryDecimal(session,
                     "SELECT COALESCE(SUM(final_total), 0) FROM invoices "
                             + "WHERE status = 'PAID' AND created_at >= :ds AND created_at < :de",
-                    "ds", dayStart, "de", dayEnd);
+                    "ds", todayStart, "de", todayEnd);
 
             long ticketsSoldToday = queryLong(session,
                     "SELECT COUNT(t.id) FROM tickets t "
                             + "INNER JOIN invoices i ON i.id = t.invoice_id "
                             + "WHERE i.status = 'PAID' AND i.created_at >= :ds AND i.created_at < :de",
-                    "ds", dayStart, "de", dayEnd);
+                    "ds", todayStart, "de", todayEnd);
 
             long capacityToday = queryLong(session,
                     "SELECT COALESCE(SUM(cnt), 0) FROM ("
@@ -78,7 +83,47 @@ public class DashboardRepositoryImpl implements DashboardRepository {
                             + "GROUP BY c.id "
                             + "HAVING MIN(i.created_at) >= :ds AND MIN(i.created_at) < :de"
                             + ") x",
-                    "ds", dayStart, "de", dayEnd);
+                    "ds", todayStart, "de", todayEnd);
+
+            // Yesterday metrics for comparison
+            BigDecimal revenueYesterday = queryDecimal(session,
+                    "SELECT COALESCE(SUM(final_total), 0) FROM invoices "
+                            + "WHERE status = 'PAID' AND created_at >= :ds AND created_at < :de",
+                    "ds", yesterdayStart, "de", yesterdayEnd);
+
+            long ticketsYesterday = queryLong(session,
+                    "SELECT COUNT(t.id) FROM tickets t "
+                            + "INNER JOIN invoices i ON i.id = t.invoice_id "
+                            + "WHERE i.status = 'PAID' AND i.created_at >= :ds AND i.created_at < :de",
+                    "ds", yesterdayStart, "de", yesterdayEnd);
+
+            long capacityYesterday = queryLong(session,
+                    "SELECT COALESCE(SUM(cnt), 0) FROM ("
+                            + "SELECT (SELECT COUNT(*) FROM seats s WHERE s.room_id = sh.room_id) AS cnt "
+                            + "FROM showtimes sh WHERE DATE(sh.start_time) = DATE(DATE_SUB(CURDATE(), INTERVAL 1 DAY))"
+                            + ") cap");
+
+            long ticketsForYesterdayShowtimes = queryLong(session,
+                    "SELECT COUNT(t.id) FROM tickets t "
+                            + "INNER JOIN invoices i ON i.id = t.invoice_id "
+                            + "INNER JOIN showtimes sh ON sh.id = t.showtime_id "
+                            + "WHERE i.status = 'PAID' AND DATE(sh.start_time) = DATE(DATE_SUB(CURDATE(), INTERVAL 1 DAY))");
+
+            double occupancyYesterday = 0.0;
+            if (capacityYesterday > 0) {
+                occupancyYesterday = (ticketsForYesterdayShowtimes * 100.0) / capacityYesterday;
+                occupancyYesterday = BigDecimal.valueOf(occupancyYesterday).setScale(1, RoundingMode.HALF_UP).doubleValue();
+            }
+
+            long newCustomersYesterday = queryLong(session,
+                    "SELECT COUNT(*) FROM ("
+                            + "SELECT c.id FROM customers c "
+                            + "INNER JOIN invoices i ON i.customer_id = c.id "
+                            + "WHERE i.status = 'PAID' "
+                            + "GROUP BY c.id "
+                            + "HAVING MIN(i.created_at) >= :ds AND MIN(i.created_at) < :de"
+                            + ") x",
+                    "ds", yesterdayStart, "de", yesterdayEnd);
 
             List<Object[]> dayRows = session.createNativeQuery(
                             "SELECT DATE(i.created_at) AS d, COALESCE(SUM(i.final_total), 0) AS amt "
@@ -118,6 +163,10 @@ public class DashboardRepositoryImpl implements DashboardRepository {
                     ticketsSoldToday,
                     occupancy,
                     newCustomersToday,
+                    revenueYesterday,
+                    ticketsYesterday,
+                    occupancyYesterday,
+                    newCustomersYesterday,
                     series,
                     ticketRev7d,
                     fnbRev7d
@@ -185,6 +234,44 @@ public class DashboardRepositoryImpl implements DashboardRepository {
             return list;
         } catch (Exception e) {
             log.error("Now showing query failed", e);
+            throw e;
+        }
+    }
+    
+    @Override
+    public List<TopMovieRow> loadTopMovies(int lastNDays, int limit) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime rangeStart = today.minusDays(lastNDays - 1).atStartOfDay();
+        LocalDateTime rangeEnd = today.plusDays(1).atStartOfDay();
+        
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            List<Object[]> rows = session.createNativeQuery(
+                            "SELECT m.title, COUNT(t.id) AS ticket_count, COALESCE(SUM(t.final_price), 0) AS revenue "
+                                    + "FROM tickets t "
+                                    + "INNER JOIN invoices i ON i.id = t.invoice_id "
+                                    + "INNER JOIN showtimes sh ON sh.id = t.showtime_id "
+                                    + "INNER JOIN movies m ON m.id = sh.movie_id "
+                                    + "WHERE i.status = 'PAID' AND i.created_at >= :rs AND i.created_at < :re "
+                                    + "GROUP BY m.id, m.title "
+                                    + "ORDER BY ticket_count DESC "
+                                    + "LIMIT :lim",
+                            Object[].class)
+                    .setParameter("rs", rangeStart)
+                    .setParameter("re", rangeEnd)
+                    .setParameter("lim", limit)
+                    .getResultList();
+            
+            List<TopMovieRow> result = new ArrayList<>();
+            int rank = 1;
+            for (Object[] row : rows) {
+                String title = row[0] != null ? row[0].toString() : "";
+                long ticketCount = ((Number) row[1]).longValue();
+                BigDecimal revenue = toBigDecimal(row[2]);
+                result.add(new TopMovieRow(rank++, title, ticketCount, revenue));
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("Top movies query failed", e);
             throw e;
         }
     }

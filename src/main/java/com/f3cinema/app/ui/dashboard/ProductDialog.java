@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.dashboard;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.dto.ProductDTO;
 import com.f3cinema.app.service.impl.InventoryServiceImpl;
 import com.formdev.flatlaf.FlatClientProperties;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 public class ProductDialog extends JDialog {
     private final Runnable onSuccessCallback;
     private JTextField txtName, txtUnit;
+    private JComboBox<String> cbCategory;
     private JSpinner spinPrice, spinThreshold;
 
     public ProductDialog(JFrame owner, Runnable onSuccessCallback) {
@@ -23,7 +25,7 @@ public class ProductDialog extends JDialog {
         this.onSuccessCallback = onSuccessCallback;
         setSize(520, 560);
         setLocationRelativeTo(owner);
-        getContentPane().setBackground(Color.decode("#0F172A")); // Slate 900
+        getContentPane().setBackground(ThemeConfig.BG_MAIN);
         
         JPanel mainContent = new JPanel();
         mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS));
@@ -32,18 +34,20 @@ public class ProductDialog extends JDialog {
 
         // ------------- HEADER -------------
         JLabel lblHeader = new JLabel("THÊM SẢN PHẨM KHU VỰC BÁN");
-        lblHeader.setFont(new Font("Inter", Font.BOLD, 22));
-        lblHeader.setForeground(Color.decode("#F8FAFC"));
+        lblHeader.setFont(ThemeConfig.FONT_H1);
+        lblHeader.setForeground(ThemeConfig.TEXT_PRIMARY);
         lblHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainContent.add(lblHeader);
         mainContent.add(Box.createRigidArea(new Dimension(0, 30)));
 
         // ------------- FORM -------------
-        JPanel form = new JPanel(new GridLayout(4, 1, 0, 20)); // Stack 4 fields vertically
+        JPanel form = new JPanel(new GridLayout(5, 1, 0, 16));
         form.setOpaque(false);
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         form.add(createFieldGroup("Tên sản phẩm (VD: Bắp rang bơ phô mai)", txtName = new JTextField()));
+        cbCategory = new JComboBox<>(new String[]{"SNACK", "DRINK", "COMBO"});
+        form.add(createFieldGroup("Danh mục", cbCategory));
         
         spinPrice = new JSpinner(new SpinnerNumberModel(45000.0, 0.0, 1000000.0, 5000.0));
         form.add(createFieldGroup("Giá bán (VNĐ)", spinPrice));
@@ -85,11 +89,11 @@ public class ProductDialog extends JDialog {
         JPanel p = new JPanel(new BorderLayout(0, 8));
         p.setOpaque(false);
         JLabel lbl = new JLabel(labelText);
-        lbl.setFont(new Font("Inter", Font.PLAIN, 13));
-        lbl.setForeground(Color.decode("#94A3B8"));
+        lbl.setFont(ThemeConfig.FONT_BODY);
+        lbl.setForeground(ThemeConfig.TEXT_SECONDARY);
         
         inputComp.putClientProperty(FlatClientProperties.STYLE, "arc: 12; margin: 10,12,10,12; background: #1E293B; foreground: #F8FAFC; borderColor: #334155");
-        inputComp.setFont(new Font("Inter", Font.PLAIN, 15));
+        inputComp.setFont(ThemeConfig.FONT_BODY);
         
         if (inputComp instanceof JTextField) {
             ((JTextField) inputComp).setCaretColor(Color.WHITE);
@@ -103,6 +107,7 @@ public class ProductDialog extends JDialog {
     private void saveProduct() {
         String name = txtName.getText().trim();
         String unit = txtUnit.getText().trim();
+        String category = cbCategory != null ? String.valueOf(cbCategory.getSelectedItem()) : "SNACK";
 
         if (name.isEmpty() || unit.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ tên sản phẩm và đơn vị tính!", "Thiếu thông tin yêu cầu", JOptionPane.WARNING_MESSAGE);
@@ -112,7 +117,8 @@ public class ProductDialog extends JDialog {
         BigDecimal price = BigDecimal.valueOf((Double) spinPrice.getValue());
         Integer threshold = (Integer) spinThreshold.getValue();
 
-        ProductDTO dto = new ProductDTO(null, name, price, unit, 0, threshold);
+        String normalizedName = name.startsWith("[" + category + "]") ? name : ("[" + category + "] " + name);
+        ProductDTO dto = new ProductDTO(null, normalizedName, price, unit, null, 0, threshold);
 
         // Async save preventing UI blocking
         new SwingWorker<Void, Void>() {

@@ -56,6 +56,7 @@ public class InventoryServiceImpl implements InventoryService {
                         p.getName(),
                         p.getPrice(),
                         p.getUnit(),
+                        p.getImageUrl(),
                         currentQty,
                         minThreshold);
             }).collect(Collectors.toList());
@@ -89,6 +90,7 @@ public class InventoryServiceImpl implements InventoryService {
                     .name(dto.name())
                     .price(dto.price())
                     .unit(dto.unit())
+                    .imageUrl(dto.imageUrl())
                     .build();
 
             // 2. Tạo Inventory đính kèm

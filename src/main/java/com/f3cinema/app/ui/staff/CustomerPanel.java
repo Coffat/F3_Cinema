@@ -1,6 +1,7 @@
 package com.f3cinema.app.ui.staff;
 
 import com.f3cinema.app.ui.dashboard.BaseDashboardModule;
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.dto.customer.CustomerListItemDTO;
 import com.f3cinema.app.dto.customer.CustomerSearchRequest;
 import com.f3cinema.app.dto.customer.CustomerSearchResult;
@@ -28,6 +29,9 @@ public class CustomerPanel extends BaseDashboardModule {
     private final JComboBox<String> cbTierFilter = new JComboBox<>(new String[]{"Tất cả hạng", "Mới", "Đồng", "Bạc", "Vàng"});
     private final JComboBox<String> cbPointFilter = new JComboBox<>(new String[]{"Tất cả điểm", "0+", "500+", "1000+", "2000+"});
     private final JLabel lblResultCount = new JLabel("0 kết quả");
+    private final JLabel lblStatTotal = new JLabel("0");
+    private final JLabel lblStatNew = new JLabel("0");
+    private final JLabel lblStatActive = new JLabel("0");
 
     private JPanel cardsPanel;
     private JScrollPane scrollPane;
@@ -78,6 +82,12 @@ public class CustomerPanel extends BaseDashboardModule {
     private JPanel buildToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout(12, 8));
         toolbar.setOpaque(false);
+        toolbar.setBorder(new EmptyBorder(12, 24, 4, 24));
+
+        JPanel controlBar = new JPanel(new BorderLayout(12, 0));
+        controlBar.setBackground(ThemeConfig.BG_CARD);
+        controlBar.setBorder(new EmptyBorder(12, 12, 12, 12));
+        controlBar.putClientProperty(FlatClientProperties.STYLE, "arc: 20");
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         left.setOpaque(false);
@@ -105,9 +115,37 @@ public class CustomerPanel extends BaseDashboardModule {
                 "arc: 999; background: #1E293B; borderColor: #334155; borderWidth: 1");
         lblResultCount.setBorder(new EmptyBorder(8, 12, 8, 12));
 
-        toolbar.add(left, BorderLayout.WEST);
-        toolbar.add(lblResultCount, BorderLayout.EAST);
+        controlBar.add(left, BorderLayout.WEST);
+        controlBar.add(lblResultCount, BorderLayout.EAST);
+        toolbar.add(controlBar, BorderLayout.CENTER);
+        toolbar.add(buildStatsRow(), BorderLayout.SOUTH);
         return toolbar;
+    }
+
+    private JPanel buildStatsRow() {
+        JPanel row = new JPanel(new GridLayout(1, 3, 12, 0));
+        row.setOpaque(false);
+        row.setBorder(new EmptyBorder(10, 0, 0, 0));
+        row.add(statCard("Tong KH", lblStatTotal, "#6366F1"));
+        row.add(statCard("Moi thang nay", lblStatNew, "#10B981"));
+        row.add(statCard("Hoat dong", lblStatActive, "#F59E0B"));
+        return row;
+    }
+
+    private JPanel statCard(String label, JLabel value, String color) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setOpaque(true);
+        card.setBackground(Color.decode("#1E293B"));
+        card.putClientProperty(FlatClientProperties.STYLE, "arc: 14; borderWidth: 1; borderColor: #334155");
+        card.setBorder(new EmptyBorder(10, 12, 10, 12));
+        value.setFont(new Font("Inter", Font.BOLD, 18));
+        value.setForeground(Color.decode(color));
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(new Font("Inter", Font.PLAIN, 12));
+        lbl.setForeground(TEXT_SECONDARY);
+        card.add(value, BorderLayout.CENTER);
+        card.add(lbl, BorderLayout.SOUTH);
+        return card;
     }
 
     private void styleCombo(JComboBox<String> combo, int width) {
@@ -181,6 +219,7 @@ public class CustomerPanel extends BaseDashboardModule {
                     CustomerSearchResult result = get();
                     totalItems = result.total();
                     lblResultCount.setText(totalItems + " kết quả");
+                    updateStats(result.items(), result.total());
                     if (!appendMode) {
                         cardsPanel.removeAll();
                     }
@@ -206,10 +245,18 @@ public class CustomerPanel extends BaseDashboardModule {
         for (CustomerListItemDTO item : items) {
             int points = item.points() == null ? 0 : item.points();
             String tier = resolveTier(points);
-            cardsPanel.add(new CustomerCardItem(item.fullName(), points, tier));
+            cardsPanel.add(new CustomerCardItem(item.fullName(), item.phone(), points, tier));
         }
         cardsPanel.revalidate();
         cardsPanel.repaint();
+    }
+
+    private void updateStats(List<CustomerListItemDTO> items, long total) {
+        lblStatTotal.setText(String.valueOf(total));
+        long active = items.stream().filter(i -> (i.points() != null ? i.points() : 0) > 0).count();
+        long recent = items.stream().filter(i -> (i.points() != null ? i.points() : 0) >= 500).count();
+        lblStatActive.setText(String.valueOf(active));
+        lblStatNew.setText(String.valueOf(recent));
     }
 
     private CustomerSearchRequest buildRequest() {

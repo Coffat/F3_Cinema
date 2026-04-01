@@ -42,10 +42,8 @@ public class PaymentPanel extends JPanel {
     private JPanel discountContentPanel;
     private JTextField txtManualVoucher;
     private JLabel lblVoucherStatus;
-    private ButtonGroup paymentMethodGroup;
-    private JRadioButton rbCash;
-    private JRadioButton rbMomo;
-    private JRadioButton rbCard;
+    private JPanel paymentMethodsGrid;
+    private String selectedMethod = "CASH";
     private OrderSummaryCard summaryCard;
     private JButton btnConfirm;
     private JPanel orderDetailsContent;
@@ -329,37 +327,54 @@ public class PaymentPanel extends JPanel {
         lblMethod.setFont(new Font("Inter", Font.BOLD, 15));
         lblMethod.setForeground(TEXT_PRIMARY);
 
-        paymentMethodGroup = new ButtonGroup();
-
-        rbCash = createRadioButton("Tiền mặt", "CASH", true);
-        rbMomo = createRadioButton("Momo", "MOMO", false);
-        rbCard = createRadioButton("Thẻ", "CARD", false);
-
-        paymentMethodGroup.add(rbCash);
-        paymentMethodGroup.add(rbMomo);
-        paymentMethodGroup.add(rbCard);
-
-        JPanel radioWrapper = new JPanel(new GridLayout(1, 3, 12, 0));
-        radioWrapper.setOpaque(false);
-        radioWrapper.add(rbCash);
-        radioWrapper.add(rbMomo);
-        radioWrapper.add(rbCard);
+        paymentMethodsGrid = new JPanel(new GridLayout(1, 3, 12, 0));
+        paymentMethodsGrid.setOpaque(false);
+        paymentMethodsGrid.add(createPaymentMethodCard("Tien mat", "icons/dollar.svg", "CASH"));
+        paymentMethodsGrid.add(createPaymentMethodCard("The", "icons/credit-card.svg", "CARD"));
+        paymentMethodsGrid.add(createPaymentMethodCard("Vi dien tu", "icons/smartphone.svg", "MOMO"));
 
         panel.add(lblMethod, BorderLayout.NORTH);
-        panel.add(radioWrapper, BorderLayout.CENTER);
+        panel.add(paymentMethodsGrid, BorderLayout.CENTER);
 
         return panel;
     }
 
-    private JRadioButton createRadioButton(String text, String method, boolean selected) {
-        JRadioButton rb = new JRadioButton(text);
-        rb.setFont(new Font("Inter", Font.PLAIN, 14));
-        rb.setForeground(TEXT_PRIMARY);
-        rb.setOpaque(false);
-        rb.setSelected(selected);
-        rb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        rb.addActionListener(e -> state.setPaymentMethod(method));
-        return rb;
+    private JPanel createPaymentMethodCard(String label, String iconPath, String method) {
+        boolean active = selectedMethod.equals(method);
+        JPanel card = new JPanel(new BorderLayout(0, 8));
+        card.setOpaque(true);
+        card.setBackground(active ? new Color(99, 102, 241, 35) : new Color(15, 23, 42, 140));
+        card.setBorder(BorderFactory.createEmptyBorder(10, 8, 10, 8));
+        card.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 12; borderWidth: 2; borderColor: " + (active ? "#6366F1" : "#334155"));
+        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        JLabel icon = new JLabel(new FlatSVGIcon(iconPath, 24, 24), SwingConstants.CENTER);
+        icon.setHorizontalAlignment(SwingConstants.CENTER);
+        JLabel text = new JLabel(label, SwingConstants.CENTER);
+        text.setFont(new Font("Inter", Font.BOLD, 12));
+        text.setForeground(TEXT_PRIMARY);
+        card.add(icon, BorderLayout.CENTER);
+        card.add(text, BorderLayout.SOUTH);
+        card.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                selectedMethod = method;
+                state.setPaymentMethod(method);
+                refreshPaymentMethods();
+            }
+        });
+        return card;
+    }
+
+    private void refreshPaymentMethods() {
+        if (paymentMethodsGrid == null) return;
+        paymentMethodsGrid.removeAll();
+        paymentMethodsGrid.add(createPaymentMethodCard("Tien mat", "icons/dollar.svg", "CASH"));
+        paymentMethodsGrid.add(createPaymentMethodCard("The", "icons/credit-card.svg", "CARD"));
+        paymentMethodsGrid.add(createPaymentMethodCard("Vi dien tu", "icons/smartphone.svg", "MOMO"));
+        paymentMethodsGrid.revalidate();
+        paymentMethodsGrid.repaint();
     }
 
     private JScrollPane createRightSidebar() {
@@ -628,33 +643,38 @@ public class PaymentPanel extends JPanel {
     }
 
     private void showSuccessDialog(Long invoiceId) {
-        UIManager.put("OptionPane.messageFont", new Font("Inter", Font.PLAIN, 14));
-        
-        StringBuilder msg = new StringBuilder();
-        msg.append("Thanh toán thành công!\n\n");
-        msg.append("Mã hóa đơn: #").append(invoiceId).append("\n");
-        msg.append("Tổng tiền: ").append(formatPrice(state.getGrandTotal())).append("\n");
-        
-        if (state.hasCustomer()) {
-            msg.append("\n━━━ Loyalty Program ━━━\n");
-            if (state.getPointsToRedeem() > 0) {
-                msg.append("Đã dùng: -").append(String.format("%,d", state.getPointsToRedeem())).append(" điểm\n");
-            }
-            
-            int earnedPoints = state.getGrandTotal().divide(BigDecimal.valueOf(1000), 0, java.math.RoundingMode.DOWN).intValue();
-            msg.append("Tích lũy: +").append(earnedPoints).append(" điểm\n");
-            
-            int currentPoints = state.getCustomer().getPoints() != null ? state.getCustomer().getPoints() : 0;
-            int newBalance = currentPoints - state.getPointsToRedeem() + earnedPoints;
-            msg.append("Điểm mới: ").append(String.format("%,d", newBalance)).append(" điểm");
-        }
-        
-        JOptionPane.showMessageDialog(this, msg.toString(), "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Thanh toan thanh cong", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setSize(460, 320);
+        dialog.setLocationRelativeTo(this);
+        JPanel root = new JPanel(new BorderLayout(0, 14));
+        root.setBorder(new EmptyBorder(20, 20, 20, 20));
+        root.setBackground(new Color(15, 23, 42));
+        JLabel check = new JLabel("✓", SwingConstants.CENTER);
+        check.setFont(new Font("Inter", Font.BOLD, 52));
+        check.setForeground(SUCCESS);
+        JLabel info = new JLabel("<html><div style='text-align:center'>Thanh toan thanh cong<br/>Hoa don #" + invoiceId + "<br/>Tong tien: " + formatPrice(state.getGrandTotal()) + "</div></html>", SwingConstants.CENTER);
+        info.setForeground(TEXT_PRIMARY);
+        info.setFont(new Font("Inter", Font.PLAIN, 14));
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        actions.setOpaque(false);
+        JButton btnPrint = new JButton("In hoa don");
+        JButton btnContinue = new JButton("Ban ve tiep");
+        btnPrint.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155;");
+        btnContinue.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #6366F1; borderWidth: 0;");
+        btnPrint.addActionListener(e -> JOptionPane.showMessageDialog(dialog, "Tinh nang in hoa don se duoc bo sung."));
+        btnContinue.addActionListener(e -> dialog.dispose());
+        actions.add(btnPrint);
+        actions.add(btnContinue);
+        root.add(check, BorderLayout.NORTH);
+        root.add(info, BorderLayout.CENTER);
+        root.add(actions, BorderLayout.SOUTH);
+        dialog.setContentPane(root);
+        dialog.setVisible(true);
     }
 
     private String getPaymentMethodLabel() {
-        if (rbMomo.isSelected()) return "Momo";
-        if (rbCard.isSelected()) return "Thẻ ngân hàng";
+        if ("MOMO".equals(selectedMethod)) return "Momo";
+        if ("CARD".equals(selectedMethod)) return "Thẻ ngân hàng";
         return "Tiền mặt";
     }
 

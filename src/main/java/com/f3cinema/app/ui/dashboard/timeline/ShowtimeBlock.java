@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.dashboard.timeline;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Showtime;
 
 import javax.swing.*;
@@ -31,6 +32,8 @@ public class ShowtimeBlock extends JPanel {
     private boolean conflict = false;
     private String conflictInfo = null;
     private boolean selected = false;
+    private final int soldTickets;
+    private final int totalSeats;
 
     public ShowtimeBlock(Showtime showtime, MovieColorPalette palette) {
         this.showtime = showtime;
@@ -38,6 +41,8 @@ public class ShowtimeBlock extends JPanel {
         this.accentColor = palette.getColor(movieId);
         this.bgNormal = palette.getBlockBackground(movieId);
         this.bgHover = palette.getBlockHoverBackground(movieId);
+        this.totalSeats = showtime.getRoom() != null && showtime.getRoom().getSeats() != null ? showtime.getRoom().getSeats().size() : 0;
+        this.soldTickets = 0;
 
         setOpaque(false);
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -100,23 +105,18 @@ public class ShowtimeBlock extends JPanel {
             genres = "N/A";
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("<html><div style='padding:6px; font-family:Inter; width:230px'>");
-        sb.append("<b style='font-size:13px; color:#F8FAFC'>").append(movieTitle).append("</b><br/>");
-        sb.append("<span style='color:#94A3B8; font-size:11px'>").append(genres).append("</span><br/>");
-        sb.append("<hr style='border-color:#334155; margin:4px 0'/>");
-        sb.append("<table cellpadding='2'>");
-        sb.append("<tr><td style='color:#94A3B8'>Phòng:</td><td style='color:#F8FAFC'>").append(roomName).append("</td></tr>");
-        sb.append("<tr><td style='color:#94A3B8'>Thời gian:</td><td style='color:#F8FAFC'>").append(startStr).append(" — ").append(endStr).append(" (").append(durationMin).append(" phút)</td></tr>");
-        sb.append("<tr><td style='color:#94A3B8'>Giá vé:</td><td style='color:#F8FAFC'>").append(price).append(" VNĐ</td></tr>");
-        sb.append("</table>");
+        StringBuilder sb = new StringBuilder("<html><b style='font-size:13px'>")
+                .append(movieTitle).append("</b><br/>")
+                .append("<span style='color:#94A3B8'>").append(startStr).append(" - ").append(endStr).append("</span><br/>")
+                .append("<span style='color:#94A3B8'>").append(roomName).append("</span><br/>")
+                .append("<span style='color:#10B981'>Da ban: ").append(soldTickets).append("/").append(totalSeats).append(" ve</span><br/>")
+                .append("<span style='color:#64748B'>").append(genres).append(" • ").append(durationMin).append(" phut • ").append(price).append(" VNĐ</span>");
 
         if (conflict && conflictInfo != null) {
-            sb.append("<hr style='border-color:#EF4444; margin:4px 0'/>");
-            sb.append("<span style='color:#EF4444; font-size:11px'>⚠ ").append(conflictInfo).append("</span>");
+            sb.append("<br/><span style='color:#EF4444'>⚠ ").append(conflictInfo).append("</span>");
         }
 
-        sb.append("</div></html>");
+        sb.append("</html>");
         setToolTipText(sb.toString());
     }
 
@@ -143,7 +143,7 @@ public class ShowtimeBlock extends JPanel {
         if (conflict) {
             bgColor = new Color(239, 68, 68, hovered ? 50 : 35);
         }
-        g2.setColor(bgColor);
+        g2.setPaint(new GradientPaint(0, 0, bgColor.brighter(), 0, h, bgColor.darker()));
         g2.fillRoundRect(0, 0, w, h, ARC, ARC);
 
         // Border
@@ -159,6 +159,15 @@ public class ShowtimeBlock extends JPanel {
             g2.setColor(new Color(accentColor.getRed(), accentColor.getGreen(), accentColor.getBlue(), 80));
             g2.setStroke(new BasicStroke(1f));
             g2.drawRoundRect(0, 0, w - 1, h - 1, ARC, ARC);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(showtime.getStartTime()) && now.isBefore(showtime.getEndTime())) {
+            g2.setColor(ThemeConfig.TEXT_SUCCESS);
+            g2.fillOval(8, 8, 10, 10);
+        } else if (now.isAfter(showtime.getEndTime())) {
+            g2.setColor(new Color(0, 0, 0, 90));
+            g2.fillRoundRect(0, 0, w, h, ARC, ARC);
         }
 
         // Left accent bar

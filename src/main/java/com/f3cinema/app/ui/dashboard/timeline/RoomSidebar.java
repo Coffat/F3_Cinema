@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.dashboard.timeline;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Room;
 
 import javax.swing.*;
@@ -56,8 +57,14 @@ public class RoomSidebar extends JPanel {
         cell.setMinimumSize(new Dimension(SIDEBAR_WIDTH, ROW_HEIGHT));
         cell.setBorder(BorderFactory.createEmptyBorder(0, 16, 0, 12));
 
-        // Vertically center the labels
         cell.add(Box.createVerticalGlue());
+
+        JLabel icon = new JLabel(roomTypeIcon(room));
+        icon.setFont(new Font("Inter", Font.PLAIN, 13));
+        icon.setForeground(ThemeConfig.TEXT_SECONDARY);
+        icon.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cell.add(icon);
+        cell.add(Box.createVerticalStrut(2));
 
         JLabel nameLabel = new JLabel(room.getName());
         nameLabel.setFont(FONT_ROOM_NAME);
@@ -73,9 +80,25 @@ public class RoomSidebar extends JPanel {
         typeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         cell.add(typeLabel);
 
+        int seats = room.getSeats() != null ? room.getSeats().size() : 0;
+        JLabel capacity = new JLabel(seats > 0 ? seats + " seats" : "N/A seats");
+        capacity.setFont(new Font("Inter", Font.PLAIN, 10));
+        capacity.setForeground(ThemeConfig.TEXT_MUTED);
+        capacity.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cell.add(capacity);
+
         cell.add(Box.createVerticalGlue());
 
         return cell;
+    }
+
+    private String roomTypeIcon(Room room) {
+        if (room.getRoomType() == null) return "■";
+        return switch (room.getRoomType().name()) {
+            case "ROOM_IMAX" -> "⬢ IMAX";
+            case "ROOM_3D" -> "★ 3D";
+            default -> "▦ 2D";
+        };
     }
 
     @Override
