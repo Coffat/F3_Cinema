@@ -2,6 +2,7 @@ package com.f3cinema.app.ui.staff;
 
 import com.f3cinema.app.entity.User;
 import com.f3cinema.app.ui.admin.SidebarController;
+import com.f3cinema.app.ui.staff.ticketing.TicketingFlowPanel;
 import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
 import java.awt.*;
@@ -18,12 +19,11 @@ public class StaffMainFrame extends JFrame {
 
     // Card Constants
     public static final String CARD_TICKETING = "TICKETING";
-    public static final String CARD_SNACKS = "SNACKS";
     public static final String CARD_SEARCH = "SEARCH";
     public static final String CARD_CUSTOMERS = "CUSTOMERS";
     public static final String CARD_TRANSACTIONS = "TRANSACTIONS";
 
-    private TicketingPanel ticketingPanel;
+    private TicketingFlowPanel ticketingFlow;
 
     public StaffMainFrame(User user) {
         this.loggedInUser = user;
@@ -65,12 +65,8 @@ public class StaffMainFrame extends JFrame {
     }
 
     private void injectModules() {
-        ticketingPanel = new TicketingPanel();
-        ticketingPanel.setOnNavigateToSnacks(() -> {
-            contentController.handleMenuSelection(CARD_SNACKS);
-        });
-        contentArea.add(ticketingPanel, CARD_TICKETING);
-        contentArea.add(new SnacksPanel(), CARD_SNACKS);
+        ticketingFlow = new TicketingFlowPanel();
+        contentArea.add(ticketingFlow, CARD_TICKETING);
         contentArea.add(new SearchShowtimePanel(), CARD_SEARCH);
         contentArea.add(new CustomerPanel(), CARD_CUSTOMERS);
         contentArea.add(new TransactionHistoryPanel(), CARD_TRANSACTIONS);

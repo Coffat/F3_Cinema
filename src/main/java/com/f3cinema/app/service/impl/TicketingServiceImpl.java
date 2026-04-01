@@ -7,7 +7,9 @@ import com.f3cinema.app.entity.*;
 import com.f3cinema.app.entity.enums.InvoiceStatus;
 import com.f3cinema.app.entity.enums.PaymentMethod;
 import com.f3cinema.app.entity.enums.PaymentStatus;
+import com.f3cinema.app.entity.enums.PointRedemptionTier;
 import com.f3cinema.app.repository.*;
+import com.f3cinema.app.service.CustomerService;
 import com.f3cinema.app.service.TicketingService;
 import com.f3cinema.app.util.SessionManager;
 import lombok.extern.log4j.Log4j2;
@@ -18,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,6 +37,7 @@ public class TicketingServiceImpl implements TicketingService {
     private final SeatRepository seatRepository = new SeatRepositoryImpl();
     private final TicketRepository ticketRepository = new TicketRepositoryImpl();
     private final InvoiceRepository invoiceRepository = new InvoiceRepositoryImpl();
+    private final CustomerService customerService = CustomerServiceImpl.getInstance();
 
     private TicketingServiceImpl() {
     }
@@ -178,6 +182,151 @@ public class TicketingServiceImpl implements TicketingService {
             if (tx != null)
                 tx.rollback();
             log.error("Critical error during seat booking transaction: {}", e.getMessage(), e);
+            throw new RuntimeException("Giao dịch thất bại: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public Long bookSeatsWithLoyalty(
+            Long showtimeId, 
+            List<Long> seatIds,
+            Map<Long, Integer> snacks,
+            Long customerId,
+            PointRedemptionTier redemptionTier
+    ) {
+        log.info("Booking with loyalty: showtime={}, seats={}, customer={}, tier={}", 
+                showtimeId, seatIds, customerId, redemptionTier);
+
+        Transaction tx = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            tx = session.beginTransaction();
+
+            Showtime showtime = session.get(Showtime.class, showtimeId);
+            if (showtime == null) {
+                throw new RuntimeException("Suất chiếu không hợp lệ.");
+            }
+
+            User staff = SessionManager.getCurrentUser();
+            if (staff == null) {
+                staff = session.createQuery("from User u where u.role = 'ADMIN'", User.class)
+                        .setMaxResults(1)
+                        .uniqueResult();
+            }
+
+            Customer customer = null;
+            if (customerId != null) {
+                customer = session.get(Customer.class, customerId);
+                if (customer == null) {
+                    throw new RuntimeException("Khách hàng không tồn tại.");
+                }
+            }
+
+            BigDecimal ticketsTotal = BigDecimal.ZERO;
+            List<Ticket> tickets = new ArrayList<>();
+
+            for (Long seatId : seatIds) {
+                Seat seat = session.get(Seat.class, seatId);
+                if (seat == null) continue;
+
+                BigDecimal finalPrice = BigDecimal.valueOf(calculatePrice(showtime.getBasePrice(), seat.getSeatType()));
+                Ticket ticket = Ticket.builder()
+                        .showtime(showtime)
+                        .seat(seat)
+                        .finalPrice(finalPrice)
+                        .build();
+
+                tickets.add(ticket);
+                ticketsTotal = ticketsTotal.add(finalPrice);
+            }
+
+            BigDecimal snacksTotal = BigDecimal.ZERO;
+            List<InvoiceItem> invoiceItems = new ArrayList<>();
+
+            if (snacks != null && !snacks.isEmpty()) {
+                for (Map.Entry<Long, Integer> entry : snacks.entrySet()) {
+                    Product product = session.get(Product.class, entry.getKey());
+                    if (product == null) continue;
+
+                    int qty = entry.getValue();
+                    BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(qty));
+
+                    InvoiceItem item = InvoiceItem.builder()
+                            .product(product)
+                            .quantity(qty)
+                            .unitPrice(product.getPrice())
+                            .build();
+
+                    invoiceItems.add(item);
+                    snacksTotal = snacksTotal.add(itemTotal);
+                }
+            }
+
+            BigDecimal subtotal = ticketsTotal.add(snacksTotal);
+            BigDecimal discount = BigDecimal.ZERO;
+            Integer pointsUsed = 0;
+
+            if (redemptionTier != null && customer != null) {
+                int availablePoints = customer.getPoints() != null ? customer.getPoints() : 0;
+                if (availablePoints < redemptionTier.getRequiredPoints()) {
+                    throw new IllegalArgumentException("Không đủ điểm để đổi voucher này!");
+                }
+
+                discount = subtotal.multiply(BigDecimal.valueOf(redemptionTier.getDiscountPercent()))
+                        .divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+                pointsUsed = redemptionTier.getRequiredPoints();
+
+                customer.setPoints(availablePoints - pointsUsed);
+                session.merge(customer);
+                log.info("Redeemed {} points for {}% discount", pointsUsed, redemptionTier.getDiscountPercent());
+            }
+
+            BigDecimal finalTotal = subtotal.subtract(discount);
+            int pointsEarned = customerService.calculatePointsFromAmount(finalTotal);
+
+            Invoice invoice = Invoice.builder()
+                    .user(staff)
+                    .customer(customer)
+                    .totalAmount(finalTotal)
+                    .pointsUsed(pointsUsed)
+                    .pointsEarned(pointsEarned)
+                    .createdAt(LocalDateTime.now())
+                    .status(InvoiceStatus.PAID)
+                    .build();
+
+            session.persist(invoice);
+
+            for (Ticket ticket : tickets) {
+                ticket.setInvoice(invoice);
+                session.persist(ticket);
+            }
+
+            for (InvoiceItem item : invoiceItems) {
+                item.setInvoice(invoice);
+                session.persist(item);
+            }
+
+            Payment payment = Payment.builder()
+                    .invoice(invoice)
+                    .amount(finalTotal)
+                    .method(PaymentMethod.CASH)
+                    .status(PaymentStatus.COMPLETED)
+                    .build();
+            session.persist(payment);
+
+            if (customer != null && pointsEarned > 0) {
+                int currentPoints = customer.getPoints() != null ? customer.getPoints() : 0;
+                customer.setPoints(currentPoints + pointsEarned);
+                session.merge(customer);
+                log.info("Customer earned {} points. New balance: {}", pointsEarned, customer.getPoints());
+            }
+
+            tx.commit();
+            log.info("Booking with loyalty completed. Invoice ID: {}", invoice.getId());
+            return invoice.getId();
+
+        } catch (Exception e) {
+            if (tx != null) tx.rollback();
+            log.error("Error during loyalty booking: {}", e.getMessage(), e);
             throw new RuntimeException("Giao dịch thất bại: " + e.getMessage());
         }
     }

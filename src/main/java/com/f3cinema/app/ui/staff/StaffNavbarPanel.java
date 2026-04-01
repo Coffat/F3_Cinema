@@ -70,7 +70,6 @@ public class StaffNavbarPanel extends JPanel {
 
     private void initializeNavItems() {
         addNavItem("Bán vé", "icons/ticket.svg", CARD_TICKETING);
-        addNavItem("Bắp nước", "icons/snacks.svg", CARD_SNACKS);
         addNavItem("Suất chiếu", "icons/search.svg", CARD_SEARCH);
         addNavItem("Khách hàng", "icons/users.svg", CARD_CUSTOMERS);
         addNavItem("Lịch sử", "icons/history.svg", CARD_TRANSACTIONS);

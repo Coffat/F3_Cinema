@@ -34,6 +34,12 @@ public class Invoice {
     @Column(name = "final_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "points_used")
+    private Integer pointsUsed;
+
+    @Column(name = "points_earned")
+    private Integer pointsEarned;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
