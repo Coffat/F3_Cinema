@@ -3,7 +3,9 @@ package com.f3cinema.app.ui.staff.components;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -16,10 +18,13 @@ public class CustomerCardItem extends JPanel {
     public CustomerCardItem(String fullName, int points, String tierLabel) {
         setLayout(new BorderLayout(0, 12));
         setOpaque(false);
-        setBorder(new EmptyBorder(16, 16, 16, 16));
+        setBorder(new CompoundBorder(
+                new LineBorder(new Color(0x334155), 1, true),
+                new EmptyBorder(16, 16, 16, 16)
+        ));
         setPreferredSize(new Dimension(260, 122));
         putClientProperty(FlatClientProperties.STYLE,
-                "arc: 16; background: #1E293B; borderColor: #334155; borderWidth: 1");
+                "arc: 16; background: #1E293B");
 
         JLabel nameLabel = new JLabel(fullName == null || fullName.isBlank() ? "Khách hàng chưa đặt tên" : fullName);
         nameLabel.setFont(new Font("Inter", Font.BOLD, 15));
