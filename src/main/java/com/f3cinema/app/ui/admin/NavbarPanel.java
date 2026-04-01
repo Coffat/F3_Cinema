@@ -1,5 +1,6 @@
 package com.f3cinema.app.ui.admin;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.User;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
@@ -24,8 +25,8 @@ public class NavbarPanel extends JPanel {
     private Consumer<String> onMenuSelected;
 
     // Slate Colors
-    private static final Color BG_NAVBAR = Color.decode("#1E293B"); // Slate 800
-    private static final Color INDIGO_500 = Color.decode("#6366F1");
+    private static final Color BG_NAVBAR = ThemeConfig.BG_CARD;
+    private static final Color INDIGO_500 = ThemeConfig.ACCENT_COLOR;
 
     public NavbarPanel(User user) {
         this.adminUser = user;
@@ -210,12 +211,14 @@ public class NavbarPanel extends JPanel {
         private boolean hovered = false;
         private final FlatSVGIcon icon;
         private final JLabel lblText;
-        private static final Color TEXT_ACTIVE = Color.decode("#FFFFFF");
-        private static final Color TEXT_DEFAULT = Color.decode("#94A3B8");
+        private static final Color TEXT_ACTIVE = ThemeConfig.TEXT_PRIMARY;
+        private static final Color TEXT_DEFAULT = ThemeConfig.TEXT_SECONDARY;
+        private static final Color ICON_ACTIVE = ThemeConfig.ACCENT_COLOR;
+        private static final Color ICON_DEFAULT = ThemeConfig.TEXT_SECONDARY;
 
         public NavItem(String label, String iconPath, String id) {
             this.icon = new FlatSVGIcon(iconPath, 18, 18);
-            icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> Color.decode("#6366F1")));
+            updateIconColor(false);
 
             setLayout(new BorderLayout());
             setPreferredSize(new Dimension(120, 42));
@@ -239,10 +242,15 @@ public class NavbarPanel extends JPanel {
             });
         }
 
+        private void updateIconColor(boolean isActive) {
+            Color iconColor = isActive ? ICON_ACTIVE : ICON_DEFAULT;
+            icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> iconColor));
+        }
+
         public void setActive(boolean active) {
             this.active = active;
             lblText.setForeground(active ? TEXT_ACTIVE : TEXT_DEFAULT);
-            icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> active ? TEXT_ACTIVE : Color.decode("#6366F1")));
+            updateIconColor(active);
             repaint();
         }
 
@@ -255,15 +263,15 @@ public class NavbarPanel extends JPanel {
                 // Pill Background
                 g2.setPaint(new GradientPaint(0, 0, new Color(99, 102, 241, 100), 
                              0, getHeight(), new Color(99, 102, 241, 40)));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
                 
                 // Border Glow
                 g2.setColor(new Color(99, 102, 241, 180));
                 g2.setStroke(new BasicStroke(1.5f));
-                g2.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 14, 14);
+                g2.drawRoundRect(1, 1, getWidth()-2, getHeight()-2, 15, 15);
             } else if (hovered) {
                 g2.setColor(new Color(255, 255, 255, 15));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
             }
             g2.dispose();
             super.paintComponent(g);

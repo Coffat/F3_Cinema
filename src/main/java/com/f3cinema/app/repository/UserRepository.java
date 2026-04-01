@@ -18,13 +18,14 @@ public class UserRepository extends BaseRepositoryImpl<User, Long> {
     }
 
     /**
-     * Find a User by their username (case-insensitive).
+     * Find a User by their username (case-insensitive, normalized at app layer).
      */
     public Optional<User> findByUsername(String username) {
+        String normalizedUsername = username.trim().toLowerCase();
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             return session.createQuery(
-                    "FROM User u WHERE lower(u.username) = lower(:username)", User.class)
-                    .setParameter("username", username)
+                    "FROM User u WHERE u.username = :username", User.class)
+                    .setParameter("username", normalizedUsername)
                     .uniqueResultOptional();
         }
     }
@@ -53,7 +54,7 @@ public class UserRepository extends BaseRepositoryImpl<User, Long> {
             return session.createQuery(
                             "FROM User u " +
                                     "WHERE u.role = :role " +
-                                    "AND (lower(u.username) LIKE :kw OR lower(u.fullName) LIKE :kw) " +
+                                    "AND (u.username LIKE :kw OR lower(u.fullName) LIKE :kw) " +
                                     "ORDER BY u.id DESC",
                             User.class)
                     .setParameter("role", UserRole.STAFF)

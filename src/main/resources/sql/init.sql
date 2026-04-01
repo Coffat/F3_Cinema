@@ -6,6 +6,13 @@ DROP DATABASE IF EXISTS f3_cinema;
 CREATE DATABASE f3_cinema CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE f3_cinema;
 
+-- Ensure the MySQL client interprets this SQL file as UTF-8 (prevents mojibake).
+-- Without this, Vietnamese strings in INSERT can be stored incorrectly after `docker compose down -v`.
+SET NAMES utf8mb4;
+SET character_set_client = utf8mb4;
+SET character_set_connection = utf8mb4;
+SET character_set_results = utf8mb4;
+
 -- BỔ SUNG ĐOẠN NÀY ĐỂ FIX LỖI 172.18.0.1 (Cấp quyền cho root)
 CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '123456';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
@@ -19,7 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL, -- ADMIN, STAFF
     full_name VARCHAR(100),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username)
 );
 
 -- 2. CUSTOMERS Table
@@ -91,6 +99,7 @@ CREATE TABLE IF NOT EXISTS products (
     name VARCHAR(255) NOT NULL,
     price DECIMAL(19, 2) NOT NULL,
     unit VARCHAR(50),
+    image_url TEXT,
     deleted_at DATETIME DEFAULT NULL
 );
 
@@ -211,9 +220,9 @@ INSERT IGNORE INTO movie_genres (movie_id, genre_id) VALUES
 
 -- 5. Rooms (3 Khuôn mẫu phòng chuẩn)
 INSERT IGNORE INTO rooms (id, name, type) VALUES 
-(1, 'Phòng 1 (Tiêu Chuẩn)', 'ROOM_2D'),
-(2, 'Phòng 2 (IMAX)', 'ROOM_IMAX'),
-(3, 'Phòng 3 (Nhỏ)', 'ROOM_2D');
+(1, N'Phòng 1 (Tiêu Chuẩn)', 'ROOM_2D'),
+(2, N'Phòng 2 (IMAX)', 'ROOM_IMAX'),
+(3, N'Phòng 3 (Nhỏ)', 'ROOM_2D');
 
 -- 6. SEATS GENERATION (Using Recursive CTE for compatibility - No DELIMITER needed)
 -- Room 1: Tiêu Chuẩn (10 rows x 10 cols = 100 seats)
@@ -245,17 +254,17 @@ INSERT IGNORE INTO showtimes (movie_id, room_id, start_time, end_time, base_pric
 (4, 1, DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '20:00:00' HOUR_SECOND), DATE_ADD(DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY), INTERVAL '22:07:00' HOUR_SECOND), 90000.00);
 
 -- 9. Products (Snacks & Drinks)
-INSERT IGNORE INTO products (id, name, price, unit) VALUES 
-(1, 'Bắp rang Caramel (L)', 65000.00, 'Hộp'),
-(2, 'Bắp rang Phô mai (L)', 65000.00, 'Hộp'),
-(3, 'Bắp rang Caramel (M)', 55000.00, 'Hộp'),
-(4, 'Bắp rang Phô mai (M)', 55000.00, 'Hộp'),
-(5, 'Coca Cola (L)', 35000.00, 'Ly'),
-(6, 'Sprite (L)', 35000.00, 'Ly'),
-(7, 'Fanta (L)', 35000.00, 'Ly'),
-(8, 'Nước suối Dasani', 20000.00, 'Chai'),
-(9, 'Combo Solo (1 Bắp L + 1 Nước L)', 85000.00, 'Combo'),
-(10, 'Combo Couple (1 Bắp L + 2 Nước L)', 105000.00, 'Combo');
+INSERT IGNORE INTO products (id, name, price, unit, image_url) VALUES 
+(1, N'Bắp rang Caramel (L)', 65000.00, N'Hộp', 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400'),
+(2, N'Bắp rang Phô mai (L)', 65000.00, N'Hộp', 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=400'),
+(3, N'Bắp rang Caramel (M)', 55000.00, N'Hộp', 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?w=400'),
+(4, N'Bắp rang Phô mai (M)', 55000.00, N'Hộp', 'https://images.unsplash.com/photo-1585647347384-2593bc35786b?w=400'),
+(5, 'Coca Cola (L)', 35000.00, 'Ly', 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400'),
+(6, 'Sprite (L)', 35000.00, 'Ly', 'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?w=400'),
+(7, 'Fanta (L)', 35000.00, 'Ly', 'https://images.unsplash.com/photo-1624517452488-04869289c4ca?w=400'),
+(8, N'Nước suối Dasani', 20000.00, 'Chai', 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400'),
+(9, N'Combo Solo (1 Bắp L + 1 Nước L)', 85000.00, 'Combo', 'https://images.unsplash.com/photo-1627662235654-e188a0c1b8df?w=400'),
+(10, N'Combo Couple (1 Bắp L + 2 Nước L)', 105000.00, 'Combo', 'https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?w=400');
 
 -- 10. Inventories
 INSERT IGNORE INTO inventories (product_id, current_quantity, min_threshold) VALUES 
@@ -269,3 +278,32 @@ INSERT IGNORE INTO inventories (product_id, current_quantity, min_threshold) VAL
 (8, 150, 15),
 (9, 50, 5),
 (10, 50, 5);
+
+-- 11. Vouchers
+CREATE TABLE IF NOT EXISTS vouchers (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    voucher_type VARCHAR(30) NOT NULL DEFAULT 'PERCENTAGE',
+    discount_percent DECIMAL(5,2),
+    discount_amount DECIMAL(19,2),
+    max_discount DECIMAL(19,2),
+    min_order_amount DECIMAL(19,2),
+    buy_quantity INT,
+    get_quantity INT,
+    applies_to_category VARCHAR(50),
+    valid_from DATETIME NOT NULL,
+    valid_until DATETIME NOT NULL,
+    usage_limit INT,
+    usage_count INT DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO vouchers (code, description, voucher_type, discount_percent, discount_amount, max_discount, min_order_amount, buy_quantity, get_quantity, applies_to_category, valid_from, valid_until, usage_limit, status) VALUES
+('F3CINEMA10', N'Giảm 10% cho đơn hàng', 'PERCENTAGE', 10.00, NULL, 50000.00, 100000.00, NULL, NULL, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 100, 'ACTIVE'),
+('F3CINEMA20', N'Giảm 20% cho đơn hàng', 'PERCENTAGE', 20.00, NULL, 100000.00, 200000.00, NULL, NULL, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 50, 'ACTIVE'),
+('F3WELCOME', N'Chào mừng khách mới', 'PERCENTAGE', 15.00, NULL, 75000.00, 150000.00, NULL, NULL, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 60 DAY), 200, 'ACTIVE'),
+('FIXED50K', N'Giảm cố định 50,000đ', 'FIXED_AMOUNT', NULL, 50000.00, NULL, 150000.00, NULL, NULL, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 50, 'ACTIVE'),
+('BUY2GET1', N'Mua 2 ghế tặng 1', 'BUY_X_GET_Y', NULL, NULL, NULL, 0, 2, 1, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 30, 'ACTIVE'),
+('COMBO30', N'Giảm 30% combo bắp nước', 'COMBO_DISCOUNT', 30.00, NULL, 50000.00, 0, NULL, NULL, 'COMBO', CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 100, 'ACTIVE');

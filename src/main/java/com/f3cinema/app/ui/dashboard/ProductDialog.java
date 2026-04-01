@@ -2,10 +2,11 @@ package com.f3cinema.app.ui.dashboard;
 
 import com.f3cinema.app.dto.ProductDTO;
 import com.f3cinema.app.service.impl.InventoryServiceImpl;
-import com.formdev.flatlaf.FlatClientProperties;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
+import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
+import com.f3cinema.app.ui.common.dialog.DialogStyle;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.math.BigDecimal;
 
@@ -13,37 +14,38 @@ import java.math.BigDecimal;
  * Standard Dialog to insert new product to the F3 Cinema Warehouse.
  * Strictly adheres to Frontend Style Guide.
  */
-public class ProductDialog extends JDialog {
+public class ProductDialog extends BaseAppDialog {
     private final Runnable onSuccessCallback;
     private JTextField txtName, txtUnit;
+    private JComboBox<String> cbCategory;
     private JSpinner spinPrice, spinThreshold;
 
     public ProductDialog(JFrame owner, Runnable onSuccessCallback) {
-        super(owner, "Thêm Mới Sản Phẩm Bán Kho", true);
+        super(owner, "Thêm Mới Sản Phẩm Bán Kho");
         this.onSuccessCallback = onSuccessCallback;
-        setSize(520, 560);
-        setLocationRelativeTo(owner);
-        getContentPane().setBackground(Color.decode("#0F172A")); // Slate 900
+        setupBaseDialog(820, 500);
+
+        JPanel surface = createSurfacePanel();
+        setContentPane(surface);
         
         JPanel mainContent = new JPanel();
         mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS));
         mainContent.setOpaque(false);
-        mainContent.setBorder(new EmptyBorder(30, 40, 30, 40));
 
         // ------------- HEADER -------------
-        JLabel lblHeader = new JLabel("THÊM SẢN PHẨM KHU VỰC BÁN");
-        lblHeader.setFont(new Font("Inter", Font.BOLD, 22));
-        lblHeader.setForeground(Color.decode("#F8FAFC"));
+        JLabel lblHeader = DialogStyle.titleLabel("THÊM SẢN PHẨM KHU VỰC BÁN");
         lblHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainContent.add(lblHeader);
         mainContent.add(Box.createRigidArea(new Dimension(0, 30)));
 
         // ------------- FORM -------------
-        JPanel form = new JPanel(new GridLayout(4, 1, 0, 20)); // Stack 4 fields vertically
+        JPanel form = new JPanel(new GridLayout(3, 2, 18, 16));
         form.setOpaque(false);
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         form.add(createFieldGroup("Tên sản phẩm (VD: Bắp rang bơ phô mai)", txtName = new JTextField()));
+        cbCategory = new JComboBox<>(new String[]{"SNACK", "DRINK", "COMBO"});
+        form.add(createFieldGroup("Danh mục", cbCategory));
         
         spinPrice = new JSpinner(new SpinnerNumberModel(45000.0, 0.0, 1000000.0, 5000.0));
         form.add(createFieldGroup("Giá bán (VNĐ)", spinPrice));
@@ -53,6 +55,10 @@ public class ProductDialog extends JDialog {
         spinThreshold = new JSpinner(new SpinnerNumberModel(20, 1, 10000, 1));
         form.add(createFieldGroup("Mức cảnh báo tồn kho (Min Threshold)", spinThreshold));
 
+        JPanel filler = new JPanel();
+        filler.setOpaque(false);
+        form.add(filler);
+
         mainContent.add(form);
         mainContent.add(Box.createRigidArea(new Dimension(0, 32)));
 
@@ -61,35 +67,24 @@ public class ProductDialog extends JDialog {
         btnPanel.setOpaque(false);
         btnPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JButton btnClose = new JButton("Hủy Lệnh");
-        btnClose.setFont(new Font("Inter", Font.BOLD, 14));
-        btnClose.setFocusPainted(false);
-        btnClose.putClientProperty(FlatClientProperties.STYLE, "arc: 12; foreground: #F8FAFC; background: #334155; borderWidth: 0; margin: 10,24,10,24");
+        JButton btnClose = DialogStyle.secondaryButton("Hủy Lệnh");
         btnClose.addActionListener(e -> dispose());
-        btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnPanel.add(btnClose);
 
-        JButton btnSave = new JButton("Lưu Sản Phẩm");
-        btnSave.setFont(new Font("Inter", Font.BOLD, 14));
-        btnSave.setFocusPainted(false);
-        btnSave.putClientProperty(FlatClientProperties.STYLE, "arc: 12; foreground: #FFFFFF; background: #6366F1; borderWidth: 0; margin: 10,24,10,24");
+        JButton btnSave = DialogStyle.primaryButton("Lưu Sản Phẩm");
         btnSave.addActionListener(e -> saveProduct());
-        btnSave.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnPanel.add(btnSave);
 
         mainContent.add(btnPanel);
-        add(mainContent);
+        surface.add(mainContent, BorderLayout.CENTER);
     }
 
     private JPanel createFieldGroup(String labelText, JComponent inputComp) {
         JPanel p = new JPanel(new BorderLayout(0, 8));
         p.setOpaque(false);
-        JLabel lbl = new JLabel(labelText);
-        lbl.setFont(new Font("Inter", Font.PLAIN, 13));
-        lbl.setForeground(Color.decode("#94A3B8"));
+        JLabel lbl = DialogStyle.formLabel(labelText);
         
-        inputComp.putClientProperty(FlatClientProperties.STYLE, "arc: 12; margin: 10,12,10,12; background: #1E293B; foreground: #F8FAFC; borderColor: #334155");
-        inputComp.setFont(new Font("Inter", Font.PLAIN, 15));
+        DialogStyle.styleInput(inputComp);
         
         if (inputComp instanceof JTextField) {
             ((JTextField) inputComp).setCaretColor(Color.WHITE);
@@ -103,16 +98,18 @@ public class ProductDialog extends JDialog {
     private void saveProduct() {
         String name = txtName.getText().trim();
         String unit = txtUnit.getText().trim();
+        String category = cbCategory != null ? String.valueOf(cbCategory.getSelectedItem()) : "SNACK";
 
         if (name.isEmpty() || unit.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ tên sản phẩm và đơn vị tính!", "Thiếu thông tin yêu cầu", JOptionPane.WARNING_MESSAGE);
+            AppMessageDialogs.showWarning(this, "Thiếu thông tin yêu cầu", "Vui lòng nhập đầy đủ tên sản phẩm và đơn vị tính!");
             return;
         }
 
         BigDecimal price = BigDecimal.valueOf((Double) spinPrice.getValue());
         Integer threshold = (Integer) spinThreshold.getValue();
 
-        ProductDTO dto = new ProductDTO(null, name, price, unit, 0, threshold);
+        String normalizedName = name.startsWith("[" + category + "]") ? name : ("[" + category + "] " + name);
+        ProductDTO dto = new ProductDTO(null, normalizedName, price, unit, null, 0, threshold);
 
         // Async save preventing UI blocking
         new SwingWorker<Void, Void>() {
@@ -126,7 +123,7 @@ public class ProductDialog extends JDialog {
             protected void done() {
                 try {
                     get();
-                    JOptionPane.showMessageDialog(ProductDialog.this, "Hệ thống đã thêm thành công sản phẩm mới!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    AppMessageDialogs.showInfo(ProductDialog.this, "Thành công", "Hệ thống đã thêm thành công sản phẩm mới!");
                     // Trigger UI Table reload from Parent (WarehousePanel)
                     if (onSuccessCallback != null) {
                         onSuccessCallback.run();
@@ -135,7 +132,7 @@ public class ProductDialog extends JDialog {
                 } catch (Exception e) {
                     // Extract exact origin error (SQL / Constraint / Transaction)
                     String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-                    JOptionPane.showMessageDialog(ProductDialog.this, "Lỗi khi lưu dữ liệu sản phẩm mới: \n" + msg, "Kho Hàng", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(ProductDialog.this, "Kho Hàng", "Lỗi khi lưu dữ liệu sản phẩm mới: \n" + msg);
                 }
             }
         }.execute();

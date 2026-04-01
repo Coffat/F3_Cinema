@@ -11,6 +11,7 @@ public record ProductDTO(
     String name,
     BigDecimal price,
     String unit,
+    String imageUrl,
     Integer currentQuantity,
     Integer minThreshold
 ) {}

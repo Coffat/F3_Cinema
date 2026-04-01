@@ -1,36 +1,32 @@
 package com.f3cinema.app.ui.dashboard;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.User;
+import com.f3cinema.app.entity.enums.UserRole;
 import com.f3cinema.app.service.UserService;
 import com.f3cinema.app.ui.admin.dialog.StaffDialog;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class StaffPanel extends BaseDashboardModule {
-    private static final Color BG_MAIN = Color.decode("#0F172A");
-    private static final Color BG_SURFACE = Color.decode("#1E293B");
-    private static final Color ACCENT = Color.decode("#6366F1");
-    private static final Color TEXT_PRIMARY = Color.decode("#F8FAFC");
-    private static final Color TEXT_SECONDARY = Color.decode("#94A3B8");
-
     private final UserService userService = new UserService();
 
     private JTextField txtSearch;
     private JButton btnAdd;
-    private JButton btnEdit;
-    private JButton btnDelete;
-    private JTable table;
-    private DefaultTableModel tableModel;
+    private JComboBox<Object> cmbRole;
+    private JComboBox<String> cmbSort;
+    private JPanel cardContainer;
+    private List<User> currentStaff = new ArrayList<>();
 
     public StaffPanel() {
         super("Nhân viên", "Home > Staffs");
@@ -39,10 +35,10 @@ public class StaffPanel extends BaseDashboardModule {
     }
 
     private void initUI() {
-        contentBody.setBackground(BG_MAIN);
+        contentBody.setBackground(ThemeConfig.BG_MAIN);
 
         JPanel toolbar = buildToolbar();
-        JScrollPane scrollPane = buildTableView();
+        JScrollPane scrollPane = buildCardView();
 
         contentBody.add(toolbar, BorderLayout.NORTH);
         contentBody.add(scrollPane, BorderLayout.CENTER);
@@ -58,18 +54,23 @@ public class StaffPanel extends BaseDashboardModule {
     }
 
     private JPanel buildToolbar() {
-        JPanel toolbar = new JPanel(new BorderLayout());
+        JPanel toolbar = new JPanel(new BorderLayout(16, 0));
         toolbar.setOpaque(false);
-        toolbar.setBorder(BorderFactory.createEmptyBorder(10, 20, 22, 20));
+        toolbar.setBorder(BorderFactory.createEmptyBorder(12, 24, 16, 24));
+
+        JPanel controlBar = new JPanel(new BorderLayout(16, 0));
+        controlBar.setBackground(ThemeConfig.BG_CARD);
+        controlBar.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
+        controlBar.putClientProperty(FlatClientProperties.STYLE, "arc: 20");
 
         txtSearch = new JTextField(28);
         txtSearch.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, new FlatSVGIcon("icons/search.svg", 16, 16));
-        txtSearch.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Tìm theo username / họ tên (Ctrl+F)...");
-        txtSearch.putClientProperty(FlatClientProperties.STYLE, "arc: 16; background: #1E293B; foreground: #F8FAFC; caretColor: #6366F1;");
-        txtSearch.setFont(new Font("Inter", Font.PLAIN, 15));
-        txtSearch.setPreferredSize(new Dimension(340, 40));
+        txtSearch.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Tim theo username / ho ten (Ctrl+F)...");
+        txtSearch.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #0F172A; foreground: #F8FAFC; caretColor: #6366F1;");
+        txtSearch.setFont(ThemeConfig.FONT_BODY);
+        txtSearch.setPreferredSize(new Dimension(300, 40));
 
-        Timer searchTimer = new Timer(300, e -> loadDataAsync(txtSearch.getText()));
+        Timer searchTimer = new Timer(300, e -> applyClientFilters());
         searchTimer.setRepeats(false);
         txtSearch.addKeyListener(new KeyAdapter() {
             @Override
@@ -78,101 +79,72 @@ public class StaffPanel extends BaseDashboardModule {
             }
         });
 
-        btnAdd = new JButton("+ Thêm nhân viên");
-        btnAdd.setFont(new Font("Inter", Font.BOLD, 14));
-        btnAdd.setBackground(ACCENT);
+        cmbRole = new JComboBox<>();
+        cmbRole.addItem("All Roles");
+        cmbRole.addItem(UserRole.ADMIN);
+        cmbRole.addItem(UserRole.STAFF);
+        cmbRole.setPreferredSize(new Dimension(150, 40));
+        cmbRole.setFont(ThemeConfig.FONT_BODY);
+        cmbRole.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #0F172A; foreground: #F8FAFC;");
+        cmbRole.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof UserRole role) setText(role.getLabel());
+                return this;
+            }
+        });
+        cmbRole.addActionListener(e -> applyClientFilters());
+
+        cmbSort = new JComboBox<>(new String[]{"Sort: Name", "Sort: Role", "Sort: ID"});
+        cmbSort.setPreferredSize(new Dimension(140, 40));
+        cmbSort.setFont(ThemeConfig.FONT_BODY);
+        cmbSort.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #0F172A; foreground: #F8FAFC;");
+        cmbSort.addActionListener(e -> applyClientFilters());
+
+        btnAdd = new JButton("Them nhan vien");
+        btnAdd.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
+        btnAdd.setBackground(ThemeConfig.ACCENT_COLOR);
         btnAdd.setForeground(Color.WHITE);
         btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnAdd.putClientProperty(FlatClientProperties.STYLE, "arc: 16; margin: 0, 20, 0, 20; borderWidth: 0;");
+        btnAdd.putClientProperty(FlatClientProperties.STYLE, "arc: 15; margin: 0, 20, 0, 20; borderWidth: 0;");
         btnAdd.setPreferredSize(new Dimension(170, 40));
         btnAdd.addActionListener(e -> openAddDialog());
-
-        btnEdit = new JButton("Sửa");
-        btnEdit.setFont(new Font("Inter", Font.BOLD, 14));
-        btnEdit.setForeground(TEXT_PRIMARY);
-        btnEdit.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnEdit.putClientProperty(FlatClientProperties.STYLE, "arc: 16; background: #0F172A; foreground: #F8FAFC; borderWidth: 1; borderColor: #334155; margin: 0, 16, 0, 16;");
-        btnEdit.setPreferredSize(new Dimension(90, 40));
-        btnEdit.addActionListener(e -> openEditDialog());
-
-        btnDelete = new JButton("Xóa");
-        btnDelete.setFont(new Font("Inter", Font.BOLD, 14));
-        btnDelete.setForeground(Color.WHITE);
-        btnDelete.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnDelete.putClientProperty(FlatClientProperties.STYLE, "arc: 16; background: #F43F5E; borderWidth: 0; margin: 0, 16, 0, 16;");
-        btnDelete.setPreferredSize(new Dimension(90, 40));
-        btnDelete.addActionListener(e -> handleDelete());
 
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         left.setOpaque(false);
         left.add(txtSearch);
+        left.add(cmbRole);
+        left.add(cmbSort);
 
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         right.setOpaque(false);
-        right.add(btnEdit);
-        right.add(btnDelete);
         right.add(btnAdd);
 
-        toolbar.add(left, BorderLayout.WEST);
-        toolbar.add(right, BorderLayout.EAST);
+        controlBar.add(left, BorderLayout.WEST);
+        controlBar.add(right, BorderLayout.EAST);
+        toolbar.add(controlBar, BorderLayout.CENTER);
         return toolbar;
     }
 
-    private JScrollPane buildTableView() {
-        tableModel = new DefaultTableModel(new Object[]{"ID", "Username", "Họ tên", "Role"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+    private JScrollPane buildCardView() {
+        cardContainer = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 24, 24));
+        cardContainer.setOpaque(false);
 
-        table = new JTable(tableModel);
-        table.setRowHeight(44);
-        table.setFont(new Font("Inter", Font.PLAIN, 14));
-        table.setForeground(TEXT_PRIMARY);
-        table.setBackground(BG_SURFACE);
-        table.setSelectionBackground(new Color(99, 102, 241, 80));
-        table.setSelectionForeground(TEXT_PRIMARY);
-        table.setShowHorizontalLines(true);
-        table.setGridColor(new Color(255, 255, 255, 18));
-        table.setIntercellSpacing(new Dimension(0, 1));
-        table.setFillsViewportHeight(true);
+        JPanel inner = new JPanel(new BorderLayout());
+        inner.setOpaque(true);
+        inner.setBackground(ThemeConfig.BG_MAIN);
+        inner.setBorder(BorderFactory.createEmptyBorder(8, 24, 24, 24));
+        inner.add(cardContainer, BorderLayout.NORTH);
 
-        table.getTableHeader().setFont(new Font("Inter", Font.BOLD, 13));
-        table.getTableHeader().setForeground(TEXT_SECONDARY);
-        table.getTableHeader().setBackground(new Color(30, 41, 59, 220));
-        table.getTableHeader().setReorderingAllowed(false);
-        table.getTableHeader().setPreferredSize(new Dimension(0, 42));
-
-        DefaultTableCellRenderer cell = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel c = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                c.setBorder(new EmptyBorder(0, 12, 0, 12)); // padding 12px
-                c.setOpaque(true);
-
-                if (isSelected) {
-                    c.setBackground(new Color(99, 102, 241, 80));
-                    c.setForeground(TEXT_PRIMARY);
-                } else {
-                    // Hover-like zebra subtle depth (Flat Design 2.0)
-                    c.setBackground(row % 2 == 0 ? BG_SURFACE : new Color(30, 41, 59, 210));
-                    c.setForeground(TEXT_PRIMARY);
-                }
-                return c;
-            }
-        };
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(cell);
-        }
-
-        JScrollPane scroll = new JScrollPane(table);
+        JScrollPane scroll = new JScrollPane(inner);
         scroll.setBorder(null);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(true);
-        scroll.getViewport().setBackground(BG_MAIN);
+        scroll.getViewport().setBackground(ThemeConfig.BG_MAIN);
         scroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
         scroll.getVerticalScrollBar().setUnitIncrement(20);
+        scroll.getVerticalScrollBar().putClientProperty(FlatClientProperties.STYLE, "trackArc: 999; thumbArc: 999;");
 
         return scroll;
     }
@@ -183,41 +155,40 @@ public class StaffPanel extends BaseDashboardModule {
             try {
                 List<User> staff = userService.getAllStaff(keyword);
                 SwingUtilities.invokeLater(() -> {
-                    setTableData(staff);
+                    currentStaff = staff;
+                    applyClientFilters();
                     setBusy(false);
                 });
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> {
                     setBusy(false);
-                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(this, "Lỗi", ex.getMessage());
                 });
             }
         });
     }
 
-    private void setTableData(List<User> staffList) {
-        tableModel.setRowCount(0);
-        for (User u : staffList) {
-            tableModel.addRow(new Object[]{
-                    u.getId(),
-                    u.getUsername(),
-                    u.getFullName(),
-                    u.getRole() != null ? u.getRole().getLabel() : ""
-            });
-        }
-    }
+    private void applyClientFilters() {
+        if (cardContainer == null) return;
+        String keyword = txtSearch != null ? txtSearch.getText().trim().toLowerCase() : "";
+        Object selectedRole = cmbRole != null ? cmbRole.getSelectedItem() : "All Roles";
+        String sort = cmbSort != null ? (String) cmbSort.getSelectedItem() : "Sort: Name";
 
-    private Long getSelectedId() {
-        int row = table.getSelectedRow();
-        if (row < 0) return null;
-        Object val = tableModel.getValueAt(row, 0);
-        if (val instanceof Long) return (Long) val;
-        if (val instanceof Number) return ((Number) val).longValue();
-        try {
-            return Long.parseLong(String.valueOf(val));
-        } catch (Exception ignore) {
-            return null;
+        List<User> filtered = currentStaff.stream()
+                .filter(u -> keyword.isEmpty()
+                        || (u.getUsername() != null && u.getUsername().toLowerCase().contains(keyword))
+                        || (u.getFullName() != null && u.getFullName().toLowerCase().contains(keyword)))
+                .filter(u -> !(selectedRole instanceof UserRole role) || u.getRole() == role)
+                .sorted(getComparator(sort))
+                .toList();
+
+        cardContainer.removeAll();
+        for (User staff : filtered) {
+            StaffCard card = new StaffCard(staff, this::openEditDialog, this::handleDelete);
+            cardContainer.add(card);
         }
+        cardContainer.revalidate();
+        cardContainer.repaint();
     }
 
     private void openAddDialog() {
@@ -244,25 +215,27 @@ public class StaffPanel extends BaseDashboardModule {
         dlg.setVisible(true);
     }
 
-    private void openEditDialog() {
-        int row = table.getSelectedRow();
-        Long id = getSelectedId();
-        if (row < 0 || id == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 nhân viên để sửa.", "Thiếu lựa chọn", JOptionPane.WARNING_MESSAGE);
-            return;
+    private Comparator<User> getComparator(String sort) {
+        if ("Sort: Role".equals(sort)) {
+            return Comparator.comparing(u -> u.getRole() != null ? u.getRole().name() : "");
         }
-        String username = String.valueOf(tableModel.getValueAt(row, 1));
-        String fullName = String.valueOf(tableModel.getValueAt(row, 2));
+        if ("Sort: ID".equals(sort)) {
+            return Comparator.comparing(u -> u.getId() != null ? u.getId() : Long.MAX_VALUE);
+        }
+        return Comparator.comparing(u -> u.getFullName() != null ? u.getFullName().toLowerCase() : "");
+    }
 
+    private void openEditDialog(User selected) {
+        if (selected == null || selected.getId() == null) return;
         Window owner = SwingUtilities.getWindowAncestor(this);
         StaffDialog dlg = new StaffDialog(owner, true);
-        dlg.setInitialValues(username, fullName);
+        dlg.setInitialValues(selected.getUsername(), selected.getFullName());
         dlg.setOnSave(() -> {
             dlg.setError(null);
             setBusy(true);
             Thread.ofVirtual().start(() -> {
                 try {
-                    userService.updateStaff(id, dlg.getUsername(), dlg.getFullName(), dlg.getPassword());
+                    userService.updateStaff(selected.getId(), dlg.getUsername(), dlg.getFullName(), dlg.getPassword());
                     SwingUtilities.invokeLater(() -> {
                         dlg.markSavedAndClose();
                         loadDataAsync(txtSearch.getText());
@@ -278,32 +251,24 @@ public class StaffPanel extends BaseDashboardModule {
         dlg.setVisible(true);
     }
 
-    private void handleDelete() {
-        int row = table.getSelectedRow();
-        Long id = getSelectedId();
-        if (row < 0 || id == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn 1 nhân viên để xóa.", "Thiếu lựa chọn", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        String username = String.valueOf(tableModel.getValueAt(row, 1));
-        int ok = JOptionPane.showConfirmDialog(
+    private void handleDelete(User selected) {
+        if (selected == null || selected.getId() == null) return;
+        String username = String.valueOf(selected.getUsername());
+        if (!AppMessageDialogs.confirmYesNo(
                 this,
-                "Xóa nhân viên `" + username + "`?\nHành động này không thể hoàn tác.",
                 "Xác nhận xóa",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
-        );
-        if (ok != JOptionPane.YES_OPTION) return;
+                "Xóa nhân viên `" + username + "`?\nHành động này không thể hoàn tác."
+        )) return;
 
         setBusy(true);
         Thread.ofVirtual().start(() -> {
             try {
-                userService.deleteStaff(id);
+                userService.deleteStaff(selected.getId());
                 SwingUtilities.invokeLater(() -> loadDataAsync(txtSearch.getText()));
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() -> {
                     setBusy(false);
-                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(this, "Lỗi", ex.getMessage());
                 });
             }
         });
@@ -312,7 +277,7 @@ public class StaffPanel extends BaseDashboardModule {
     private void setBusy(boolean busy) {
         setCursor(busy ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
         btnAdd.setEnabled(!busy);
-        btnEdit.setEnabled(!busy);
-        btnDelete.setEnabled(!busy);
+        if (cmbRole != null) cmbRole.setEnabled(!busy);
+        if (cmbSort != null) cmbSort.setEnabled(!busy);
     }
 }

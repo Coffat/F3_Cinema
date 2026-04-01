@@ -1,22 +1,34 @@
 package com.f3cinema.app.ui.dashboard;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.dto.ProductDTO;
+import com.f3cinema.app.dto.StockReceiptDTO;
+import com.f3cinema.app.dto.StockReceiptSummaryDTO;
 import com.f3cinema.app.service.impl.InventoryServiceImpl;
+import com.f3cinema.app.service.impl.StockReceiptServiceImpl;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
+import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class WarehousePanel extends BaseDashboardModule {
 
-    private JTable productTable;
-    private DefaultTableModel productTableModel;
-    private JTable historyTable;
-    private DefaultTableModel historyModel;
+    private JPanel quickStatsRow;
+    private JPanel productsContainer;
+    private JPanel receiptsTimelineContainer;
+    private JLabel totalProductsValue;
+    private JLabel lowStockValue;
+    private JLabel outStockValue;
+    private JLabel totalValueLabel;
 
     private SwingWorker<List<ProductDTO>, Void> inventoryWorker;
-    private SwingWorker<List<com.f3cinema.app.dto.StockReceiptSummaryDTO>, Void> historyWorker;
+    private SwingWorker<List<StockReceiptSummaryDTO>, Void> historyWorker;
 
     public WarehousePanel() {
         super("Kho & Sản phẩm", "Home > Warehouse & Products");
@@ -26,55 +38,98 @@ public class WarehousePanel extends BaseDashboardModule {
     private void initUI() {
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.setOpaque(false);
-        tabbedPane.putClientProperty("JTabbedPane.showTabSeparators", true);
-        tabbedPane.setFont(new Font("Inter", Font.BOLD, 14));
-        tabbedPane.setForeground(Color.WHITE); // Theo chuẩn giao diện
-        UIManager.put("TabbedPane.selectedBackground", Color.decode("#6366F1"));
+        tabbedPane.putClientProperty(FlatClientProperties.STYLE,
+                "tabHeight: 48; tabArc: 12; tabSelectionHeight: 3; tabSelectionArc: 0; tabSeparatorColor: #334155");
+        tabbedPane.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
+        tabbedPane.setForeground(ThemeConfig.TEXT_PRIMARY);
 
-        // Tab 1: Sản phẩm & Tồn kho
-        tabbedPane.addTab("Sản phẩm & Tồn kho", createProductTab());
+        tabbedPane.addTab("Sản phẩm", new FlatSVGIcon("icons/box.svg", 20, 20), createProductTab());
+        tabbedPane.addTab("Phiếu nhập kho", new FlatSVGIcon("icons/clipboard.svg", 20, 20), createHistoryTab());
 
-        // Tab 2: Lịch sử nhập kho
-        tabbedPane.addTab("Lịch sử nhập kho", createHistoryTab());
-
-        contentBody.setLayout(new BorderLayout());
-        contentBody.add(tabbedPane, BorderLayout.CENTER);
-
-        // Load data on start
-        loadAllData();
-    }
-
-    private JPanel createProductTab() {
-        JPanel panel = new JPanel(new BorderLayout(0, 16));
-        panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0));
-
-        // Nút thêm sản phẩm
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        topPanel.setOpaque(false);
-
-        JButton btnAddProduct = new JButton("+ Thêm Sản phẩm");
+        JButton btnAddProduct = new JButton("Thêm Sản phẩm");
         stylePrimaryButton(btnAddProduct);
+        btnAddProduct.setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD, 12f));
+        btnAddProduct.setPreferredSize(new Dimension(112, 28));
+        btnAddProduct.setMinimumSize(new Dimension(112, 28));
+        btnAddProduct.setMaximumSize(new Dimension(112, 28));
+        btnAddProduct.putClientProperty(FlatClientProperties.STYLE, "arc: 10; borderWidth: 0; focusWidth: 0; innerFocusWidth: 0");
         btnAddProduct.addActionListener(e -> {
             Window window = SwingUtilities.getWindowAncestor(this);
             ProductDialog dialog = new ProductDialog((JFrame) window, this::loadInventoryData);
             dialog.setVisible(true);
         });
-        topPanel.add(btnAddProduct);
+        JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        trailing.setOpaque(false);
+        trailing.add(btnAddProduct);
+        tabbedPane.putClientProperty("JTabbedPane.trailingComponent", trailing);
+        tabbedPane.addChangeListener(e -> btnAddProduct.setVisible(tabbedPane.getSelectedIndex() == 0));
+        btnAddProduct.setVisible(true);
 
-        panel.add(topPanel, BorderLayout.NORTH);
+        contentBody.setLayout(new BorderLayout(0, 16));
+        contentBody.setBackground(ThemeConfig.BG_MAIN);
+        quickStatsRow = buildQuickStats();
+        contentBody.add(quickStatsRow, BorderLayout.NORTH);
+        contentBody.add(tabbedPane, BorderLayout.CENTER);
 
-        // Bảng dữ liệu sản phẩm
-        String[] columnNames = { "ID", "Tên sản phẩm", "Đơn giá", "Đơn vị tính", "Tồn kho", "Ngưỡng tối thiểu" };
-        productTableModel = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        loadAllData();
+    }
 
-        productTable = createStyledTable(productTableModel);
-        JScrollPane scrollPane = createStyledScrollPane(productTable);
+    private JPanel buildQuickStats() {
+        JPanel row = new JPanel(new GridLayout(1, 4, 16, 0));
+        row.setOpaque(false);
+        row.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
+        totalProductsValue = new JLabel("0");
+        lowStockValue = new JLabel("0");
+        outStockValue = new JLabel("0");
+        totalValueLabel = new JLabel("0");
+        row.add(createMiniStatCard("Tổng sản phẩm", totalProductsValue, "icons/box.svg", ThemeConfig.ACCENT_COLOR));
+        row.add(createMiniStatCard("Sắp hết hàng", lowStockValue, "icons/alert.svg", Color.decode("#F59E0B")));
+        row.add(createMiniStatCard("Hết hàng", outStockValue, "icons/x-circle.svg", ThemeConfig.TEXT_DANGER));
+        row.add(createMiniStatCard("Tổng giá trị", totalValueLabel, "icons/dollar.svg", ThemeConfig.TEXT_SUCCESS));
+        return row;
+    }
+
+    private JPanel createMiniStatCard(String label, JLabel value, String icon, Color accent) {
+        JPanel card = new JPanel(new BorderLayout(10, 0));
+        card.setBackground(ThemeConfig.BG_CARD);
+        card.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+        card.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
+        JLabel iconLabel = new JLabel(new FlatSVGIcon(icon, 28, 28));
+        iconLabel.setForeground(accent);
+        value.setFont(ThemeConfig.FONT_H1);
+        value.setForeground(ThemeConfig.TEXT_PRIMARY);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(ThemeConfig.FONT_SMALL);
+        lbl.setForeground(ThemeConfig.TEXT_SECONDARY);
+        JPanel t = new JPanel();
+        t.setOpaque(false);
+        t.setLayout(new BoxLayout(t, BoxLayout.Y_AXIS));
+        t.add(value);
+        t.add(lbl);
+        card.add(iconLabel, BorderLayout.WEST);
+        card.add(t, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel createProductTab() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
+        productsContainer = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 24, 24));
+        productsContainer.setOpaque(true);
+        productsContainer.setBackground(ThemeConfig.BG_MAIN);
+        productsContainer.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        
+        JPanel inner = new JPanel(new BorderLayout());
+        inner.setOpaque(true);
+        inner.setBackground(ThemeConfig.BG_MAIN);
+        inner.add(productsContainer, BorderLayout.NORTH);
+        JScrollPane scrollPane = new JScrollPane(inner);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(ThemeConfig.BG_MAIN);
+        scrollPane.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
         panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
@@ -83,13 +138,12 @@ public class WarehousePanel extends BaseDashboardModule {
     private JPanel createHistoryTab() {
         JPanel panel = new JPanel(new BorderLayout(0, 16));
         panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0));
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
 
-        // Nút nhập kho
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topPanel.setOpaque(false);
 
-        JButton btnImportStock = new JButton("+ Nhập kho");
+        JButton btnImportStock = new JButton("Nhập kho");
         stylePrimaryButton(btnImportStock);
         btnImportStock.addActionListener(e -> {
             Window window = SwingUtilities.getWindowAncestor(this);
@@ -99,19 +153,16 @@ public class WarehousePanel extends BaseDashboardModule {
         topPanel.add(btnImportStock);
 
         panel.add(topPanel, BorderLayout.NORTH);
-
-        // Bảng dữ liệu lịch sử
-        String[] columnNames = { "Mã Phiếu", "Nhà Cung Cấp", "Tổng Tiền", "Ngày Nhập", "Hành Động" };
-        historyModel = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
-        historyTable = createStyledTable(historyModel);
-        setupHistoryTableActions(historyTable);
-        JScrollPane scrollPane = createStyledScrollPane(historyTable);
+        receiptsTimelineContainer = new JPanel();
+        receiptsTimelineContainer.setLayout(new BoxLayout(receiptsTimelineContainer, BoxLayout.Y_AXIS));
+        receiptsTimelineContainer.setOpaque(false);
+        JPanel inner = new JPanel(new BorderLayout());
+        inner.setOpaque(true);
+        inner.setBackground(ThemeConfig.BG_MAIN);
+        inner.add(receiptsTimelineContainer, BorderLayout.NORTH);
+        JScrollPane scrollPane = new JScrollPane(inner);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(ThemeConfig.BG_MAIN);
         panel.add(scrollPane, BorderLayout.CENTER);
 
         return panel;
@@ -140,22 +191,11 @@ public class WarehousePanel extends BaseDashboardModule {
                 if (isCancelled()) return;
                 try {
                     List<ProductDTO> products = get();
-                    productTableModel.setRowCount(0); // clear
-                    for (ProductDTO dto : products) {
-                        productTableModel.addRow(new Object[] {
-                                dto.id(),
-                                dto.name(),
-                                String.format("%,.0f đ", dto.price()),
-                                dto.unit(),
-                                dto.currentQuantity(),
-                                dto.minThreshold()
-                        });
-                    }
+                    renderProductCards(products);
+                    updateStats(products);
                 } catch (Exception e) {
                     String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-                    JOptionPane.showMessageDialog(WarehousePanel.this,
-                            "Lỗi tải dữ liệu Hệ thống: " + msg,
-                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(WarehousePanel.this, "Lỗi", "Lỗi tải dữ liệu Hệ thống: " + msg);
                 }
             }
         };
@@ -163,187 +203,126 @@ public class WarehousePanel extends BaseDashboardModule {
     }
 
     public void loadHistoryData() {
-        if (historyModel == null)
+        if (receiptsTimelineContainer == null)
             return;
 
         if (historyWorker != null && !historyWorker.isDone()) {
             historyWorker.cancel(true);
         }
 
-        historyWorker = new SwingWorker<List<com.f3cinema.app.dto.StockReceiptSummaryDTO>, Void>() {
+        historyWorker = new SwingWorker<List<StockReceiptSummaryDTO>, Void>() {
             @Override
-            protected List<com.f3cinema.app.dto.StockReceiptSummaryDTO> doInBackground() throws Exception {
-                return com.f3cinema.app.service.impl.StockReceiptServiceImpl.getInstance().getAllReceipts();
+            protected List<StockReceiptSummaryDTO> doInBackground() throws Exception {
+                return StockReceiptServiceImpl.getInstance().getAllReceipts();
             }
 
             @Override
             protected void done() {
                 if (isCancelled()) return;
                 try {
-                    List<com.f3cinema.app.dto.StockReceiptSummaryDTO> receipts = get();
-                    historyModel.setRowCount(0);
-                    java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter
-                            .ofPattern("dd/MM/yyyy HH:mm");
-                    for (com.f3cinema.app.dto.StockReceiptSummaryDTO dto : receipts) {
-                        historyModel.addRow(new Object[] {
-                                "PN-" + String.format("%04d", dto.id()),
-                                dto.supplier(),
-                                String.format("%,.0f đ", dto.totalImportCost()),
-                                dto.receiptDate() != null ? dto.receiptDate().format(formatter) : "N/A",
-                                "Xem chi tiết"
-                        });
-                    }
+                    renderReceiptTimeline(get());
                 } catch (Exception e) {
                     String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-                    JOptionPane.showMessageDialog(WarehousePanel.this,
-                            "Lỗi tải dữ liệu Lịch sử Nhập kho: " + msg,
-                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    AppMessageDialogs.showError(WarehousePanel.this, "Lỗi", "Lỗi tải dữ liệu Lịch sử Nhập kho: " + msg);
                 }
             }
         };
         historyWorker.execute();
     }
 
-    private JTable createStyledTable(DefaultTableModel model) {
-        JTable table = new JTable(model);
-        table.setFillsViewportHeight(true);
-        table.setBackground(Color.decode("#1E293B"));
-        table.setForeground(Color.decode("#F8FAFC"));
-        table.setRowHeight(40);
-        table.setShowVerticalLines(false);
-        table.setShowHorizontalLines(true);
-        table.setGridColor(Color.decode("#0F172A"));
-        table.setIntercellSpacing(new Dimension(0, 0));
-        table.getTableHeader().setReorderingAllowed(false);
-
-        // Header Style
-        table.getTableHeader().setBackground(Color.decode("#0F172A"));
-        table.getTableHeader().setForeground(Color.decode("#94A3B8"));
-        table.getTableHeader().setFont(new Font("Inter", Font.BOLD, 13));
-        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
-
-        // Custom Cell Renderer for Row Hover / Stripe
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                    boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 12)); // Cell Padding
-
-                if (isSelected) {
-                    c.setBackground(Color.decode("#334155"));
-                } else {
-                    c.setBackground(Color.decode("#1E293B"));
-                }
-
-                // Highlight Low Inventory with Red Color
-                if (column == 4) {
-                    try {
-                        int qty = Integer.parseInt(value.toString());
-                        int threshold = Integer.parseInt(table.getValueAt(row, 5).toString());
-                        if (qty <= threshold)
-                            c.setForeground(Color.decode("#F43F5E")); // Danger
-                        else
-                            c.setForeground(Color.decode("#F8FAFC"));
-                    } catch (Exception ignored) {
-                    }
-                } else if (!isSelected) {
-                    c.setForeground(Color.decode("#F8FAFC"));
-                }
-
-                return c;
-            }
-        });
-
-        return table;
+    private void renderProductCards(List<ProductDTO> products) {
+        productsContainer.removeAll();
+        for (ProductDTO p : products) {
+            ProductCard card = new ProductCard(
+                    p,
+                    () -> AppMessageDialogs.showInfo(this, "Chức năng sửa sản phẩm sẽ được bổ sung."),
+                    () -> AppMessageDialogs.showInfo(this, "Chức năng điều chỉnh tồn kho sẽ được bổ sung."),
+                    () -> AppMessageDialogs.showInfo(this, "Chức năng xóa sản phẩm sẽ được bổ sung."));
+            productsContainer.add(card);
+        }
+        productsContainer.revalidate();
+        productsContainer.repaint();
     }
 
-    private JScrollPane createStyledScrollPane(JTable table) {
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.getViewport().setBackground(Color.decode("#1E293B"));
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.setOpaque(false);
-        return scrollPane;
+    private void renderReceiptTimeline(List<StockReceiptSummaryDTO> receipts) {
+        receiptsTimelineContainer.removeAll();
+        AtomicInteger index = new AtomicInteger(0);
+        for (StockReceiptSummaryDTO r : receipts) {
+            int idx = index.getAndIncrement();
+            StockReceiptCard card = new StockReceiptCard(r, idx, () -> openReceiptDetail(r.id()));
+            receiptsTimelineContainer.add(card);
+            if (idx < receipts.size() - 1) receiptsTimelineContainer.add(createTimelineConnector());
+        }
+        receiptsTimelineContainer.revalidate();
+        receiptsTimelineContainer.repaint();
+    }
+
+    private JPanel createTimelineConnector() {
+        JPanel connector = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(ThemeConfig.BORDER_COLOR);
+                g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{5, 5}, 0));
+                g2.drawLine(30, 0, 30, getHeight());
+                g2.dispose();
+            }
+        };
+        connector.setOpaque(false);
+        connector.setPreferredSize(new Dimension(0, 20));
+        connector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+        return connector;
+    }
+
+    private void openReceiptDetail(Long receiptId) {
+        Window window = SwingUtilities.getWindowAncestor(this);
+        new SwingWorker<StockReceiptDTO, Void>() {
+            @Override
+            protected StockReceiptDTO doInBackground() throws Exception {
+                return StockReceiptServiceImpl.getInstance().getReceiptDetails(receiptId);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    StockReceiptDTO detailDTO = get();
+                    String receiptIdText = "PN-" + String.format("%04d", receiptId);
+                    StockReceiptDetailDialog dialog = new StockReceiptDetailDialog((JFrame) window, receiptIdText, detailDTO);
+                    dialog.setVisible(true);
+                } catch (Exception ex) {
+                    String msg = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                    AppMessageDialogs.showError(WarehousePanel.this, "Lỗi", "Không thể tải chi tiết phiếu nhập: " + msg);
+                }
+            }
+        }.execute();
     }
 
     private void stylePrimaryButton(JButton btn) {
-        btn.setBackground(Color.decode("#6366F1")); // Indigo 500
+        btn.setBackground(ThemeConfig.ACCENT_COLOR);
         btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Inter", Font.BOLD, 14));
+        btn.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(180, 45));
-        btn.putClientProperty("JButton.buttonType", "roundRect");
+        btn.setPreferredSize(new Dimension(160, 40));
+        btn.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0;");
     }
 
-    private void setupHistoryTableActions(JTable table) {
-        // Vẽ Nút bấm vào cột thứ 4 ("Hành Động")
-        table.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                    boolean hasFocus, int row, int column) {
-                JPanel container = new JPanel(new GridBagLayout());
-                container.setBackground(isSelected ? Color.decode("#334155") : Color.decode("#1E293B"));
-
-                JButton btn = new JButton(value != null ? value.toString() : "Xem chi tiết");
-                btn.setBackground(Color.decode("#38BDF8")); // Bầu trời xanh nhạt
-                btn.setForeground(Color.decode("#0F172A")); // Chữ cực đậm
-                btn.setFont(new Font("Inter", Font.BOLD, 12));
-                btn.setFocusPainted(false);
-                btn.setBorderPainted(false);
-                btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                container.add(btn);
-                return container;
-            }
-        });
-
-        // Bắt sự kiện Click vào ô
-        table.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                int col = table.columnAtPoint(e.getPoint());
-                int row = table.rowAtPoint(e.getPoint());
-                if (col == 4 && row >= 0) {
-                    String receiptIdText = (String) table.getValueAt(row, 0);
-                    Long receiptId = Long.parseLong(receiptIdText.replace("PN-", ""));
-                    
-                    Window window = SwingUtilities.getWindowAncestor(WarehousePanel.this);
-                    new SwingWorker<com.f3cinema.app.dto.StockReceiptDTO, Void>() {
-                        @Override
-                        protected com.f3cinema.app.dto.StockReceiptDTO doInBackground() throws Exception {
-                            return com.f3cinema.app.service.impl.StockReceiptServiceImpl.getInstance().getReceiptDetails(receiptId);
-                        }
-
-                        @Override
-                        protected void done() {
-                            try {
-                                com.f3cinema.app.dto.StockReceiptDTO detailDTO = get();
-                                StockReceiptDetailDialog dialog = new StockReceiptDetailDialog((JFrame) window, receiptIdText, detailDTO);
-                                dialog.setVisible(true);
-                            } catch (Exception ex) {
-                                String msg = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
-                                JOptionPane.showMessageDialog(WarehousePanel.this, 
-                                    "Không thể tải chi tiết phiếu nhập: " + msg, 
-                                    "Lỗi", JOptionPane.ERROR_MESSAGE);
-                            }
-                        }
-                    }.execute();
-                }
-            }
-        });
-
-        // Chuột Hover lên ô Biến thành Hình Bàn Tay
-        table.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
-            @Override
-            public void mouseMoved(java.awt.event.MouseEvent e) {
-                int col = table.columnAtPoint(e.getPoint());
-                if (col == 4) {
-                    table.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                } else {
-                    table.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-                }
-            }
-        });
+    private void updateStats(List<ProductDTO> products) {
+        int total = products.size();
+        int low = 0;
+        int out = 0;
+        BigDecimal value = BigDecimal.ZERO;
+        for (ProductDTO p : products) {
+            int qty = p.currentQuantity() == null ? 0 : p.currentQuantity();
+            int threshold = p.minThreshold() == null ? 0 : p.minThreshold();
+            if (qty == 0) out++;
+            else if (qty <= threshold) low++;
+            value = value.add(p.price().multiply(BigDecimal.valueOf(qty)));
+        }
+        totalProductsValue.setText(String.valueOf(total));
+        lowStockValue.setText(String.valueOf(low));
+        outStockValue.setText(String.valueOf(out));
+        totalValueLabel.setText(new DecimalFormat("#,##0").format(value));
     }
 }

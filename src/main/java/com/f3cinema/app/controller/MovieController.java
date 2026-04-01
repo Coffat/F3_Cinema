@@ -3,6 +3,7 @@ package com.f3cinema.app.controller;
 import com.f3cinema.app.entity.Movie;
 import com.f3cinema.app.service.MovieService;
 import com.f3cinema.app.ui.admin.dialog.MovieDialog;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.dashboard.MoviePanel;
 
 import javax.swing.*;
@@ -83,16 +84,13 @@ public class MovieController {
     public void handleDeleteAction(Movie selected) {
         if (selected == null) return;
 
-        int confirm = JOptionPane.showConfirmDialog(view,
-                "Bạn có chắc muốn xóa phim: \"" + selected.getTitle() + "\"?",
-                "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        
-        if (confirm == JOptionPane.YES_OPTION) {
+        if (AppMessageDialogs.confirmYesNo(view, "Xác nhận xóa",
+                "Bạn có chắc muốn xóa phim: \"" + selected.getTitle() + "\"?")) {
             try {
                 movieService.deleteMovie(selected.getId());
                 loadMovies(view.getSearchText(), view.getSelectedGenreId());
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(view, "Lỗi khi xóa phim: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                AppMessageDialogs.showError(view, "Lỗi", "Lỗi khi xóa phim: " + ex.getMessage());
             }
         }
     }

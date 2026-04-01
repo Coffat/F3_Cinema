@@ -21,8 +21,10 @@
         <lombok.version>1.18.34</lombok.version>
         <bcrypt.version>0.10.2</bcrypt.version>
         <jfreechart.version>1.5.5</jfreechart.version>
+        <xchart.version>3.8.7</xchart.version>
         <openpdf.version>2.0.3</openpdf.version>
         <log4j.version>2.24.1</log4j.version>
+        <hikaricp.version>5.1.0</hikaricp.version>
     </properties>
 
     <dependencies>
@@ -52,6 +54,13 @@
             <version>${mysql.version}</version>
         </dependency>
 
+        <!-- Connection Pooling: HikariCP -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
+        </dependency>
+
         <!-- Utilities: Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -72,6 +81,13 @@
             <groupId>org.jfree</groupId>
             <artifactId>jfreechart</artifactId>
             <version>${jfreechart.version}</version>
+        </dependency>
+
+        <!-- Statistics: XChart -->
+        <dependency>
+            <groupId>org.knowm.xchart</groupId>
+            <artifactId>xchart</artifactId>
+            <version>${xchart.version}</version>
         </dependency>
 
         <!-- Document Generation: OpenPDF -->

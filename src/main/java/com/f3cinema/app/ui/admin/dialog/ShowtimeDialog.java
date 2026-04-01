@@ -6,6 +6,8 @@ import com.f3cinema.app.dto.ShowtimeCreateDTO;
 import com.f3cinema.app.entity.Showtime;
 import com.f3cinema.app.service.MovieService;
 import com.f3cinema.app.service.ShowtimeService;
+import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
+import com.f3cinema.app.ui.common.dialog.DialogStyle;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
@@ -23,7 +25,7 @@ import java.time.format.DateTimeFormatter;
  * ShowtimeDialog — Thêm / Sửa suất chiếu.
  * Dùng CalendarPopup nội bộ để chọn ngày + Spinner giờ:phút riêng biệt.
  */
-public class ShowtimeDialog extends JDialog {
+public class ShowtimeDialog extends BaseAppDialog {
 
     // ── Design Tokens ─────────────────────────────────────────────
     private static final Color BG_SURFACE = new Color(0x1E293B);
@@ -46,6 +48,7 @@ public class ShowtimeDialog extends JDialog {
     private JSpinner spMinute;
 
     private JTextField txtPrice;
+    private JLabel lblPreview;
     private JLabel lblError;
 
     private final Showtime editTarget;
@@ -54,9 +57,7 @@ public class ShowtimeDialog extends JDialog {
 
     // ─────────────────────────────────────────────────────────────────────────
     public ShowtimeDialog(Window owner, Showtime showtime) {
-        super(owner,
-                showtime == null ? "Thêm Suất Chiếu Mới" : "Chỉnh sửa Suất Chiếu",
-                ModalityType.APPLICATION_MODAL);
+        super(owner, showtime == null ? "Thêm Suất Chiếu Mới" : "Chỉnh sửa Suất Chiếu");
         this.editTarget = showtime;
         initUI();
         loadData();
@@ -68,27 +69,11 @@ public class ShowtimeDialog extends JDialog {
     // UI
     // ─────────────────────────────────────────────────────────────────────────
     private void initUI() {
-        setUndecorated(true);
-        setSize(480, 580);
-        setLocationRelativeTo(getOwner());
+        setupBaseDialog(480, 580);
         setLayout(new BorderLayout());
 
-        // Glass container với bo góc 24px
-        JPanel glass = new JPanel(new GridBagLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(30, 41, 59, 245));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 24, 24);
-                g2.setStroke(new BasicStroke(1.5f));
-                g2.setColor(new Color(255, 255, 255, 30));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 24, 24);
-                g2.dispose();
-            }
-        };
-        glass.setOpaque(false);
-        glass.setBorder(BorderFactory.createEmptyBorder(28, 36, 28, 36));
+        JPanel glass = createSurfacePanel();
+        glass.setLayout(new GridBagLayout());
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -96,9 +81,7 @@ public class ShowtimeDialog extends JDialog {
         gbc.insets = new Insets(0, 0, 0, 0);
 
         // ── Tiêu đề ──────────────────────────────────────────────
-        JLabel title = new JLabel(editTarget == null ? "Tạo Suất Chiếu" : "Sửa Suất Chiếu");
-        title.setFont(new Font("Inter", Font.BOLD, 22));
-        title.setForeground(TEXT_WHITE);
+        JLabel title = DialogStyle.titleLabel(editTarget == null ? "Tạo Suất Chiếu" : "Sửa Suất Chiếu");
         gbc.gridy = 0;
         gbc.insets = new Insets(0, 0, 20, 0);
         glass.add(title, gbc);
@@ -188,11 +171,36 @@ public class ShowtimeDialog extends JDialog {
         gbc.insets = new Insets(0, 0, 4, 0);
         glass.add(txtPrice, gbc);
 
+        JPanel templateRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        templateRow.setOpaque(false);
+        JButton btnMorning = new JButton("Morning");
+        JButton btnAfternoon = new JButton("Afternoon");
+        JButton btnEvening = new JButton("Evening");
+        styleSecondaryChip(btnMorning);
+        styleSecondaryChip(btnAfternoon);
+        styleSecondaryChip(btnEvening);
+        btnMorning.addActionListener(e -> setTemplateTime(9, 0));
+        btnAfternoon.addActionListener(e -> setTemplateTime(14, 0));
+        btnEvening.addActionListener(e -> setTemplateTime(19, 0));
+        templateRow.add(btnMorning);
+        templateRow.add(btnAfternoon);
+        templateRow.add(btnEvening);
+        gbc.gridy = 11;
+        gbc.insets = new Insets(0, 0, 8, 0);
+        glass.add(templateRow, gbc);
+
+        lblPreview = new JLabel("Preview: --");
+        lblPreview.setForeground(TEXT_MUTED);
+        lblPreview.setFont(new Font("Inter", Font.PLAIN, 12));
+        gbc.gridy = 12;
+        gbc.insets = new Insets(0, 0, 6, 0);
+        glass.add(lblPreview, gbc);
+
         // ── Error label ──────────────────────────────────────────
         lblError = new JLabel(" ");
         lblError.setForeground(DANGER);
         lblError.setFont(new Font("Inter", Font.PLAIN, 12));
-        gbc.gridy = 11;
+        gbc.gridy = 13;
         gbc.insets = new Insets(0, 0, 0, 0);
         glass.add(lblError, gbc);
 
@@ -200,17 +208,15 @@ public class ShowtimeDialog extends JDialog {
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         footer.setOpaque(false);
 
-        JButton btnCancel = new JButton("Hủy");
-        styleSecondary(btnCancel);
+        JButton btnCancel = DialogStyle.secondaryButton("Hủy");
         btnCancel.addActionListener(e -> dispose());
 
-        JButton btnSave = new JButton("Lưu lại");
-        stylePrimary(btnSave);
+        JButton btnSave = DialogStyle.primaryButton("Lưu lại");
         btnSave.addActionListener(e -> handleSave());
 
         footer.add(btnCancel);
         footer.add(btnSave);
-        gbc.gridy = 12;
+        gbc.gridy = 14;
         gbc.insets = new Insets(16, 0, 0, 0);
         glass.add(footer, gbc);
 
@@ -434,6 +440,7 @@ public class ShowtimeDialog extends JDialog {
     // ─────────────────────────────────────────────────────────────────────────
     private void handleSave() {
         lblError.setText(" ");
+        updatePreview();
 
         // 1. Kiểm tra Phim
         MovieSummaryDTO movie = (MovieSummaryDTO) cbMovie.getSelectedItem();
@@ -594,10 +601,7 @@ public class ShowtimeDialog extends JDialog {
     }
 
     private JLabel formLabel(String text) {
-        JLabel l = new JLabel(text);
-        l.setForeground(TEXT_MUTED);
-        l.setFont(new Font("Inter", Font.BOLD, 12));
-        return l;
+        return DialogStyle.formLabel(text);
     }
 
     private void styleField(JComponent c) {
@@ -607,17 +611,22 @@ public class ShowtimeDialog extends JDialog {
         c.setPreferredSize(new Dimension(0, 42));
     }
 
-    private void stylePrimary(JButton b) {
-        b.setBackground(ACCENT);
-        b.setForeground(Color.WHITE);
-        b.setFont(new Font("Inter", Font.BOLD, 14));
-        b.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0; margin: 8,24,8,24;");
+    private void styleSecondaryChip(JButton b) {
+        b.setFont(new Font("Inter", Font.PLAIN, 12));
+        b.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155; borderWidth: 0;");
+        b.setForeground(TEXT_WHITE);
     }
 
-    private void styleSecondary(JButton b) {
-        b.setForeground(TEXT_MUTED);
-        b.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_BORDERLESS);
-        b.setFont(new Font("Inter", Font.BOLD, 14));
+    private void setTemplateTime(int hour, int minute) {
+        spHour.setValue(hour);
+        spMinute.setValue(minute);
+        updatePreview();
+    }
+
+    private void updatePreview() {
+        int hour = (int) spHour.getValue();
+        int minute = (int) spMinute.getValue();
+        lblPreview.setText("Preview: " + selectedDate.format(DATE_FMT) + " " + String.format("%02d:%02d", hour, minute));
     }
 
     public boolean isSaved() {

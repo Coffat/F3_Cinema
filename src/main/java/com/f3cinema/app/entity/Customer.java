@@ -22,5 +22,6 @@ public class Customer {
     private String phone;
 
     @Column(name = "points")
-    private Integer points;
+    @Builder.Default
+    private Integer points = 0;
 }

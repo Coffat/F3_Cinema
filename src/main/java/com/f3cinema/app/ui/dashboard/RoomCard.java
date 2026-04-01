@@ -1,7 +1,10 @@
 package com.f3cinema.app.ui.dashboard;
 
+import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.Room;
+import com.f3cinema.app.entity.enums.RoomType;
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 import javax.swing.*;
 import java.awt.*;
@@ -19,11 +22,14 @@ public class RoomCard extends JPanel {
     private boolean isHovered = false;
     private double hoverAnim = 0.0;
     private Timer animTimer;
+    private JButton editButton;
+    private JButton mapButton;
+    private JButton deleteButton;
+    private FlatSVGIcon typeIcon;
 
-    private static final Color C_CARD_BG = new Color(30, 41, 59, 220);
-    private static final Color C_ACCENT = Color.decode("#6366F1");
-    private static final Color C_TEXT_MAIN = Color.decode("#F8FAFC");
-    private static final Color C_TEXT_SUB = Color.decode("#94A3B8");
+    private static final Color C_CARD_BG = ThemeConfig.BG_CARD;
+    private static final Color C_TEXT_MAIN = ThemeConfig.TEXT_PRIMARY;
+    private static final Color C_TEXT_SUB = ThemeConfig.TEXT_SECONDARY;
 
     public RoomCard(Room room, int totalSeats, Runnable onEdit, Runnable onDelete, Runnable onViewMap) {
         this.room = room;
@@ -35,9 +41,13 @@ public class RoomCard extends JPanel {
     }
 
     private void initUI() {
-        setPreferredSize(new Dimension(260, 170));
+        setLayout(null);
+        setPreferredSize(new Dimension(280, 200));
         setOpaque(false);
         setCursor(new Cursor(Cursor.HAND_CURSOR));
+        RoomVisual visual = getRoomVisual(room.getRoomType());
+        typeIcon = new FlatSVGIcon(visual.iconPath(), 18, 18);
+        typeIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> visual.accent()));
 
         animTimer = new Timer(16, e -> {
             double target = isHovered ? 1.0 : 0.0;
@@ -60,6 +70,41 @@ public class RoomCard extends JPanel {
                 else onViewMap.run();
             }
         });
+
+        editButton = buildActionButton("Edit");
+        editButton.setBounds(16, 158, 74, 30);
+        editButton.addActionListener(e -> onEdit.run());
+        add(editButton);
+
+        mapButton = buildActionButton("Seat Map");
+        mapButton.setBounds(100, 158, 90, 30);
+        mapButton.addActionListener(e -> onViewMap.run());
+        add(mapButton);
+
+        deleteButton = buildActionButton("Delete");
+        deleteButton.setBounds(200, 158, 74, 30);
+        deleteButton.setForeground(ThemeConfig.TEXT_DANGER);
+        deleteButton.addActionListener(e -> onDelete.run());
+        add(deleteButton);
+    }
+
+    private JButton buildActionButton(String text) {
+        JButton button = new JButton(text);
+        button.setFocusable(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 10; borderWidth: 0; background: #0F172A; margin: 3,10,3,10;");
+        button.setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD));
+        button.setForeground(ThemeConfig.TEXT_PRIMARY);
+        return button;
+    }
+
+    private record RoomVisual(Color accent, String iconPath) {}
+
+    private RoomVisual getRoomVisual(RoomType type) {
+        if (type == RoomType.ROOM_IMAX) return new RoomVisual(Color.decode("#8B5CF6"), "icons/maximize.svg");
+        if (type == RoomType.ROOM_3D) return new RoomVisual(Color.decode("#F59E0B"), "icons/star.svg");
+        return new RoomVisual(ThemeConfig.TEXT_SECONDARY, "icons/grid.svg");
     }
 
     @Override
@@ -70,7 +115,8 @@ public class RoomCard extends JPanel {
         int w = getWidth();
         int h = getHeight();
 
-        double currentScale = 1.0 + (0.03 * hoverAnim);
+        RoomVisual visual = getRoomVisual(room.getRoomType());
+        double currentScale = 1.0 + (0.02 * hoverAnim);
 
         if (hoverAnim > 0) {
             double tx = (w * (currentScale - 1.0)) / 2.0;
@@ -79,40 +125,57 @@ public class RoomCard extends JPanel {
             g2.scale(currentScale, currentScale);
         }
 
+        g2.setColor(new Color(0, 0, 0, (int) (24 + 26 * hoverAnim)));
+        g2.fillRoundRect(6, 8, w - 12, h - 12, 20, 20);
         g2.setColor(C_CARD_BG);
-        g2.fillRoundRect(2, 2, w - 4, h - 4, 20, 20);
+        g2.fillRoundRect(0, 0, w, h, 20, 20);
 
-        // Header Background Stripe
-        g2.setColor(new Color(99, 102, 241, 40));
-        g2.fillRoundRect(2, 2, w - 4, 50, 20, 20);
-        g2.fillRect(2, 30, w - 4, 22);
+        g2.setColor(new Color(visual.accent().getRed(), visual.accent().getGreen(), visual.accent().getBlue(), 32));
+        g2.fillRoundRect(0, 0, w, 52, 20, 20);
+        g2.fillRect(0, 26, w, 26);
 
-        // Border Glow
-        g2.setStroke(new BasicStroke((float)(1.2 + hoverAnim)));
-        Color borderStart = new Color(255, 255, 255, 30);
-        int r = (int)(borderStart.getRed() + (C_ACCENT.getRed() - borderStart.getRed()) * hoverAnim);
-        int cg = (int)(borderStart.getGreen() + (C_ACCENT.getGreen() - borderStart.getGreen()) * hoverAnim);
-        int b = (int)(borderStart.getBlue() + (C_ACCENT.getBlue() - borderStart.getBlue()) * hoverAnim);
-        int a = (int)(borderStart.getAlpha() + (C_ACCENT.getAlpha() - borderStart.getAlpha()) * hoverAnim);
-        g2.setColor(new Color(r, cg, b, a));
-        g2.drawRoundRect(2, 2, w - 4, h - 4, 20, 20);
+        g2.setStroke(new BasicStroke((float) (1.0 + hoverAnim)));
+        g2.setColor(new Color(visual.accent().getRed(), visual.accent().getGreen(), visual.accent().getBlue(), 120));
+        g2.drawRoundRect(0, 0, w - 1, h - 1, 20, 20);
 
-        // Content
+        typeIcon.paintIcon(this, g2, 16, 17);
         g2.setColor(C_TEXT_MAIN);
-        g2.setFont(new Font("Inter", Font.BOLD, 16));
-        g2.drawString(room.getName(), 16, 32);
+        g2.setFont(ThemeConfig.FONT_H3);
+        g2.drawString(room.getName(), 42, 31);
 
-        g2.setFont(new Font("Inter", Font.PLAIN, 13));
+        g2.setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD));
+        g2.setColor(visual.accent());
+        String typeLabel = room.getRoomType() != null ? room.getRoomType().getLabel() : "Unknown";
+        g2.drawString(typeLabel, w - 104, 31);
+
+        g2.setFont(ThemeConfig.FONT_BODY);
         g2.setColor(C_TEXT_SUB);
-        g2.drawString("Loại: " + room.getRoomType().getLabel(), 16, 80);
-        g2.drawString("Tổng số ghế: " + totalSeats, 16, 105);
-        
-        g2.setFont(new Font("Inter", Font.ITALIC, 11));
-        g2.setColor(new Color(99, 102, 241, 150));
-        g2.drawString("• Chuột trái: Sắp xếp ghế", 16, 135);
-        g2.drawString("• Chuột phải: Menu tùy chọn", 16, 152);
+        g2.drawString("Capacity", 16, 78);
+        g2.drawString(totalSeats + " / " + totalSeats + " seats", 206, 78);
+        paintCapacityBar(g2, totalSeats, totalSeats, 16, 86, w - 32);
+
+        g2.drawString("Status:", 16, 120);
+        g2.setColor(ThemeConfig.TEXT_SUCCESS);
+        g2.fillOval(64, 111, 8, 8);
+        g2.drawString("Active", 78, 120);
 
         g2.dispose();
+    }
+
+    private void paintCapacityBar(Graphics2D g2, int current, int total, int x, int y, int width) {
+        int height = 8;
+        g2.setColor(new Color(100, 100, 100, 50));
+        g2.fillRoundRect(x, y, width, height, 4, 4);
+        int fillWidth = (int) ((current / (double) Math.max(1, total)) * width);
+        g2.setColor(getCapacityColor(current, total));
+        g2.fillRoundRect(x, y, fillWidth, height, 4, 4);
+    }
+
+    private Color getCapacityColor(int current, int total) {
+        double ratio = current / (double) Math.max(1, total);
+        if (ratio < 0.5) return ThemeConfig.TEXT_SUCCESS;
+        if (ratio < 0.8) return new Color(255, 159, 10);
+        return ThemeConfig.TEXT_DANGER;
     }
 
     private void showContextMenu(MouseEvent e) {

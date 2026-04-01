@@ -1,2 +1,3 @@
 FROM mysql:8.4
 COPY ./src/main/resources/sql/init.sql /docker-entrypoint-initdb.d/init.sql
+COPY ./src/main/resources/sql/mysql-client.cnf /etc/mysql/conf.d/mysql-client.cnf
