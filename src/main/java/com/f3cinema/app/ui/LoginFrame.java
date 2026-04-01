@@ -358,6 +358,7 @@ public class LoginFrame extends JFrame {
     }
 
     private void onLoginSuccess(User user) {
+        com.f3cinema.app.util.SessionManager.setCurrentUser(user);
         if (user.getRole() == com.f3cinema.app.entity.enums.UserRole.ADMIN) {
             com.f3cinema.app.ui.admin.AdminMainFrame adminFrame = new com.f3cinema.app.ui.admin.AdminMainFrame(user);
             adminFrame.setVisible(true);

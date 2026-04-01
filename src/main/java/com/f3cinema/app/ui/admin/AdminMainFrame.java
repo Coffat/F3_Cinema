@@ -40,6 +40,7 @@ public class AdminMainFrame extends JFrame {
         setSize(1366, 860);
         setMinimumSize(new Dimension(1200, 800));
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Mở full màn hình mặc định
         getContentPane().setBackground(Color.decode("#0F172A")); // Slate 900
         setLayout(new BorderLayout());
 

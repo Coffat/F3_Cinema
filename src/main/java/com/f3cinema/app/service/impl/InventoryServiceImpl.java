@@ -2,9 +2,12 @@ package com.f3cinema.app.service.impl;
 
 import com.f3cinema.app.config.HibernateUtil;
 import com.f3cinema.app.dto.ProductDTO;
+import com.f3cinema.app.dto.dashboard.InventoryAlertRow;
 import com.f3cinema.app.entity.Inventory;
 import com.f3cinema.app.entity.Product;
 import com.f3cinema.app.exception.CinemaException;
+import com.f3cinema.app.repository.DashboardRepository;
+import com.f3cinema.app.repository.DashboardRepositoryImpl;
 import com.f3cinema.app.service.InventoryService;
 import lombok.extern.log4j.Log4j2;
 import org.hibernate.Session;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 public class InventoryServiceImpl implements InventoryService {
 
     private static final InventoryServiceImpl INSTANCE = new InventoryServiceImpl();
+    private final DashboardRepository dashboardRepository = DashboardRepositoryImpl.getInstance();
 
     private InventoryServiceImpl() {
     }
@@ -195,5 +199,11 @@ public class InventoryServiceImpl implements InventoryService {
             log.error("Lỗi khi cộng dồn số lượng tồn kho", e);
             throw new CinemaException("Không thể cộng dồn số lượng tồn kho", e);
         }
+    }
+
+    @Override
+    public List<InventoryAlertRow> getLowStockAlerts() {
+        log.debug("Loading inventory alerts from dashboard repository");
+        return dashboardRepository.loadInventoryAlerts();
     }
 }

@@ -33,6 +33,7 @@ public class StaffMainFrame extends JFrame {
         setSize(1280, 800);
         setMinimumSize(new Dimension(1024, 768));
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Mở full màn hình mặc định
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // 1. Root Layout

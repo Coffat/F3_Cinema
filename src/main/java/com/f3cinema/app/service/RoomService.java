@@ -15,13 +15,32 @@ import java.util.List;
 
 @Log4j2
 public class RoomService {
+    // Singleton Instance
+    private static RoomService instance;
+
     private final RoomRepository roomRepository = new RoomRepositoryImpl();
     private final SeatRepository seatRepository = new SeatRepositoryImpl();
 
+    private RoomService() {}
+
+    public static synchronized RoomService getInstance() {
+        if (instance == null) {
+            instance = new RoomService();
+        }
+        return instance;
+    }
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
     }
-    
+
+    /** Lấy một Room theo ID — dùng nội bộ trong Service (không export cho UI). */
+    public Room getRoomById(Long id) {
+        if (id == null) return null;
+        return roomRepository.findAll().stream()
+                .filter(r -> r.getId().equals(id))
+                .findFirst().orElse(null);
+    }
+
     public List<Seat> getSeatsByRoom(Long roomId) {
         return seatRepository.findByRoomId(roomId);
     }

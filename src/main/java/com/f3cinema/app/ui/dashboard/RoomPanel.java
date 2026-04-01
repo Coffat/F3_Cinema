@@ -8,7 +8,7 @@ import java.awt.*;
 import java.util.List;
 
 public class RoomPanel extends BaseDashboardModule {
-    private final RoomService roomService = new RoomService();
+    private final RoomService roomService = RoomService.getInstance();
     private JPanel gridPanel;
 
     public RoomPanel() {

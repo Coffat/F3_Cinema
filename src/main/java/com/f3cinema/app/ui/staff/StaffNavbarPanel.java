@@ -126,6 +126,7 @@ public class StaffNavbarPanel extends JPanel {
 
     private JPopupMenu createUserMenu() {
         JPopupMenu menu = new JPopupMenu();
+        // Không set STYLE arc trên JPopupMenu — FlatLaf không áp dụng, có thể gây UnknownStyleException
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setBackground(Color.decode("#1E293B"));
         header.setBorder(new EmptyBorder(12, 16, 12, 16));

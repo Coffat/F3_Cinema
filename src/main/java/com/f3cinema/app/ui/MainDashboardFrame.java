@@ -22,6 +22,7 @@ public class MainDashboardFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1280, 800);
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Mở full màn hình mặc định
         getContentPane().setBackground(Color.decode("#0f172a"));
         setLayout(new BorderLayout());
 
