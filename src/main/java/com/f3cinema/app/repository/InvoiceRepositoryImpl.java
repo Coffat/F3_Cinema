@@ -260,6 +260,36 @@ public class InvoiceRepositoryImpl extends BaseRepositoryImpl<Invoice, Long> imp
         }
     }
 
+    @Override
+    public long countWalkInPaidInvoices(LocalDate fromInclusive, LocalDate toExclusive) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            StringBuilder hql = new StringBuilder("""
+                    SELECT count(i.id)
+                    FROM Invoice i
+                    WHERE i.customer IS NULL
+                    AND i.status = :paid
+                    """);
+            if (fromInclusive != null) {
+                hql.append(" AND i.createdAt >= :fromDt");
+            }
+            if (toExclusive != null) {
+                hql.append(" AND i.createdAt < :toDt");
+            }
+            Query<Long> q = session.createQuery(hql.toString(), Long.class);
+            q.setParameter("paid", InvoiceStatus.PAID);
+            if (fromInclusive != null) {
+                q.setParameter("fromDt", fromInclusive.atStartOfDay());
+            }
+            if (toExclusive != null) {
+                q.setParameter("toDt", toExclusive.atStartOfDay());
+            }
+            return q.uniqueResultOptional().orElse(0L);
+        } catch (Exception e) {
+            log.error("Error counting walk-in invoices from={} to={}", fromInclusive, toExclusive, e);
+            throw e;
+        }
+    }
+
     private void bindFilters(
             Query<?> query,
             String keyword,

@@ -6,9 +6,12 @@ import com.f3cinema.app.ui.staff.ticketing.TicketingFlowPanel;
 import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Modern Main Frame for Cinema Staff with Top Navigation.
+ * Optimized with lazy loading for instant startup.
  */
 public class StaffMainFrame extends JFrame {
 
@@ -16,14 +19,12 @@ public class StaffMainFrame extends JFrame {
     private StaffNavbarPanel navbarPanel;
     private JPanel contentArea;
     private SidebarController contentController;
+    private final Map<String, JPanel> panelCache = new HashMap<>();
 
-    // Card Constants
     public static final String CARD_TICKETING = "TICKETING";
     public static final String CARD_SEARCH = "SEARCH";
     public static final String CARD_CUSTOMERS = "CUSTOMERS";
     public static final String CARD_TRANSACTIONS = "TRANSACTIONS";
-
-    private TicketingFlowPanel ticketingFlow;
 
     public StaffMainFrame(User user) {
         this.loggedInUser = user;
@@ -35,40 +36,48 @@ public class StaffMainFrame extends JFrame {
         setSize(1280, 800);
         setMinimumSize(new Dimension(1024, 768));
         setLocationRelativeTo(null);
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // Mở full màn hình mặc định
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // 1. Root Layout
-        getContentPane().setBackground(Color.decode("#0F172A")); // Slate 900
+        getContentPane().setBackground(Color.decode("#0F172A"));
         setLayout(new BorderLayout());
 
-        // 2. NORTH: Top Navigation
         navbarPanel = new StaffNavbarPanel(loggedInUser);
         add(navbarPanel, BorderLayout.NORTH);
 
-        // 3. CENTER: Content
         contentArea = new JPanel(new CardLayout());
         contentArea.setOpaque(false);
         contentArea.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
 
         add(contentArea, BorderLayout.CENTER);
 
-        // 4. Controller & Injection
         contentController = new SidebarController(contentArea);
-        injectModules();
 
-        // Bind Navbar events
-        navbarPanel.setOnMenuSelected(contentController::handleMenuSelection);
+        navbarPanel.setOnMenuSelected(menuKey -> {
+            lazyLoadAndShow(menuKey);
+            contentController.handleMenuSelection(menuKey);
+        });
 
-        // Set initial card
-        contentController.handleMenuSelection(CARD_TICKETING);
+        lazyLoadAndShow(CARD_TICKETING);
     }
 
-    private void injectModules() {
-        ticketingFlow = new TicketingFlowPanel();
-        contentArea.add(ticketingFlow, CARD_TICKETING);
-        contentArea.add(new SearchShowtimePanel(), CARD_SEARCH);
-        contentArea.add(new CustomerPanel(), CARD_CUSTOMERS);
-        contentArea.add(new TransactionHistoryPanel(), CARD_TRANSACTIONS);
+    private void lazyLoadAndShow(String menuKey) {
+        if (!panelCache.containsKey(menuKey)) {
+            JPanel panel = createPanelForMenu(menuKey);
+            if (panel != null) {
+                panelCache.put(menuKey, panel);
+                contentArea.add(panel, menuKey);
+            }
+        }
+    }
+
+    private JPanel createPanelForMenu(String menuKey) {
+        return switch (menuKey) {
+            case CARD_TICKETING -> new TicketingFlowPanel();
+            case CARD_SEARCH -> new SearchShowtimePanel();
+            case CARD_CUSTOMERS -> new CustomerPanel();
+            case CARD_TRANSACTIONS -> new TransactionHistoryPanel();
+            default -> null;
+        };
     }
 }

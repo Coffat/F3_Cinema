@@ -146,7 +146,7 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
                 .sorted(Map.Entry.<LocalDate, List<TransactionRowDTO>>comparingByKey(Comparator.reverseOrder()))
                 .forEach(entry -> {
                     timelineContainer.add(createDateHeader(entry.getKey()));
-                    timelineContainer.add(Box.createVerticalStrut(10));
+                    timelineContainer.add(Box.createVerticalStrut(6));
                     for (TransactionRowDTO row : entry.getValue()) {
                         timelineContainer.add(new TransactionCard(
                                 row,
@@ -164,9 +164,9 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
                                     selectedInvoiceId = row.invoiceId();
                                     performRefund();
                                 }));
-                        timelineContainer.add(Box.createVerticalStrut(10));
+                        timelineContainer.add(Box.createVerticalStrut(6));
                     }
-                    timelineContainer.add(Box.createVerticalStrut(8));
+                    timelineContainer.add(Box.createVerticalStrut(4));
                 });
         timelineContainer.revalidate();
         timelineContainer.repaint();

@@ -60,7 +60,7 @@ public class UserService {
         if (fullName == null || fullName.isBlank()) {
             throw new IllegalArgumentException("Họ tên không được để trống.");
         }
-        String normalizedUsername = username.trim();
+        String normalizedUsername = username.trim().toLowerCase();
 
         if (userRepository.findByUsername(normalizedUsername).isPresent()) {
             throw new IllegalArgumentException("Username đã tồn tại.");
@@ -93,7 +93,7 @@ public class UserService {
             throw new IllegalArgumentException("Họ tên không được để trống.");
         }
 
-        String normalizedUsername = username.trim();
+        String normalizedUsername = username.trim().toLowerCase();
         userRepository.findByUsername(normalizedUsername).ifPresent(u -> {
             if (u.getId() != null && !u.getId().equals(id)) {
                 throw new IllegalArgumentException("Username đã tồn tại.");

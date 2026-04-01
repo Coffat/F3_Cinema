@@ -2,6 +2,7 @@ package com.f3cinema.app.service;
 
 import com.f3cinema.app.dto.customer.CustomerSearchRequest;
 import com.f3cinema.app.dto.customer.CustomerSearchResult;
+import com.f3cinema.app.dto.customer.WalkInStats;
 import com.f3cinema.app.entity.Customer;
 
 import java.math.BigDecimal;
@@ -39,4 +40,9 @@ public interface CustomerService {
      * Search customers for staff list UI with paging and filters.
      */
     CustomerSearchResult searchCustomers(CustomerSearchRequest request);
+
+    /**
+     * Thống kê hóa đơn khách vãng lai (không gắn thẻ thành viên), trạng thái đã thanh toán.
+     */
+    WalkInStats walkInInvoiceStats();
 }

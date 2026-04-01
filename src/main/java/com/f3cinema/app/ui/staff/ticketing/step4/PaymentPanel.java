@@ -2,6 +2,7 @@ package com.f3cinema.app.ui.staff.ticketing.step4;
 
 import com.f3cinema.app.dto.ProductDTO;
 import com.f3cinema.app.service.TicketingService;
+import com.f3cinema.app.service.VoucherService;
 import com.f3cinema.app.service.cart.CartManager;
 import com.f3cinema.app.service.impl.TicketingServiceImpl;
 import com.f3cinema.app.ui.staff.ticketing.TicketOrderState;
@@ -18,6 +19,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -34,6 +36,7 @@ public class PaymentPanel extends JPanel {
     private final TicketingFlowPanel navigator;
     private final TicketOrderState state;
     private final TicketingService ticketingService;
+    private final VoucherService voucherService;
 
     private CustomerLookupPanel customerLookupPanel;
     private PointRedemptionPanel pointRedemptionPanel;
@@ -43,7 +46,10 @@ public class PaymentPanel extends JPanel {
     private JPanel discountContentPanel;
     private JTextField txtManualVoucher;
     private JLabel lblVoucherStatus;
-    private JPanel paymentMethodsGrid;
+    private ButtonGroup paymentMethodGroup;
+    private JRadioButton rbPayCash;
+    private JRadioButton rbPayCard;
+    private JRadioButton rbPayMomo;
     private String selectedMethod = "CASH";
     private OrderSummaryCard summaryCard;
     private JButton btnConfirm;
@@ -53,6 +59,7 @@ public class PaymentPanel extends JPanel {
         this.navigator = navigator;
         this.state = TicketOrderState.getInstance();
         this.ticketingService = TicketingServiceImpl.getInstance();
+        this.voucherService = new VoucherService();
 
         setLayout(new BorderLayout());
         setOpaque(false);
@@ -316,66 +323,62 @@ public class PaymentPanel extends JPanel {
 
     private JPanel createPaymentMethodPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
-        panel.setOpaque(false);
-        panel.putClientProperty(FlatClientProperties.STYLE, "arc: 16; background: #1E293B");
-        panel.setBorder(new EmptyBorder(18, 18, 18, 18));
+        panel.setOpaque(true);
+        panel.setBackground(new Color(0x1E293B));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0x334155), 1, true),
+                new EmptyBorder(18, 18, 18, 18)));
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
         JLabel lblMethod = new JLabel("Phương thức");
-        FlatSVGIcon icon = new FlatSVGIcon("icons/credit-card.svg", 15, 15);
-        icon.setColorFilter(new FlatSVGIcon.ColorFilter(color -> TEXT_PRIMARY));
-        lblMethod.setIcon(icon);
         lblMethod.setFont(new Font("Inter", Font.BOLD, 15));
         lblMethod.setForeground(TEXT_PRIMARY);
 
-        paymentMethodsGrid = new JPanel(new GridLayout(1, 3, 12, 0));
-        paymentMethodsGrid.setOpaque(false);
-        paymentMethodsGrid.add(createPaymentMethodCard("Tien mat", "icons/dollar.svg", "CASH"));
-        paymentMethodsGrid.add(createPaymentMethodCard("The", "icons/credit-card.svg", "CARD"));
-        paymentMethodsGrid.add(createPaymentMethodCard("Vi dien tu", "icons/smartphone.svg", "MOMO"));
+        paymentMethodGroup = new ButtonGroup();
+        rbPayCash = createPaymentMethodRadio("Tien mat", "CASH");
+        rbPayCard = createPaymentMethodRadio("The", "CARD");
+        rbPayMomo = createPaymentMethodRadio("Vi dien tu", "MOMO");
+        paymentMethodGroup.add(rbPayCash);
+        paymentMethodGroup.add(rbPayCard);
+        paymentMethodGroup.add(rbPayMomo);
+
+        JPanel row = new JPanel(new GridLayout(1, 3, 12, 0));
+        row.setOpaque(false);
+        row.add(rbPayCash);
+        row.add(rbPayCard);
+        row.add(rbPayMomo);
+
+        syncPaymentMethodRadiosFromState();
 
         panel.add(lblMethod, BorderLayout.NORTH);
-        panel.add(paymentMethodsGrid, BorderLayout.CENTER);
+        panel.add(row, BorderLayout.CENTER);
 
         return panel;
     }
 
-    private JPanel createPaymentMethodCard(String label, String iconPath, String method) {
-        boolean active = selectedMethod.equals(method);
-        JPanel card = new JPanel(new BorderLayout(0, 8));
-        card.setOpaque(true);
-        card.setBackground(active ? new Color(99, 102, 241, 35) : new Color(15, 23, 42, 140));
-        card.setBorder(BorderFactory.createEmptyBorder(10, 8, 10, 8));
-        card.putClientProperty(FlatClientProperties.STYLE,
-                "arc: 12; borderWidth: 2; borderColor: " + (active ? "#6366F1" : "#334155"));
-        card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        JLabel icon = new JLabel(new FlatSVGIcon(iconPath, 24, 24), SwingConstants.CENTER);
-        icon.setHorizontalAlignment(SwingConstants.CENTER);
-        JLabel text = new JLabel(label, SwingConstants.CENTER);
-        text.setFont(new Font("Inter", Font.BOLD, 12));
-        text.setForeground(TEXT_PRIMARY);
-        card.add(icon, BorderLayout.CENTER);
-        card.add(text, BorderLayout.SOUTH);
-        card.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
+    private JRadioButton createPaymentMethodRadio(String label, String method) {
+        JRadioButton rb = new JRadioButton(label);
+        rb.setFont(new Font("Inter", Font.BOLD, 12));
+        rb.setForeground(TEXT_PRIMARY);
+        rb.setOpaque(false);
+        rb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        rb.addActionListener(e -> {
+            if (rb.isSelected()) {
                 selectedMethod = method;
                 state.setPaymentMethod(method);
-                refreshPaymentMethods();
             }
         });
-        return card;
+        return rb;
     }
 
-    private void refreshPaymentMethods() {
-        if (paymentMethodsGrid == null) return;
-        paymentMethodsGrid.removeAll();
-        paymentMethodsGrid.add(createPaymentMethodCard("Tien mat", "icons/dollar.svg", "CASH"));
-        paymentMethodsGrid.add(createPaymentMethodCard("The", "icons/credit-card.svg", "CARD"));
-        paymentMethodsGrid.add(createPaymentMethodCard("Vi dien tu", "icons/smartphone.svg", "MOMO"));
-        paymentMethodsGrid.revalidate();
-        paymentMethodsGrid.repaint();
+    private void syncPaymentMethodRadiosFromState() {
+        String m = state.getPaymentMethod() != null ? state.getPaymentMethod() : "CASH";
+        selectedMethod = m;
+        switch (m) {
+            case "CARD" -> rbPayCard.setSelected(true);
+            case "MOMO" -> rbPayMomo.setSelected(true);
+            default -> rbPayCash.setSelected(true);
+        }
     }
 
     private JScrollPane createRightSidebar() {
@@ -413,6 +416,9 @@ public class PaymentPanel extends JPanel {
         // Sync once from cart source before rendering details.
         state.setSnacksFromCartManager(CartManager.getInstance().getItems());
         refreshOrderDetails();
+        if (rbPayCash != null) {
+            syncPaymentMethodRadiosFromState();
+        }
     }
 
     private void onStateChanged(PropertyChangeEvent evt) {
@@ -531,27 +537,50 @@ public class PaymentPanel extends JPanel {
 
         state.setPointRedemption(null);
 
-        BigDecimal discount = BigDecimal.ZERO;
-        BigDecimal currentTotal = state.getSeatTotal().add(state.getSnacksTotal());
+        BigDecimal seatTotal = state.getSeatTotal();
+        BigDecimal snacksTotal = state.getSnacksTotal();
+        BigDecimal currentTotal = seatTotal.add(snacksTotal);
 
-        switch (code) {
-            case "F3CINEMA10" -> {
-                discount = currentTotal.multiply(BigDecimal.valueOf(0.10));
-                showVoucherSuccess("Giảm 10% - " + formatPrice(discount));
-                state.setDiscount(discount);
-            }
-            case "F3CINEMA20" -> {
-                discount = currentTotal.multiply(BigDecimal.valueOf(0.20));
-                showVoucherSuccess("Giảm 20% - " + formatPrice(discount));
-                state.setDiscount(discount);
-            }
-            case "SPRING2026" -> {
-                discount = BigDecimal.valueOf(20000);
-                showVoucherSuccess("Giảm 20,000 VNĐ");
-                state.setDiscount(discount);
-            }
-            default -> showVoucherError("Mã voucher không hợp lệ hoặc đã hết hạn!");
+        Map<String, Object> context = new HashMap<>();
+        context.put("seatCount", state.getSelectedSeatIds().size());
+        context.put("seatTotal", seatTotal);
+        context.put("snacksCart", state.getSnacksCartByProductId());
+        context.put("snacksTotal", snacksTotal);
+        context.put("comboTotal", calculateComboTotal());
+        context.put("orderAmount", currentTotal);
+
+        try {
+            BigDecimal discount = voucherService.applyVoucher(code, currentTotal, context);
+            showVoucherSuccess("Giảm " + formatPrice(discount));
+            state.setDiscount(discount);
+        } catch (IllegalArgumentException ex) {
+            showVoucherError(ex.getMessage());
+            state.setDiscount(BigDecimal.ZERO);
+        } catch (Exception ex) {
+            showVoucherError("Lỗi hệ thống. Vui lòng thử lại.");
+            state.setDiscount(BigDecimal.ZERO);
         }
+    }
+    
+    private BigDecimal calculateComboTotal() {
+        Map<Long, Integer> snacksCart = state.getSnacksCartByProductId();
+        if (snacksCart == null || snacksCart.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        
+        BigDecimal comboTotal = BigDecimal.ZERO;
+        Map<ProductDTO, Integer> cartItems = CartManager.getInstance().getItems();
+        
+        for (Map.Entry<ProductDTO, Integer> entry : cartItems.entrySet()) {
+            ProductDTO product = entry.getKey();
+            if (product != null && product.name().toLowerCase().contains("combo")) {
+                comboTotal = comboTotal.add(
+                    product.price().multiply(BigDecimal.valueOf(entry.getValue()))
+                );
+            }
+        }
+        
+        return comboTotal;
     }
 
     private void clearManualVoucher() {

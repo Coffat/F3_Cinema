@@ -6,6 +6,7 @@ import com.f3cinema.app.dto.customer.CustomerListItemDTO;
 import com.f3cinema.app.dto.customer.CustomerSearchRequest;
 import com.f3cinema.app.dto.customer.CustomerSearchResult;
 import com.f3cinema.app.dto.customer.CustomerSort;
+import com.f3cinema.app.dto.customer.WalkInStats;
 import com.f3cinema.app.service.CustomerService;
 import com.f3cinema.app.service.impl.CustomerServiceImpl;
 import com.f3cinema.app.ui.components.WrapLayout;
@@ -32,6 +33,8 @@ public class CustomerPanel extends BaseDashboardModule {
     private final JLabel lblStatTotal = new JLabel("0");
     private final JLabel lblStatNew = new JLabel("0");
     private final JLabel lblStatActive = new JLabel("0");
+    private final JLabel lblStatWalkInMonth = new JLabel("0");
+    private final JLabel lblStatWalkInTotalLine = new JLabel("Tổng: 0");
 
     private JPanel cardsPanel;
     private JScrollPane scrollPane;
@@ -123,13 +126,47 @@ public class CustomerPanel extends BaseDashboardModule {
     }
 
     private JPanel buildStatsRow() {
-        JPanel row = new JPanel(new GridLayout(1, 3, 12, 0));
+        JPanel row = new JPanel(new GridLayout(1, 4, 12, 0));
         row.setOpaque(false);
         row.setBorder(new EmptyBorder(10, 0, 0, 0));
-        row.add(statCard("Tong KH", lblStatTotal, "#6366F1"));
-        row.add(statCard("Moi thang nay", lblStatNew, "#10B981"));
-        row.add(statCard("Hoat dong", lblStatActive, "#F59E0B"));
+        row.add(statCard("Tổng KH", lblStatTotal, "#6366F1"));
+        row.add(statCard("Mới tháng nay", lblStatNew, "#10B981"));
+        row.add(statCard("Hoạt động", lblStatActive, "#F59E0B"));
+        row.add(walkInStatCard());
         return row;
+    }
+
+    /**
+     * Giao dịch khách vãng lai: hóa đơn đã thanh toán không gắn tài khoản thành viên.
+     */
+    private JPanel walkInStatCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setOpaque(true);
+        card.setBackground(Color.decode("#1E293B"));
+        card.putClientProperty(FlatClientProperties.STYLE, "arc: 14; borderWidth: 1; borderColor: #334155");
+        card.setBorder(new EmptyBorder(10, 12, 10, 12));
+
+        lblStatWalkInMonth.setFont(new Font("Inter", Font.BOLD, 18));
+        lblStatWalkInMonth.setForeground(Color.decode("#A78BFA"));
+        lblStatWalkInTotalLine.setFont(new Font("Inter", Font.PLAIN, 11));
+        lblStatWalkInTotalLine.setForeground(TEXT_SECONDARY);
+
+        JPanel center = new JPanel();
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+        center.setOpaque(false);
+        lblStatWalkInMonth.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblStatWalkInTotalLine.setAlignmentX(Component.LEFT_ALIGNMENT);
+        center.add(lblStatWalkInMonth);
+        center.add(Box.createVerticalStrut(4));
+        center.add(lblStatWalkInTotalLine);
+
+        JLabel cap = new JLabel("Khách vãng lai (tháng này)");
+        cap.setFont(new Font("Inter", Font.PLAIN, 12));
+        cap.setForeground(TEXT_SECONDARY);
+
+        card.add(center, BorderLayout.CENTER);
+        card.add(cap, BorderLayout.SOUTH);
+        return card;
     }
 
     private JPanel statCard(String label, JLabel value, String color) {
@@ -206,10 +243,16 @@ public class CustomerPanel extends BaseDashboardModule {
 
     private void loadCustomers() {
         isLoading = true;
+        final boolean fetchWalkIn = !appendMode;
         CustomerSearchRequest request = buildRequest();
         new SwingWorker<CustomerSearchResult, Void>() {
+            private WalkInStats walkInStats;
+
             @Override
             protected CustomerSearchResult doInBackground() {
+                if (fetchWalkIn) {
+                    walkInStats = customerService.walkInInvoiceStats();
+                }
                 return customerService.searchCustomers(request);
             }
 
@@ -217,6 +260,10 @@ public class CustomerPanel extends BaseDashboardModule {
             protected void done() {
                 try {
                     CustomerSearchResult result = get();
+                    if (fetchWalkIn && walkInStats != null) {
+                        lblStatWalkInMonth.setText(String.valueOf(walkInStats.monthPaidInvoices()));
+                        lblStatWalkInTotalLine.setText("Tổng: " + walkInStats.totalPaidInvoices());
+                    }
                     totalItems = result.total();
                     lblResultCount.setText(totalItems + " kết quả");
                     updateStats(result.items(), result.total());

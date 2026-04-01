@@ -1,15 +1,17 @@
 package com.f3cinema.app.ui.admin;
 
-import com.f3cinema.app.config.ThemeConfig;
 import com.f3cinema.app.entity.User;
 import com.f3cinema.app.ui.dashboard.*;
 import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * AdminMainFrame — Modern Sidebar Navigation architecture for F3 Cinema Admin Suite.
  * Core UI for HCMUTE Project (2026 Standards).
+ * Optimized with lazy loading for instant startup.
  */
 public class AdminMainFrame extends JFrame {
 
@@ -17,6 +19,7 @@ public class AdminMainFrame extends JFrame {
     private NavbarPanel navbarPanel;
     private JPanel contentArea;
     private SidebarController sidebarController;
+    private final Map<String, JPanel> panelCache = new HashMap<>();
 
     private static final String CARD_DASHBOARD  = "DASHBOARD";
     private static final String CARD_MOVIES     = "MOVIES";
@@ -29,8 +32,6 @@ public class AdminMainFrame extends JFrame {
 
     public AdminMainFrame(User user) {
         this.loggedInUser = user;
-        // 1. Setup Theme
-        ThemeConfig.setup();
         initialize();
     }
 
@@ -40,44 +41,51 @@ public class AdminMainFrame extends JFrame {
         setSize(1366, 860);
         setMinimumSize(new Dimension(1200, 800));
         setLocationRelativeTo(null);
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // Mở full màn hình mặc định
-        getContentPane().setBackground(Color.decode("#0F172A")); // Slate 900
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        getContentPane().setBackground(Color.decode("#0F172A"));
         setLayout(new BorderLayout());
 
-        // 2. NORTH: Top Navigation
         navbarPanel = new NavbarPanel(loggedInUser);
         add(navbarPanel, BorderLayout.NORTH);
 
-        // 3. CENTER: Content (CardLayout)
         contentArea = new JPanel(new CardLayout());
         contentArea.setOpaque(false);
         contentArea.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        
-        // Apply global arc styling to content area (if needed for glass windows inside)
         contentArea.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
 
         add(contentArea, BorderLayout.CENTER);
 
-        // 4. Controller & Module Injection
         sidebarController = new SidebarController(contentArea);
-        injectModules();
 
-        // Bind Navbar events to Controller
-        navbarPanel.setOnMenuSelected(sidebarController::handleMenuSelection);
+        navbarPanel.setOnMenuSelected(menuKey -> {
+            lazyLoadAndShow(menuKey);
+            sidebarController.handleMenuSelection(menuKey);
+        });
 
-        // Set initial card
-        sidebarController.handleMenuSelection(CARD_DASHBOARD);
+        lazyLoadAndShow(CARD_DASHBOARD);
     }
 
-    private void injectModules() {
-        // Zero-latency module initialization
-        contentArea.add(new DashboardPanel(), CARD_DASHBOARD);
-        contentArea.add(new MoviePanel(), CARD_MOVIES);
-        contentArea.add(new RoomPanel(), CARD_ROOMS);
-        contentArea.add(new ShowtimePanel(), CARD_SHOWTIMES);
-        contentArea.add(new StaffPanel(), CARD_STAFF);
-        contentArea.add(new WarehousePanel(), CARD_WAREHOUSE);
-        contentArea.add(new PromotionPanel(), CARD_PROMOTION);
-        contentArea.add(new StatisticsPanel(), CARD_STATISTICS);
+    private void lazyLoadAndShow(String menuKey) {
+        if (!panelCache.containsKey(menuKey)) {
+            JPanel panel = createPanelForMenu(menuKey);
+            if (panel != null) {
+                panelCache.put(menuKey, panel);
+                contentArea.add(panel, menuKey);
+            }
+        }
+    }
+
+    private JPanel createPanelForMenu(String menuKey) {
+        return switch (menuKey) {
+            case CARD_DASHBOARD -> new DashboardPanel();
+            case CARD_MOVIES -> new MoviePanel();
+            case CARD_ROOMS -> new RoomPanel();
+            case CARD_SHOWTIMES -> new ShowtimePanel();
+            case CARD_STAFF -> new StaffPanel();
+            case CARD_WAREHOUSE -> new WarehousePanel();
+            case CARD_PROMOTION -> new PromotionPanel();
+            case CARD_STATISTICS -> new StatisticsPanel();
+            default -> null;
+        };
     }
 }

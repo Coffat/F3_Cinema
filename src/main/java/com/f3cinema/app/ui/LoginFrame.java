@@ -41,21 +41,26 @@ public class LoginFrame extends JFrame {
     private JCheckBox      chkShowPwd;
     private final UserService userService = new UserService();
     private BufferedImage backgroundImage;
+    private boolean imageLoaded = false;
 
     public LoginFrame() {
-        loadBackground();
         initialize();
+        loadBackgroundAsync();
     }
 
-    private void loadBackground() {
-        try {
-            InputStream is = getClass().getResourceAsStream("/assets/bg_login.png");
-            if (is != null) {
-                backgroundImage = ImageIO.read(is);
+    private void loadBackgroundAsync() {
+        Thread.ofVirtual().start(() -> {
+            try {
+                InputStream is = getClass().getResourceAsStream("/assets/bg_login.png");
+                if (is != null) {
+                    backgroundImage = ImageIO.read(is);
+                    imageLoaded = true;
+                    SwingUtilities.invokeLater(this::repaint);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     private void initialize() {
@@ -169,9 +174,10 @@ public class LoginFrame extends JFrame {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            if (backgroundImage != null) {
+            
+            if (imageLoaded && backgroundImage != null) {
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
                 double scaleX = (double) getWidth() / backgroundImage.getWidth();
                 double scaleY = (double) getHeight() / backgroundImage.getHeight();
                 double scale = Math.max(scaleX, scaleY);

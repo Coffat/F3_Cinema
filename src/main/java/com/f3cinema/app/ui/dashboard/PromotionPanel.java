@@ -1,6 +1,9 @@
 package com.f3cinema.app.ui.dashboard;
 
 import com.f3cinema.app.config.ThemeConfig;
+import com.f3cinema.app.entity.Voucher;
+import com.f3cinema.app.entity.enums.VoucherStatus;
+import com.f3cinema.app.service.VoucherService;
 import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.formdev.flatlaf.FlatClientProperties;
 
@@ -11,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PromotionPanel extends BaseDashboardModule {
+    private final VoucherService voucherService = new VoucherService();
     private final List<PromotionCard.PromotionItem> promotions = new ArrayList<>();
     private JPanel cards;
     private JLabel statActive;
@@ -19,9 +23,82 @@ public class PromotionPanel extends BaseDashboardModule {
     private JLabel statRoi;
 
     public PromotionPanel() {
-        super("Khuyến mãi", "Home > Promotions");
-        seedData();
+        super("Quản lý Voucher", "Home > Vouchers");
+        loadVouchersFromDatabase();
         initUI();
+    }
+
+    private void loadVouchersFromDatabase() {
+        promotions.clear();
+        try {
+            List<Voucher> vouchers = voucherService.getAllVouchers();
+            for (Voucher v : vouchers) {
+                LocalDate startDate = v.getValidFrom().toLocalDate();
+                LocalDate endDate = v.getValidUntil().toLocalDate();
+                
+                String status = mapVoucherStatus(v, startDate, endDate);
+                String type = v.getVoucherType().name();
+                String discountLabel = formatDiscountLabel(v);
+                
+                int used = v.getUsageCount() != null ? v.getUsageCount() : 0;
+                int limit = v.getUsageLimit() != null ? v.getUsageLimit() : 0;
+                
+                promotions.add(new PromotionCard.PromotionItem(
+                    v.getDescription() != null && !v.getDescription().isBlank() ? 
+                        v.getDescription() : "Voucher " + v.getCode(),
+                    v.getCode(),
+                    type,
+                    status,
+                    discountLabel,
+                    startDate,
+                    endDate,
+                    used,
+                    limit
+                ));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private String formatDiscountLabel(Voucher v) {
+        return switch (v.getVoucherType()) {
+            case PERCENTAGE -> {
+                String label = v.getDiscountPercent() + "%";
+                if (v.getMaxDiscount() != null) {
+                    label += " (max " + formatMoney(v.getMaxDiscount().longValue()) + ")";
+                }
+                yield label;
+            }
+            case FIXED_AMOUNT -> 
+                v.getDiscountAmount() != null ? formatMoney(v.getDiscountAmount().longValue()) : "0đ";
+            case BUY_X_GET_Y -> 
+                String.format("Mua %d tặng %d", 
+                    v.getBuyQuantity() != null ? v.getBuyQuantity() : 0,
+                    v.getGetQuantity() != null ? v.getGetQuantity() : 0);
+            case COMBO_DISCOUNT -> {
+                String label = v.getDiscountPercent() + "% combo";
+                if (v.getMaxDiscount() != null) {
+                    label += " (max " + formatMoney(v.getMaxDiscount().longValue()) + ")";
+                }
+                yield label;
+            }
+        };
+    }
+    
+    private String mapVoucherStatus(Voucher v, LocalDate startDate, LocalDate endDate) {
+        LocalDate now = LocalDate.now();
+        if (v.getStatus() != VoucherStatus.ACTIVE) return "EXPIRED";
+        if (now.isBefore(startDate)) return "SCHEDULED";
+        if (now.isAfter(endDate)) return "EXPIRED";
+        return "ACTIVE";
+    }
+    
+    private String formatMoney(long amount) {
+        if (amount >= 1000) {
+            return (amount / 1000) + "k";
+        }
+        return amount + "đ";
     }
 
     private void initUI() {
@@ -51,7 +128,7 @@ public class PromotionPanel extends BaseDashboardModule {
         left.add(status);
         JButton add = new JButton("Thêm khuyến mãi");
         add.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #6366F1; borderWidth: 0;");
-        add.addActionListener(e -> new PromotionDialog(SwingUtilities.getWindowAncestor(this)).setVisible(true));
+        add.addActionListener(e -> new PromotionDialog(SwingUtilities.getWindowAncestor(this), () -> refreshVouchers()).setVisible(true));
         control.add(left, BorderLayout.WEST);
         control.add(add, BorderLayout.EAST);
         toolbar.add(control, BorderLayout.CENTER);
@@ -126,28 +203,80 @@ public class PromotionPanel extends BaseDashboardModule {
     }
 
     private JComponent buildGrid() {
-        cards = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 24, 24));
+        cards = new JPanel(new com.f3cinema.app.util.WrapLayout(FlowLayout.LEFT, 20, 20));
         cards.setOpaque(false);
         cards.setBorder(BorderFactory.createEmptyBorder(0, 24, 16, 24));
         for (PromotionCard.PromotionItem p : promotions) {
             cards.add(new PromotionCard(p,
-                    () -> new PromotionDialog(SwingUtilities.getWindowAncestor(this)).setVisible(true),
-                    () -> AppMessageDialogs.showInfo(this, "Đã nhân bản " + p.code()),
-                    () -> AppMessageDialogs.showInfo(this, "Đã tắt " + p.code())));
+                    () -> handleEdit(p),
+                    () -> handleDuplicate(p),
+                    () -> handleDeactivate(p)));
         }
         JScrollPane scroll = new JScrollPane(cards);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getViewport().setBackground(ThemeConfig.BG_MAIN);
         return scroll;
     }
-
-    private void seedData() {
-        promotions.clear();
-        promotions.add(new PromotionCard.PromotionItem("Giảm 25% combo bắp nước", "SUMMER25", "PERCENTAGE", "ACTIVE", "25% (max 50,000đ)", LocalDate.now().minusDays(3), LocalDate.now().plusDays(12), 67, 100));
-        promotions.add(new PromotionCard.PromotionItem("Giảm 40k cho tài khoản mới", "NEWUSER", "FIXED_AMOUNT", "ACTIVE", "40,000đ", LocalDate.now().minusDays(10), LocalDate.now().plusDays(20), 45, 150));
-        promotions.add(new PromotionCard.PromotionItem("Happy hour mua 2 tặng 1", "FLASH50", "BUY_X_GET_Y", "SCHEDULED", "Buy 2 Get 1", LocalDate.now().plusDays(2), LocalDate.now().plusDays(14), 0, 80));
-        promotions.add(new PromotionCard.PromotionItem("Đổi điểm lấy voucher", "POINT500", "POINT_REDEMPTION", "EXPIRED", "500 điểm -> 30k", LocalDate.now().minusDays(30), LocalDate.now().minusDays(3), 78, 80));
+    
+    private void handleEdit(PromotionCard.PromotionItem item) {
+        try {
+            Voucher voucher = voucherService.searchVouchers(item.code()).stream()
+                .filter(v -> v.getCode().equals(item.code()))
+                .findFirst()
+                .orElse(null);
+            
+            if (voucher != null) {
+                new PromotionDialog(SwingUtilities.getWindowAncestor(this), voucher, () -> refreshVouchers()).setVisible(true);
+            }
+        } catch (Exception e) {
+            AppMessageDialogs.showError(this, "Không thể chỉnh sửa: " + e.getMessage());
+        }
     }
+    
+    private void handleDuplicate(PromotionCard.PromotionItem item) {
+        AppMessageDialogs.showInfo(this, "Tính năng nhân bản sẽ được phát triển.");
+    }
+    
+    private void handleDeactivate(PromotionCard.PromotionItem item) {
+        int confirm = JOptionPane.showConfirmDialog(
+            this,
+            "Bạn có chắc muốn vô hiệu hóa voucher " + item.code() + "?",
+            "Xác nhận",
+            JOptionPane.YES_NO_OPTION
+        );
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                Voucher voucher = voucherService.searchVouchers(item.code()).stream()
+                    .filter(v -> v.getCode().equals(item.code()))
+                    .findFirst()
+                    .orElse(null);
+                
+                if (voucher != null) {
+                    voucherService.deleteVoucher(voucher.getId());
+                    AppMessageDialogs.showInfo(this, "Thành công", "Đã vô hiệu hóa voucher.");
+                    refreshVouchers();
+                }
+            } catch (Exception e) {
+                AppMessageDialogs.showError(this, "Lỗi: " + e.getMessage());
+            }
+        }
+    }
+    
+    private void refreshVouchers() {
+        loadVouchersFromDatabase();
+        cards.removeAll();
+        for (PromotionCard.PromotionItem p : promotions) {
+            cards.add(new PromotionCard(p,
+                    () -> handleEdit(p),
+                    () -> handleDuplicate(p),
+                    () -> handleDeactivate(p)));
+        }
+        refreshStats();
+        cards.revalidate();
+        cards.repaint();
+    }
+
 
     private void refreshStats() {
         long active = promotions.stream().filter(p -> "ACTIVE".equals(p.status())).count();

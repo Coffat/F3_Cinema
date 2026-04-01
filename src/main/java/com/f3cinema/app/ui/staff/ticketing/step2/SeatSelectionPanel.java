@@ -33,6 +33,8 @@ public class SeatSelectionPanel extends JPanel {
     private static final Color COLOR_VIP = new Color(0xF59E0B);
     private static final Color COLOR_SELECTED = new Color(0x22C55E);
     private static final Color COLOR_SOLD = new Color(0xEF4444);
+    /** Match OrderSummaryCard BG_SURFACE — fills JSplitPane right column below the card */
+    private static final Color BG_SIDEBAR = new Color(0x1E293B);
 
     private final TicketingFlowPanel navigator;
     private final TicketOrderState state;
@@ -181,13 +183,16 @@ public class SeatSelectionPanel extends JPanel {
 
     private JPanel createRightSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setOpaque(false);
+        sidebar.setOpaque(true);
+        sidebar.setBackground(BG_SIDEBAR);
         sidebar.setPreferredSize(new Dimension(320, 0));
 
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
         summaryCard = new OrderSummaryCard();
+        wrap.add(summaryCard, BorderLayout.NORTH);
 
-        sidebar.add(summaryCard, BorderLayout.NORTH);
-
+        sidebar.add(wrap, BorderLayout.NORTH);
         return sidebar;
     }
 
@@ -318,7 +323,10 @@ public class SeatSelectionPanel extends JPanel {
     private JToggleButton createSeatButton(SeatDTO seat) {
         String label = String.format("%02d", seat.number());
         JToggleButton btn = new JToggleButton(label);
-        btn.setPreferredSize(new Dimension(48, 48));
+        Dimension seatSize = new Dimension(48, 48);
+        btn.setPreferredSize(seatSize);
+        btn.setMinimumSize(seatSize);
+        btn.setMaximumSize(seatSize);
         btn.setFont(new Font("Inter", Font.BOLD, 11));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setMargin(new Insets(0, 0, 0, 0));
@@ -340,6 +348,7 @@ public class SeatSelectionPanel extends JPanel {
 
             final Color finalBase = baseColor;
             final Color finalText = textColor;
+            final Color hoverBg = lightenForHover(baseColor);
 
             btn.addItemListener(e -> {
                 if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -363,21 +372,26 @@ public class SeatSelectionPanel extends JPanel {
                 @Override
                 public void mouseEntered(java.awt.event.MouseEvent e) {
                     if (!btn.isSelected()) {
-                        btn.setBorder(BorderFactory.createLineBorder(ACCENT_PRIMARY, 2));
-                        btn.setPreferredSize(new Dimension(50, 50));
+                        btn.setBackground(hoverBg);
                     }
                 }
 
                 @Override
                 public void mouseExited(java.awt.event.MouseEvent e) {
                     if (!btn.isSelected()) {
-                        btn.setBorder(null);
-                        btn.setPreferredSize(new Dimension(48, 48));
+                        btn.setBackground(finalBase);
                     }
                 }
             });
         }
         return btn;
+    }
+
+    private static Color lightenForHover(Color c) {
+        int r = c.getRed() + (255 - c.getRed()) / 4;
+        int g = c.getGreen() + (255 - c.getGreen()) / 4;
+        int b = c.getBlue() + (255 - c.getBlue()) / 4;
+        return new Color(Math.min(255, r), Math.min(255, g), Math.min(255, b));
     }
 
     private JPanel buildScreenIndicator() {

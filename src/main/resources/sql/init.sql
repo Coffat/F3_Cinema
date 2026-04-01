@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL, -- ADMIN, STAFF
     full_name VARCHAR(100),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_username (username)
 );
 
 -- 2. CUSTOMERS Table
@@ -283,9 +284,14 @@ CREATE TABLE IF NOT EXISTS vouchers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(255),
-    discount_percent DECIMAL(5,2) NOT NULL,
+    voucher_type VARCHAR(30) NOT NULL DEFAULT 'PERCENTAGE',
+    discount_percent DECIMAL(5,2),
+    discount_amount DECIMAL(19,2),
     max_discount DECIMAL(19,2),
     min_order_amount DECIMAL(19,2),
+    buy_quantity INT,
+    get_quantity INT,
+    applies_to_category VARCHAR(50),
     valid_from DATETIME NOT NULL,
     valid_until DATETIME NOT NULL,
     usage_limit INT,
@@ -294,7 +300,10 @@ CREATE TABLE IF NOT EXISTS vouchers (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT IGNORE INTO vouchers (code, description, discount_percent, max_discount, min_order_amount, valid_from, valid_until, usage_limit, status) VALUES
-('F3CINEMA10', N'Giảm 10% cho đơn hàng', 10.00, 50000.00, 100000.00, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 100, 'ACTIVE'),
-('F3CINEMA20', N'Giảm 20% cho đơn hàng', 20.00, 100000.00, 200000.00, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 50, 'ACTIVE'),
-('F3WELCOME', N'Chào mừng khách mới', 15.00, 75000.00, 150000.00, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 60 DAY), 200, 'ACTIVE');
+INSERT IGNORE INTO vouchers (code, description, voucher_type, discount_percent, discount_amount, max_discount, min_order_amount, buy_quantity, get_quantity, applies_to_category, valid_from, valid_until, usage_limit, status) VALUES
+('F3CINEMA10', N'Giảm 10% cho đơn hàng', 'PERCENTAGE', 10.00, NULL, 50000.00, 100000.00, NULL, NULL, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 100, 'ACTIVE'),
+('F3CINEMA20', N'Giảm 20% cho đơn hàng', 'PERCENTAGE', 20.00, NULL, 100000.00, 200000.00, NULL, NULL, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 50, 'ACTIVE'),
+('F3WELCOME', N'Chào mừng khách mới', 'PERCENTAGE', 15.00, NULL, 75000.00, 150000.00, NULL, NULL, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 60 DAY), 200, 'ACTIVE'),
+('FIXED50K', N'Giảm cố định 50,000đ', 'FIXED_AMOUNT', NULL, 50000.00, NULL, 150000.00, NULL, NULL, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 50, 'ACTIVE'),
+('BUY2GET1', N'Mua 2 ghế tặng 1', 'BUY_X_GET_Y', NULL, NULL, NULL, 0, 2, 1, NULL, CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 30, 'ACTIVE'),
+('COMBO30', N'Giảm 30% combo bắp nước', 'COMBO_DISCOUNT', 30.00, NULL, 50000.00, 0, NULL, NULL, 'COMBO', CURRENT_DATE, DATE_ADD(CURRENT_DATE, INTERVAL 30 DAY), 100, 'ACTIVE');

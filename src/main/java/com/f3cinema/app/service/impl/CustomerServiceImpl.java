@@ -4,15 +4,19 @@ import com.f3cinema.app.config.HibernateUtil;
 import com.f3cinema.app.dto.customer.CustomerListItemDTO;
 import com.f3cinema.app.dto.customer.CustomerSearchRequest;
 import com.f3cinema.app.dto.customer.CustomerSearchResult;
+import com.f3cinema.app.dto.customer.WalkInStats;
 import com.f3cinema.app.entity.Customer;
 import com.f3cinema.app.repository.CustomerRepository;
 import com.f3cinema.app.repository.CustomerRepositoryImpl;
+import com.f3cinema.app.repository.InvoiceRepository;
+import com.f3cinema.app.repository.InvoiceRepositoryImpl;
 import com.f3cinema.app.service.CustomerService;
 import lombok.extern.log4j.Log4j2;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,9 +28,11 @@ public class CustomerServiceImpl implements CustomerService {
 
     private static CustomerServiceImpl instance;
     private final CustomerRepository customerRepository;
+    private final InvoiceRepository invoiceRepository;
 
     private CustomerServiceImpl() {
         this.customerRepository = new CustomerRepositoryImpl();
+        this.invoiceRepository = new InvoiceRepositoryImpl();
     }
 
     public static synchronized CustomerServiceImpl getInstance() {
@@ -118,5 +124,15 @@ public class CustomerServiceImpl implements CustomerService {
         );
         long total = customerRepository.countSearch(safe.query(), safe.minPoints(), safe.maxPoints());
         return new CustomerSearchResult(items, total, safe.offset(), safe.limit());
+    }
+
+    @Override
+    public WalkInStats walkInInvoiceStats() {
+        long all = invoiceRepository.countWalkInPaidInvoices(null, null);
+        LocalDate now = LocalDate.now();
+        LocalDate monthStart = now.withDayOfMonth(1);
+        LocalDate nextMonth = monthStart.plusMonths(1);
+        long month = invoiceRepository.countWalkInPaidInvoices(monthStart, nextMonth);
+        return new WalkInStats(all, month);
     }
 }

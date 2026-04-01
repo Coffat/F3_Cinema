@@ -4,10 +4,10 @@ import at.favre.lib.crypto.bcrypt.BCrypt;
 
 /**
  * Utility class for BCrypt password hashing and verification.
- * Cost factor = 12 as per Backend Development Standards.
+ * Cost factor = 10 for balanced security and performance.
  */
 public final class PasswordUtil {
-    private static final int BCRYPT_COST = 12;
+    private static final int BCRYPT_COST = 10;
 
     private PasswordUtil() {}
 

@@ -13,6 +13,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface InvoiceRepository extends BaseRepository<Invoice, Long> {
+
+    /**
+     * Đếm hóa đơn đã thanh toán không gắn khách hàng thành viên (khách vãng lai).
+     * {@code fromInclusive} / {@code toExclusive} null = không lọc theo cạnh đó (khoảng mở).
+     */
+    long countWalkInPaidInvoices(LocalDate fromInclusive, LocalDate toExclusive);
     List<TransactionRowDTO> searchRows(
             String keyword,
             LocalDate fromDate,

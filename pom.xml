@@ -24,6 +24,7 @@
         <xchart.version>3.8.7</xchart.version>
         <openpdf.version>2.0.3</openpdf.version>
         <log4j.version>2.24.1</log4j.version>
+        <hikaricp.version>5.1.0</hikaricp.version>
     </properties>
 
     <dependencies>
@@ -51,6 +52,13 @@
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <version>${mysql.version}</version>
+        </dependency>
+
+        <!-- Connection Pooling: HikariCP -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
         </dependency>
 
         <!-- Utilities: Lombok -->
