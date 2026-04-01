@@ -1,6 +1,9 @@
 package com.f3cinema.app.service.impl;
 
 import com.f3cinema.app.config.HibernateUtil;
+import com.f3cinema.app.dto.customer.CustomerListItemDTO;
+import com.f3cinema.app.dto.customer.CustomerSearchRequest;
+import com.f3cinema.app.dto.customer.CustomerSearchResult;
 import com.f3cinema.app.entity.Customer;
 import com.f3cinema.app.repository.CustomerRepository;
 import com.f3cinema.app.repository.CustomerRepositoryImpl;
@@ -10,6 +13,7 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -96,5 +100,23 @@ public class CustomerServiceImpl implements CustomerService {
             return 0;
         }
         return amount.divide(BigDecimal.valueOf(1000), 0, java.math.RoundingMode.DOWN).intValue();
+    }
+
+    @Override
+    public CustomerSearchResult searchCustomers(CustomerSearchRequest request) {
+        CustomerSearchRequest safe = request == null
+                ? new CustomerSearchRequest(null, null, null, 0, 30, null)
+                : request;
+
+        List<CustomerListItemDTO> items = customerRepository.search(
+                safe.query(),
+                safe.minPoints(),
+                safe.maxPoints(),
+                safe.offset(),
+                safe.limit(),
+                safe.sort()
+        );
+        long total = customerRepository.countSearch(safe.query(), safe.minPoints(), safe.maxPoints());
+        return new CustomerSearchResult(items, total, safe.offset(), safe.limit());
     }
 }

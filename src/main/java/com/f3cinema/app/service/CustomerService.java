@@ -1,5 +1,7 @@
 package com.f3cinema.app.service;
 
+import com.f3cinema.app.dto.customer.CustomerSearchRequest;
+import com.f3cinema.app.dto.customer.CustomerSearchResult;
 import com.f3cinema.app.entity.Customer;
 
 import java.math.BigDecimal;
@@ -32,4 +34,9 @@ public interface CustomerService {
      * @return Points earned
      */
     int calculatePointsFromAmount(BigDecimal amount);
+
+    /**
+     * Search customers for staff list UI with paging and filters.
+     */
+    CustomerSearchResult searchCustomers(CustomerSearchRequest request);
 }
