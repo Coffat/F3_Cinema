@@ -12,7 +12,10 @@ services:
       MYSQL_PASSWORD: 'f3_password'
     ports:
       - '3307:3306'
-    command: ["--init-file=/docker-entrypoint-initdb.d/init.sql"]
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --init-file=/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s

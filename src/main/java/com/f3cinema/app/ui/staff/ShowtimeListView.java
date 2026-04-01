@@ -38,13 +38,13 @@ public class ShowtimeListView extends JPanel {
         topFilterPanel.setOpaque(false);
 
         JLabel lblTitle = new JLabel("Lịch chiếu ngày:");
-        lblTitle.setFont(new Font("Inter", Font.BOLD, 16));
+        lblTitle.setFont(new Font("-apple-system", Font.BOLD, 16));
         lblTitle.setForeground(TEXT_PRIMARY);
 
         // Ô Text Input chọn Ngày (thay cho JDatePicker tạm)
         JTextField txtDate = new JTextField("28/03/2026");
         txtDate.setPreferredSize(new Dimension(140, 38));
-        txtDate.setFont(new Font("Inter", Font.BOLD, 14));
+        txtDate.setFont(new Font("-apple-system", Font.BOLD, 14));
         txtDate.setHorizontalAlignment(JTextField.CENTER);
         txtDate.putClientProperty(FlatClientProperties.STYLE, "arc: 12; focusWidth: 2; margin: 4,8,4,8");
 
@@ -52,12 +52,12 @@ public class ShowtimeListView extends JPanel {
         String[] mockMovies = {"Tất cả các phim", "Lật Mặt 7: Một Điều Ước", "Mai", "Dune 2"};
         JComboBox<String> cbMovies = new JComboBox<>(mockMovies);
         cbMovies.setPreferredSize(new Dimension(240, 38));
-        cbMovies.setFont(new Font("Inter", Font.PLAIN, 14));
+        cbMovies.setFont(new Font("-apple-system", Font.PLAIN, 14));
         cbMovies.putClientProperty(FlatClientProperties.STYLE, "arc: 12; focusWidth: 2;");
 
         // Nút Tìm Kiếm
         JButton btnSearch = new JButton("Tìm kiếm");
-        btnSearch.setFont(new Font("Inter", Font.BOLD, 14));
+        btnSearch.setFont(new Font("-apple-system", Font.BOLD, 14));
         btnSearch.setForeground(Color.WHITE);
         btnSearch.setBackground(ACCENT_PRIMARY);
         btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -121,22 +121,22 @@ public class ShowtimeListView extends JPanel {
 
         // Text Component 1: Tên phim
         JLabel lblMovie = new JLabel(movieTitle);
-        lblMovie.setFont(new Font("Inter", Font.BOLD, 15));
+        lblMovie.setFont(new Font("-apple-system", Font.BOLD, 15));
         lblMovie.setForeground(Color.WHITE);
 
         // Text Component 2: Khung giờ chiếu (Font to, màu nhấn)
         JLabel lblTime = new JLabel("⏰ " + timeRange);
-        lblTime.setFont(new Font("Inter", Font.BOLD, 20));
+        lblTime.setFont(new Font("-apple-system", Font.BOLD, 20));
         lblTime.setForeground(ACCENT_PRIMARY);
 
         // Text Component 3: Thông số Rạp
         JLabel lblRoom = new JLabel(roomName);
-        lblRoom.setFont(new Font("Inter", Font.PLAIN, 14));
+        lblRoom.setFont(new Font("-apple-system", Font.PLAIN, 14));
         lblRoom.setForeground(TEXT_SECONDARY);
 
         // Nút Kích hoạt chuyển trang
         JButton btnSelect = new JButton("CHỌN GHẾ");
-        btnSelect.setFont(new Font("Inter", Font.BOLD, 14));
+        btnSelect.setFont(new Font("-apple-system", Font.BOLD, 14));
         btnSelect.setForeground(Color.WHITE);
         btnSelect.setBackground(ACCENT_PRIMARY);
         btnSelect.setFocusPainted(false);

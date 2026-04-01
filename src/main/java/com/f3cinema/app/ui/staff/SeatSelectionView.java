@@ -66,7 +66,7 @@ public class SeatSelectionView extends JPanel {
         topBar.setBorder(new EmptyBorder(0, 0, 16, 0));
 
         JButton btnBack = new JButton("⬅ Trở về Lịch Chiếu");
-        btnBack.setFont(new Font("Inter", Font.BOLD, 14));
+        btnBack.setFont(new Font("-apple-system", Font.BOLD, 14));
         btnBack.setForeground(Color.WHITE);
         btnBack.putClientProperty(FlatClientProperties.STYLE,
                 "arc: 12; margin: 8,16,8,16; background: #1E293B; borderWidth: 0; focusWidth: 0;");
@@ -117,10 +117,10 @@ public class SeatSelectionView extends JPanel {
         topInvoice.setLayout(new BoxLayout(topInvoice, BoxLayout.Y_AXIS));
         topInvoice.setOpaque(false);
         lblMovieTitle = new JLabel("Chưa tải...");
-        lblMovieTitle.setFont(new Font("Inter", Font.BOLD, 20));
+        lblMovieTitle.setFont(new Font("-apple-system", Font.BOLD, 20));
         lblMovieTitle.setForeground(TEXT_PRIMARY);
         lblRoomAndTime = new JLabel("-- | --");
-        lblRoomAndTime.setFont(new Font("Inter", Font.PLAIN, 14));
+        lblRoomAndTime.setFont(new Font("-apple-system", Font.PLAIN, 14));
         lblRoomAndTime.setForeground(TEXT_SECONDARY);
         topInvoice.add(lblMovieTitle);
         topInvoice.add(Box.createVerticalStrut(8));
@@ -138,11 +138,11 @@ public class SeatSelectionView extends JPanel {
         selectedSeatsPanel.setBorder(new EmptyBorder(16, 0, 16, 0));
 
         JLabel titleSeats = new JLabel("Ghế đã chọn:");
-        titleSeats.setFont(new Font("Inter", Font.BOLD, 14));
+        titleSeats.setFont(new Font("-apple-system", Font.BOLD, 14));
         titleSeats.setForeground(TEXT_PRIMARY);
 
         txtSelectedSeatsList = new JTextArea("Chưa có ghế nào");
-        txtSelectedSeatsList.setFont(new Font("Inter", Font.PLAIN, 15));
+        txtSelectedSeatsList.setFont(new Font("-apple-system", Font.PLAIN, 15));
         txtSelectedSeatsList.setForeground(ACCENT_PRIMARY);
         txtSelectedSeatsList.setOpaque(false);
         txtSelectedSeatsList.setEditable(false);
@@ -166,18 +166,18 @@ public class SeatSelectionView extends JPanel {
         priceRow.setBorder(new EmptyBorder(16, 0, 0, 0));
 
         JLabel lblTotalText = new JLabel("Tổng tiền:");
-        lblTotalText.setFont(new Font("Inter", Font.PLAIN, 16));
+        lblTotalText.setFont(new Font("-apple-system", Font.PLAIN, 16));
         lblTotalText.setForeground(TEXT_SECONDARY);
 
         lblTotalPrice = new JLabel("0 VNĐ");
-        lblTotalPrice.setFont(new Font("Inter", Font.BOLD, 26));
+        lblTotalPrice.setFont(new Font("-apple-system", Font.BOLD, 26));
         lblTotalPrice.setForeground(new Color(0xEF4444)); // Rose
 
         priceRow.add(lblTotalText, BorderLayout.WEST);
         priceRow.add(lblTotalPrice, BorderLayout.EAST);
 
         btnPay = new JButton("THANH TOÁN (Enter)");
-        btnPay.setFont(new Font("Inter", Font.BOLD, 16));
+        btnPay.setFont(new Font("-apple-system", Font.BOLD, 16));
         btnPay.setForeground(Color.WHITE);
         btnPay.setBackground(ACCENT_PRIMARY);
         btnPay.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -231,7 +231,7 @@ public class SeatSelectionView extends JPanel {
         colorBox.setOpaque(false);
 
         JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("Inter", Font.PLAIN, 14));
+        lbl.setFont(new Font("-apple-system", Font.PLAIN, 14));
         lbl.setForeground(TEXT_PRIMARY);
 
         item.add(colorBox);
@@ -264,7 +264,7 @@ public class SeatSelectionView extends JPanel {
         seatMapContainer.setLayout(new BorderLayout());
 
         JLabel lblLoading = new JLabel("⏳ Đang tải thông tin suất chiếu và ghế...", SwingConstants.CENTER);
-        lblLoading.setFont(new Font("Inter", Font.ITALIC, 18));
+        lblLoading.setFont(new Font("-apple-system", Font.ITALIC, 18));
         lblLoading.setForeground(TEXT_SECONDARY);
         seatMapContainer.add(lblLoading, BorderLayout.CENTER);
 
@@ -322,7 +322,7 @@ public class SeatSelectionView extends JPanel {
         // Build số theo cấu trúc Form. "02", "14", "160"
         String defaultLabel = String.format("%02d", seat.number());
         JToggleButton btn = new JToggleButton(defaultLabel);
-        btn.setFont(new Font("Inter", Font.BOLD, 12));
+        btn.setFont(new Font("-apple-system", Font.BOLD, 12));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; borderWidth: 0; focusWidth: 0;");
 
@@ -392,14 +392,14 @@ public class SeatSelectionView extends JPanel {
 
     private void checkoutAction() {
         if (selectedSeats.isEmpty()) {
-            UIManager.put("OptionPane.messageFont", new Font("Inter", Font.PLAIN, 14));
+            UIManager.put("OptionPane.messageFont", new Font("-apple-system", Font.PLAIN, 14));
             JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 ghế trước khi thanh toán!",
                     "Chưa chọn ghế", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         double total = selectedSeats.stream().mapToDouble(SeatDTO::price).sum();
-        UIManager.put("OptionPane.messageFont", new Font("Inter", Font.BOLD, 14));
+        UIManager.put("OptionPane.messageFont", new Font("-apple-system", Font.BOLD, 14));
         String msg = String.format("Thanh toán thành công suất chiếu!\nTổng thu: %,.0f VNĐ", total);
         JOptionPane.showMessageDialog(this, msg, "Xác nhận", JOptionPane.INFORMATION_MESSAGE);
 

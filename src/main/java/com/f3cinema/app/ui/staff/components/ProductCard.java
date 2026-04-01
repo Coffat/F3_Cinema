@@ -39,14 +39,14 @@ public class ProductCard extends JPanel {
         
         // Product Name
         JLabel nameLabel = new JLabel("<html><div style='text-align: center; width: 120px'>" + product.name() + "</div></html>");
-        nameLabel.setFont(new Font("Inter", Font.BOLD, 14));
+        nameLabel.setFont(new Font("-apple-system", Font.BOLD, 14));
         nameLabel.setForeground(Color.decode("#F8FAFC")); // Slate 50
         nameLabel.setHorizontalAlignment(SwingConstants.CENTER);
         
         // Product Price
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
         JLabel priceLabel = new JLabel(currencyFormat.format(product.price()));
-        priceLabel.setFont(new Font("Inter", Font.PLAIN, 13));
+        priceLabel.setFont(new Font("-apple-system", Font.PLAIN, 13));
         priceLabel.setForeground(Color.decode("#6366F1")); // Indigo 500
         priceLabel.setHorizontalAlignment(SwingConstants.CENTER);
 

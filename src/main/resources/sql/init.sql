@@ -3,7 +3,7 @@
 -- Database Name: f3_cinema
 
 DROP DATABASE IF EXISTS f3_cinema;
-CREATE DATABASE f3_cinema;
+CREATE DATABASE f3_cinema CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE f3_cinema;
 
 -- 1. USERS Table

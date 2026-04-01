@@ -35,12 +35,12 @@ public class CartItemPanel extends JPanel {
         infoPanel.setOpaque(false);
         
         JLabel nameLabel = new JLabel(product.name());
-        nameLabel.setFont(new Font("Inter", Font.BOLD, 13));
+        nameLabel.setFont(new Font("-apple-system", Font.BOLD, 13));
         nameLabel.setForeground(Color.decode("#F8FAFC"));
         
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
         JLabel priceLabel = new JLabel(currencyFormat.format(product.price()));
-        priceLabel.setFont(new Font("Inter", Font.PLAIN, 12));
+        priceLabel.setFont(new Font("-apple-system", Font.PLAIN, 12));
         priceLabel.setForeground(Color.decode("#94A3B8"));
 
         infoPanel.add(nameLabel);
@@ -57,7 +57,7 @@ public class CartItemPanel extends JPanel {
         btnMinus.addActionListener(e -> new UpdateQuantityCommand(product, quantity - 1).execute());
 
         JLabel qtyLabel = new JLabel(String.valueOf(quantity), SwingConstants.CENTER);
-        qtyLabel.setFont(new Font("Inter", Font.BOLD, 14));
+        qtyLabel.setFont(new Font("-apple-system", Font.BOLD, 14));
         qtyLabel.setForeground(Color.WHITE);
         qtyLabel.setPreferredSize(new Dimension(30, 28));
 

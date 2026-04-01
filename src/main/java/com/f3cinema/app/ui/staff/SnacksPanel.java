@@ -69,7 +69,7 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
         JPanel cartHeader = new JPanel(new BorderLayout());
         cartHeader.setOpaque(false);
         JLabel lblCartTitle = new JLabel("Giỏ Hàng");
-        lblCartTitle.setFont(new Font("Inter", Font.BOLD, 18));
+        lblCartTitle.setFont(new Font("-apple-system", Font.BOLD, 18));
         lblCartTitle.setForeground(Color.WHITE);
         
         FlatButton btnClear = new FlatButton();
@@ -97,11 +97,11 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
         JPanel totalPanel = new JPanel(new BorderLayout());
         totalPanel.setOpaque(false);
         JLabel lblTotalLabel = new JLabel("Tổng tiền:");
-        lblTotalLabel.setFont(new Font("Inter", Font.BOLD, 16));
+        lblTotalLabel.setFont(new Font("-apple-system", Font.BOLD, 16));
         lblTotalLabel.setForeground(Color.decode("#94A3B8"));
         
         lblTotal = new JLabel("0 ₫");
-        lblTotal.setFont(new Font("Inter", Font.BOLD, 22));
+        lblTotal.setFont(new Font("-apple-system", Font.BOLD, 22));
         lblTotal.setForeground(Color.decode("#6366F1"));
         
         totalPanel.add(lblTotalLabel, BorderLayout.WEST);
@@ -112,7 +112,7 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
 
         btnCheckout = new FlatButton();
         btnCheckout.setText("THANH TOÁN");
-        btnCheckout.setFont(new Font("Inter", Font.BOLD, 14));
+        btnCheckout.setFont(new Font("-apple-system", Font.BOLD, 14));
         btnCheckout.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #6366F1; foreground: #FFFFFF; hoverBackground: #4F46E5");
         btnCheckout.setPreferredSize(new Dimension(0, 45));
         btnCheckout.addActionListener(e -> processCheckout());
