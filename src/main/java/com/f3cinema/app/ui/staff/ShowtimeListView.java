@@ -248,22 +248,22 @@ public class ShowtimeListView extends JPanel {
 
         // Text Component 1: Tên phim
         JLabel lblMovie = new JLabel(movieTitle);
-        lblMovie.setFont(new Font("Inter", Font.BOLD, 15));
+        lblMovie.setFont(new Font("-apple-system", Font.BOLD, 15));
         lblMovie.setForeground(Color.WHITE);
 
         // Text Component 2: Khung giờ chiếu (Font to, màu nhấn)
         JLabel lblTime = new JLabel("⏰ " + timeRange);
-        lblTime.setFont(new Font("Inter", Font.BOLD, 20));
+        lblTime.setFont(new Font("-apple-system", Font.BOLD, 20));
         lblTime.setForeground(ACCENT_PRIMARY);
 
         // Text Component 3: Thông số Rạp
         JLabel lblRoom = new JLabel(roomName);
-        lblRoom.setFont(new Font("Inter", Font.PLAIN, 14));
+        lblRoom.setFont(new Font("-apple-system", Font.PLAIN, 14));
         lblRoom.setForeground(TEXT_SECONDARY);
 
         // Nút Kích hoạt chuyển trang
         JButton btnSelect = new JButton("CHỌN GHẾ");
-        btnSelect.setFont(new Font("Inter", Font.BOLD, 14));
+        btnSelect.setFont(new Font("-apple-system", Font.BOLD, 14));
         btnSelect.setForeground(Color.WHITE);
         btnSelect.setBackground(ACCENT_PRIMARY);
         btnSelect.setFocusPainted(false);

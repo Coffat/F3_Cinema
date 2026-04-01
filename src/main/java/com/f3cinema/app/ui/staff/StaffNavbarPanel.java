@@ -111,7 +111,7 @@ public class StaffNavbarPanel extends JPanel {
                 g2.fillOval(2, 2, getWidth()-4, getHeight()-4);
                 String initial = staffUser.getFullName().substring(0, 1).toUpperCase();
                 g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Inter", Font.BOLD, 16));
+                g2.setFont(new Font("-apple-system", Font.BOLD, 16));
                 FontMetrics fm = g2.getFontMetrics();
                 g2.drawString(initial, (getWidth()-fm.stringWidth(initial))/2, fm.getAscent() + (getHeight()-fm.getHeight())/2 + 2);
                 g2.dispose();
@@ -126,15 +126,15 @@ public class StaffNavbarPanel extends JPanel {
 
     private JPopupMenu createUserMenu() {
         JPopupMenu menu = new JPopupMenu();
-        // Xóa thuộc tính 'arc' vì JPopupMenu không hỗ trợ, gây lỗi UnknownStyleException
+        // Không set STYLE arc trên JPopupMenu — FlatLaf không áp dụng, có thể gây UnknownStyleException
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setBackground(Color.decode("#1E293B"));
         header.setBorder(new EmptyBorder(12, 16, 12, 16));
         JLabel lblName = new JLabel(staffUser.getFullName());
-        lblName.setFont(new Font("Inter", Font.BOLD, 14));
+        lblName.setFont(new Font("-apple-system", Font.BOLD, 14));
         lblName.setForeground(Color.WHITE);
         JLabel lblRole = new JLabel(staffUser.getRole().getLabel());
-        lblRole.setFont(new Font("Inter", Font.PLAIN, 12));
+        lblRole.setFont(new Font("-apple-system", Font.PLAIN, 12));
         lblRole.setForeground(Color.decode("#94A3B8"));
         JPanel infoPanel = new JPanel(new GridLayout(2, 1));
         infoPanel.setOpaque(false);
@@ -181,7 +181,7 @@ public class StaffNavbarPanel extends JPanel {
             setOpaque(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             lblText = new JLabel(label, SwingConstants.CENTER);
-            lblText.setFont(new Font("Inter", Font.BOLD, 13));
+            lblText.setFont(new Font("-apple-system", Font.BOLD, 13));
             lblText.setForeground(Color.decode("#94A3B8"));
             lblText.setIcon(icon);
             lblText.setHorizontalTextPosition(SwingConstants.RIGHT);
