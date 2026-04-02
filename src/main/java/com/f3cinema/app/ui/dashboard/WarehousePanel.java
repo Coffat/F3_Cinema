@@ -250,11 +250,27 @@ public class WarehousePanel extends BaseDashboardModule {
         for (StockReceiptSummaryDTO r : receipts) {
             int idx = index.getAndIncrement();
             StockReceiptCard card = new StockReceiptCard(r, idx, () -> openReceiptDetail(r.id()));
-            receiptsTimelineContainer.add(card);
-            if (idx < receipts.size() - 1) receiptsTimelineContainer.add(createTimelineConnector());
+            card.setAlignmentX(Component.CENTER_ALIGNMENT);
+            receiptsTimelineContainer.add(wrapReceiptRow(card));
+            if (idx < receipts.size() - 1) {
+                receiptsTimelineContainer.add(createTimelineConnector());
+            }
         }
         receiptsTimelineContainer.revalidate();
         receiptsTimelineContainer.repaint();
+    }
+
+    /** Căn giữa thẻ phiếu — không kéo full ngang viewport. */
+    private JPanel wrapReceiptRow(JComponent card) {
+        JPanel row = new JPanel();
+        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.CENTER_ALIGNMENT);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, card.getMaximumSize().height));
+        row.add(Box.createHorizontalGlue());
+        row.add(card);
+        row.add(Box.createHorizontalGlue());
+        return row;
     }
 
     private JPanel createTimelineConnector() {
@@ -264,11 +280,13 @@ public class WarehousePanel extends BaseDashboardModule {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setColor(ThemeConfig.BORDER_COLOR);
                 g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{5, 5}, 0));
-                g2.drawLine(30, 0, 30, getHeight());
+                int cx = getWidth() / 2;
+                g2.drawLine(cx, 0, cx, getHeight());
                 g2.dispose();
             }
         };
         connector.setOpaque(false);
+        connector.setAlignmentX(Component.CENTER_ALIGNMENT);
         connector.setPreferredSize(new Dimension(0, 20));
         connector.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
         return connector;
