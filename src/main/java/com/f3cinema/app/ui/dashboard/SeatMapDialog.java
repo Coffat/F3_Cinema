@@ -25,11 +25,13 @@ public class SeatMapDialog extends BaseAppDialog {
     private JLabel capacityLabel;
     private JComboBox<SeatType> bulkTypeCombo;
     private JButton applyBulkButton;
+    /** Khi bật: click ghế chỉ chọn/bỏ (nhiều ghế), không cần Ctrl. Khi tắt: click đổi loại từng ghế. */
+    private JToggleButton bulkSelectModeToggle;
     private final Set<Seat> selectedSeats = new HashSet<>();
     private List<Seat> seats;
     
     public SeatMapDialog(JFrame owner, Long roomId) {
-        super(owner, "Sơ đồ ghế (Nhấp để đổi Loại Ghế)");
+        super(owner, "Sơ đồ ghế — bật \"Chọn nhiều\" rồi click các ghế, chọn loại và Apply");
         this.roomId = roomId;
         setupBaseDialog(900, 700);
         JPanel surface = createSurfacePanel();
@@ -45,16 +47,28 @@ public class SeatMapDialog extends BaseAppDialog {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         surface.add(scrollPane, BorderLayout.CENTER);
 
-        topPanel = new JPanel(new BorderLayout());
+        topPanel = new JPanel();
         topPanel.setOpaque(false);
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
         topPanel.setBorder(new EmptyBorder(10, 16, 8, 16));
-        topPanel.add(buildLegend(), BorderLayout.WEST);
+
+        JPanel legendRow = buildLegend();
+        legendRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        topPanel.add(legendRow);
+        topPanel.add(Box.createVerticalStrut(8));
 
         JPanel bulkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         bulkPanel.setOpaque(false);
+        bulkPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bulkSelectModeToggle = new JToggleButton("Chọn nhiều", true);
+        bulkSelectModeToggle.setFont(ThemeConfig.FONT_SMALL);
+        bulkSelectModeToggle.setToolTipText("Bật: click từng ghế để chọn/bỏ (không cần Ctrl). Tắt: mỗi click đổi loại ghế.");
+        bulkSelectModeToggle.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 10; selectedBackground: #6366F1;");
         capacityLabel = new JLabel("Capacity: 0/0");
         capacityLabel.setForeground(ThemeConfig.TEXT_SECONDARY);
         capacityLabel.setFont(ThemeConfig.FONT_BODY);
+        bulkPanel.add(bulkSelectModeToggle);
         bulkPanel.add(capacityLabel);
         bulkTypeCombo = new JComboBox<>(SeatType.values());
         bulkTypeCombo.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #0F172A; foreground: #F8FAFC;");
@@ -63,7 +77,7 @@ public class SeatMapDialog extends BaseAppDialog {
         applyBulkButton.addActionListener(e -> applyBulkUpdate());
         bulkPanel.add(bulkTypeCombo);
         bulkPanel.add(applyBulkButton);
-        topPanel.add(bulkPanel, BorderLayout.EAST);
+        topPanel.add(bulkPanel);
         surface.add(topPanel, BorderLayout.NORTH);
         
         loadSeats();
@@ -125,25 +139,29 @@ public class SeatMapDialog extends BaseAppDialog {
                     btn.setForeground(Color.WHITE);
                     btn.setFocusPainted(false);
                     btn.setBorderPainted(false);
-                    btn.putClientProperty(FlatClientProperties.STYLE, "arc: 12; margin: 0,0,0,0; padding: 0,0,0,0");
+                    btn.putClientProperty(FlatClientProperties.STYLE, "arc: 12");
                     btn.setBackground(colorForType(s.getSeatType()));
                     btn.setToolTipText(s.getRowChar() + s.getNumber() + " - " + s.getSeatType().name());
 
                     btn.addMouseListener(new MouseAdapter() {
                         @Override
                         public void mouseClicked(MouseEvent e) {
-                        boolean multiSelect = e.isControlDown();
-                        if (multiSelect) {
-                            if (selectedSeats.contains(s)) selectedSeats.remove(s);
-                            else selectedSeats.add(s);
-                            refreshSeatSelectionStyles();
-                            return;
-                        }
-                        SeatType nextType = nextType(s.getSeatType());
-                        s.setSeatType(nextType);
-                        btn.setBackground(colorForType(nextType));
-                        persistAsync(s);
-                        updateCapacity();
+                            boolean multiSelect = bulkSelectModeToggle.isSelected()
+                                    || e.isControlDown() || e.isMetaDown();
+                            if (multiSelect) {
+                                if (selectedSeats.contains(s)) {
+                                    selectedSeats.remove(s);
+                                } else {
+                                    selectedSeats.add(s);
+                                }
+                                refreshSeatSelectionStyles();
+                                return;
+                            }
+                            SeatType nextType = nextType(s.getSeatType());
+                            s.setSeatType(nextType);
+                            btn.setBackground(colorForType(nextType));
+                            persistAsync(s);
+                            updateCapacity();
                         }
                     });
                     btn.putClientProperty("seat", s);
@@ -157,7 +175,11 @@ public class SeatMapDialog extends BaseAppDialog {
     }
 
     private void applyBulkUpdate() {
-        if (selectedSeats.isEmpty()) return;
+        if (selectedSeats.isEmpty()) {
+            AppMessageDialogs.showInfo(this, "Chưa chọn ghế",
+                    "Bật \"Chọn nhiều\" (mặc định đã bật) rồi click các ghế, hoặc giữ Ctrl/⌘ khi tắt chế độ đó. Chọn loại ở combobox rồi bấm Apply.");
+            return;
+        }
         SeatType target = (SeatType) bulkTypeCombo.getSelectedItem();
         if (target == null) return;
         for (Component c : mapPanel.getComponents()) {

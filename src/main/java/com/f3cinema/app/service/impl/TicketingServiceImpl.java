@@ -17,6 +17,7 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -114,20 +115,17 @@ public class TicketingServiceImpl implements TicketingService {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             tx = session.beginTransaction();
 
-            // 1. Pre-fetch Showtime to get base price
-            Showtime showtime = session.get(Showtime.class, showtimeId);
+            // 1. Pre-fetch Showtime (JOIN FETCH tránh lazy sau khi flush/commit)
+            Showtime showtime = session.createQuery(
+                            "SELECT DISTINCT s FROM Showtime s JOIN FETCH s.room JOIN FETCH s.movie WHERE s.id = :id",
+                            Showtime.class)
+                    .setParameter("id", showtimeId)
+                    .uniqueResult();
             if (showtime == null)
                 throw new RuntimeException("Suất chiếu đã bị xóa hoặc không hợp lệ.");
 
-            // 2. Resolve Authenticated Staff
-            User staff = SessionManager.getCurrentUser();
-            if (staff == null) {
-                // To maintain NOT NULL constraint in DB, we fallback to a default admin if no
-                // one is logged in (dev mode)
-                staff = session.createQuery("from User u where u.role = 'ADMIN'", User.class)
-                        .setMaxResults(1)
-                        .uniqueResult();
-            }
+            // 2. Resolve staff as managed reference (SessionManager holds detached User from login)
+            User staff = resolveStaffUser(session);
 
             // 3. Create Master: Invoice
             Invoice invoice = Invoice.builder()
@@ -179,8 +177,9 @@ public class TicketingServiceImpl implements TicketingService {
             log.info("Booking completed successfully. Invoice ID: {}", invoice.getId());
 
         } catch (Exception e) {
-            if (tx != null)
+            if (tx != null && tx.isActive()) {
                 tx.rollback();
+            }
             log.error("Critical error during seat booking transaction: {}", e.getMessage(), e);
             throw new RuntimeException("Giao dịch thất bại: " + e.getMessage());
         }
@@ -201,17 +200,16 @@ public class TicketingServiceImpl implements TicketingService {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             tx = session.beginTransaction();
 
-            Showtime showtime = session.get(Showtime.class, showtimeId);
+            Showtime showtime = session.createQuery(
+                            "SELECT DISTINCT s FROM Showtime s JOIN FETCH s.room JOIN FETCH s.movie WHERE s.id = :id",
+                            Showtime.class)
+                    .setParameter("id", showtimeId)
+                    .uniqueResult();
             if (showtime == null) {
                 throw new RuntimeException("Suất chiếu không hợp lệ.");
             }
 
-            User staff = SessionManager.getCurrentUser();
-            if (staff == null) {
-                staff = session.createQuery("from User u where u.role = 'ADMIN'", User.class)
-                        .setMaxResults(1)
-                        .uniqueResult();
-            }
+            User staff = resolveStaffUser(session);
 
             Customer customer = null;
             if (customerId != null) {
@@ -272,7 +270,7 @@ public class TicketingServiceImpl implements TicketingService {
                 }
 
                 discount = subtotal.multiply(BigDecimal.valueOf(redemptionTier.getDiscountPercent()))
-                        .divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP);
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 pointsUsed = redemptionTier.getRequiredPoints();
 
                 customer.setPoints(availablePoints - pointsUsed);
@@ -321,14 +319,35 @@ public class TicketingServiceImpl implements TicketingService {
             }
 
             tx.commit();
-            log.info("Booking with loyalty completed. Invoice ID: {}", invoice.getId());
-            return invoice.getId();
+            long invoiceId = invoice.getId();
+            log.info("Booking with loyalty completed. Invoice ID: {}", invoiceId);
+            return invoiceId;
 
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
+            if (tx != null && tx.isActive()) {
+                tx.rollback();
+            }
             log.error("Error during loyalty booking: {}", e.getMessage(), e);
             throw new RuntimeException("Giao dịch thất bại: " + e.getMessage());
         }
+    }
+
+    /**
+     * Dùng proxy/reference trong session hiện tại — tránh gắn User detached từ login (session đã đóng)
+     * gây lỗi JDBC/Hibernate kiểu "LogicalConnectionManagedImpl is closed".
+     */
+    private User resolveStaffUser(Session session) {
+        User current = SessionManager.getCurrentUser();
+        if (current != null && current.getId() != null) {
+            return session.getReference(User.class, current.getId());
+        }
+        User fallback = session.createQuery("from User u where u.role = 'ADMIN'", User.class)
+                .setMaxResults(1)
+                .uniqueResult();
+        if (fallback == null) {
+            throw new RuntimeException("Không tìm thấy tài khoản nhân viên để ghi hóa đơn.");
+        }
+        return fallback;
     }
 
     // ── Helper Methods ──────────────────────────────────────────────────

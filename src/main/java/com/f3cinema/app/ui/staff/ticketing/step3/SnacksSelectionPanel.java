@@ -6,7 +6,7 @@ import com.f3cinema.app.service.cart.CartObserver;
 import com.f3cinema.app.service.impl.InventoryServiceImpl;
 import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.staff.components.CartItemPanel;
-import com.f3cinema.app.ui.staff.components.ProductCard;
+import com.f3cinema.app.ui.dashboard.ProductCard;
 import com.f3cinema.app.ui.staff.ticketing.TicketOrderState;
 import com.f3cinema.app.ui.staff.ticketing.TicketingFlowPanel;
 import com.f3cinema.app.ui.staff.ticketing.components.OrderSummaryCard;
