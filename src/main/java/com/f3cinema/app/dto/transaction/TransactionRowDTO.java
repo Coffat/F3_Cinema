@@ -14,6 +14,8 @@ public record TransactionRowDTO(
         String staffName,
         BigDecimal totalAmount,
         InvoiceStatus invoiceStatus,
-        PaymentStatus paymentStatus
+        PaymentStatus paymentStatus,
+        /** Mã hiển thị: F3-yyyyMMdd-XXX (XXX = STT trong ngày). */
+        String invoiceCode
 ) {
 }

@@ -50,4 +50,9 @@ public interface InvoiceRepository extends BaseRepository<Invoice, Long> {
     void updateInvoiceStatus(Long invoiceId, InvoiceStatus status);
 
     void updatePaymentsStatusByInvoiceId(Long invoiceId, PaymentStatus status);
+
+    /**
+     * Thứ tự hóa đơn trong cùng một ngày dương lịch (theo {@code id}): đếm các hóa đơn cùng ngày với {@code createdAt} và có {@code id <= invoiceId}.
+     */
+    int countInvoicesSameCalendarDayWithIdUpTo(Long invoiceId, java.time.LocalDateTime createdAt);
 }

@@ -48,7 +48,7 @@ public final class DialogStyle {
         btn.setForeground(Color.WHITE);
         btn.putClientProperty(FlatClientProperties.STYLE,
                 "arc: 12; borderWidth: 0; margin: 8,24,8,24; background: #6366F1;");
-        btn.setPreferredSize(new Dimension(140, 42));
+        btn.putClientProperty(FlatClientProperties.MINIMUM_WIDTH, 0);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }
@@ -59,7 +59,7 @@ public final class DialogStyle {
         btn.setForeground(ThemeConfig.TEXT_SECONDARY);
         btn.putClientProperty(FlatClientProperties.STYLE,
                 "arc: 12; borderWidth: 0; margin: 8,24,8,24; background: #334155;");
-        btn.setPreferredSize(new Dimension(140, 42));
+        btn.putClientProperty(FlatClientProperties.MINIMUM_WIDTH, 0);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }

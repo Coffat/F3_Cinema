@@ -5,7 +5,8 @@ import com.f3cinema.app.entity.enums.UserRole;
 import com.f3cinema.app.exception.AuthenticationException;
 import com.f3cinema.app.repository.UserRepository;
 import com.f3cinema.app.util.PasswordUtil;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,8 +14,9 @@ import java.util.Optional;
 /**
  * Service for User authentication and management.
  */
-@Log4j2
 public class UserService {
+    private static final Logger log = LogManager.getLogger(UserService.class);
+
     private final UserRepository userRepository;
 
     public UserService() {

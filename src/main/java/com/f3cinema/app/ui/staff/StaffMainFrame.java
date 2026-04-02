@@ -59,6 +59,7 @@ public class StaffMainFrame extends JFrame {
         });
 
         lazyLoadAndShow(CARD_TICKETING);
+        contentController.handleMenuSelection(CARD_TICKETING);
     }
 
     private void lazyLoadAndShow(String menuKey) {

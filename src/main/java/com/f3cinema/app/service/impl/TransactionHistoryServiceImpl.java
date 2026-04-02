@@ -13,6 +13,7 @@ import com.f3cinema.app.entity.enums.PaymentStatus;
 import com.f3cinema.app.repository.InvoiceRepository;
 import com.f3cinema.app.repository.InvoiceRepositoryImpl;
 import com.f3cinema.app.service.TransactionHistoryService;
+import com.f3cinema.app.util.InvoiceCodeFormatter;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.List;
@@ -69,8 +70,12 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
         String customerPhone = invoice.getCustomer() != null ? invoice.getCustomer().getPhone() : null;
         String staffName = invoice.getUser() != null ? invoice.getUser().getFullName() : null;
 
+        int seq = invoiceRepository.countInvoicesSameCalendarDayWithIdUpTo(invoice.getId(), invoice.getCreatedAt());
+        String invoiceCode = InvoiceCodeFormatter.format(invoice.getCreatedAt().toLocalDate(), seq);
+
         return new TransactionDetailDTO(
                 invoice.getId(),
+                invoiceCode,
                 invoice.getCreatedAt(),
                 invoice.getStatus(),
                 customerName,

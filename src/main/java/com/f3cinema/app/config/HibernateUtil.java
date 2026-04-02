@@ -5,7 +5,8 @@ import org.hibernate.boot.Metadata;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,8 +14,9 @@ import java.util.Map;
 /**
  * Thread-safe Singleton Utility for Hibernate SessionFactory with HikariCP connection pooling.
  */
-@Log4j2
 public class HibernateUtil {
+    private static final Logger log = LogManager.getLogger(HibernateUtil.class);
+
     private static SessionFactory sessionFactory;
 
     private HibernateUtil() {}

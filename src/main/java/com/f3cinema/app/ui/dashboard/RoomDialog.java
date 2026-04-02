@@ -139,7 +139,7 @@ public class RoomDialog extends BaseAppDialog {
         JLabel lbl = DialogStyle.formLabel(labelText);
 
         if (inputComp instanceof JTextField || inputComp instanceof JComboBox || inputComp instanceof JSpinner) {
-            inputComp.putClientProperty(FlatClientProperties.STYLE, "arc: 12; padding: 6,12,6,12; background: #1E293B; foreground: #F8FAFC; borderColor: #334155; focusWidth: 2");
+            inputComp.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #1E293B; foreground: #F8FAFC; borderColor: #334155; focusWidth: 2");
             DialogStyle.styleInput(inputComp);
             inputComp.setPreferredSize(new Dimension(0, 38));
             if (inputComp instanceof JTextField) {
@@ -167,7 +167,7 @@ public class RoomDialog extends BaseAppDialog {
                 btn.setFont(new Font("Inter", Font.BOLD, 10));
                 btn.setForeground(Color.WHITE);
                 btn.setFocusPainted(false);
-                btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #6366F1; borderWidth: 0; margin: 0,0,0,0; padding: 0,0,0,0");
+                btn.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #6366F1; borderWidth: 0");
                 previewPanel.add(btn);
             }
         }

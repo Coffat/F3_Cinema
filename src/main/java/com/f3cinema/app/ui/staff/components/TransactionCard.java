@@ -27,7 +27,10 @@ public class TransactionCard extends JPanel {
         leftCol.setOpaque(false);
         leftCol.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel inv = new JLabel("#" + row.invoiceId());
+        String codeLabel = row.invoiceCode() != null && !row.invoiceCode().isBlank()
+                ? row.invoiceCode()
+                : ("#" + row.invoiceId());
+        JLabel inv = new JLabel(codeLabel);
         inv.setFont(ThemeConfig.FONT_H3);
         inv.setForeground(ThemeConfig.TEXT_PRIMARY);
         inv.setAlignmentX(Component.LEFT_ALIGNMENT);
