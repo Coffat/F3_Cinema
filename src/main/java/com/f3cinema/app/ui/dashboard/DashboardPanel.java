@@ -25,6 +25,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,7 @@ public class DashboardPanel extends BaseDashboardModule {
     private XChartPanel<CategoryChart> lineChartPanel;
     private XChartPanel<PieChart> pieChartPanel;
     private JPanel topMoviesPanel;
+    private JPanel topMoviesContent;
 
     private final DefaultTableModel alertTableModel;
     private final DefaultListModel<String> nowShowingModel;
@@ -157,7 +159,10 @@ public class DashboardPanel extends BaseDashboardModule {
         card.setToolTipText(tooltip);
 
         // Icon at top-left
-        JLabel icon = new JLabel(new FlatSVGIcon(iconPath, 32, 32));
+        FlatSVGIcon statIcon = new FlatSVGIcon(iconPath, 32, 32);
+        // Ensure icon is readable on dark cards
+        statIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> ACCENT));
+        JLabel icon = new JLabel(statIcon);
         icon.setHorizontalAlignment(SwingConstants.LEFT);
         
         // Title below icon
@@ -198,7 +203,9 @@ public class DashboardPanel extends BaseDashboardModule {
         card.setOpaque(false);
         
         // Header
-        JLabel header = new JLabel("Top phim hot", new FlatSVGIcon("icons/star.svg", 20, 20), SwingConstants.LEFT);
+        FlatSVGIcon headerIcon = new FlatSVGIcon("icons/star.svg", 20, 20);
+        headerIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> TEXT_PRIMARY));
+        JLabel header = new JLabel("Top phim hot", headerIcon, SwingConstants.LEFT);
         header.setFont(ThemeConfig.FONT_H2);
         header.setForeground(TEXT_PRIMARY);
         header.setIconTextGap(10);
@@ -224,6 +231,8 @@ public class DashboardPanel extends BaseDashboardModule {
         content.setOpaque(false);
         content.setBorder(new EmptyBorder(ThemeConfig.PADDING_CARD, ThemeConfig.PADDING_CARD,
                                           ThemeConfig.PADDING_CARD, ThemeConfig.PADDING_CARD));
+
+        this.topMoviesContent = content;
         
         // Placeholder for top 5 movies
         for (int i = 1; i <= 5; i++) {
@@ -311,7 +320,9 @@ public class DashboardPanel extends BaseDashboardModule {
     private JPanel wrapChart(JComponent chart, String heading, String iconPath) {
         JPanel p = new JPanel(new BorderLayout(0, ThemeConfig.GAP_SMALL));
         p.setOpaque(false);
-        JLabel h = new JLabel(heading, new FlatSVGIcon(iconPath, 20, 20), SwingConstants.LEFT);
+        FlatSVGIcon chartIcon = new FlatSVGIcon(iconPath, 20, 20);
+        chartIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> TEXT_PRIMARY));
+        JLabel h = new JLabel(heading, chartIcon, SwingConstants.LEFT);
         h.setFont(ThemeConfig.FONT_H2);
         h.setForeground(TEXT_PRIMARY);
         h.setIconTextGap(10);
@@ -333,9 +344,15 @@ public class DashboardPanel extends BaseDashboardModule {
         
         styleXChartCategory(chart);
         
-        // Placeholder data
-        List<String> xData = List.of("", "", "", "", "", "", "");
-        List<Number> yData = List.of(0, 0, 0, 0, 0, 0, 0);
+        // Placeholder data — labels must be non-empty for XChart TextLayout
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        List<String> xData = new ArrayList<>();
+        List<Number> yData = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            xData.add(today.minusDays(i).format(df));
+            yData.add(0);
+        }
         chart.addSeries("Doanh thu", xData, yData);
         
         XChartPanel<CategoryChart> panel = new XChartPanel<>(chart);
@@ -370,8 +387,20 @@ public class DashboardPanel extends BaseDashboardModule {
         styler.setPlotBorderVisible(false);
         styler.setChartTitleVisible(false);
         styler.setLegendVisible(false);
+        // Force all chart text (axes/ticks) to be readable on dark background
+        styler.setChartFontColor(TEXT_PRIMARY);
         styler.setSeriesColors(new Color[]{ACCENT});
         styler.setBaseFont(ThemeConfig.FONT_SMALL);
+
+        // CategoryChart uses an AxesChartStyler underneath; cast to access axis colors.
+        if (styler instanceof org.knowm.xchart.style.AxesChartStyler axes) {
+            axes.setAxisTickLabelsColor(TEXT_PRIMARY);
+            axes.setXAxisTickLabelsColor(TEXT_PRIMARY);
+            axes.setYAxisTickLabelsColor(TEXT_PRIMARY);
+            axes.setXAxisTitleColor(TEXT_PRIMARY);
+            axes.setYAxisTitleColor(TEXT_PRIMARY);
+            axes.setPlotGridLinesColor(new Color(51, 65, 85, 120));
+        }
     }
     
     private void styleXChartPie(PieChart chart) {
@@ -382,8 +411,16 @@ public class DashboardPanel extends BaseDashboardModule {
         styler.setChartTitleVisible(false);
         styler.setLegendVisible(true);
         styler.setLegendBackgroundColor(BG_MAIN);
+        // Ensure legend/labels are readable on dark background
+        styler.setChartFontColor(TEXT_PRIMARY);
         styler.setBaseFont(ThemeConfig.FONT_SMALL);
+        styler.setLegendFont(ThemeConfig.FONT_SMALL);
         styler.setSeriesColors(new Color[]{ACCENT, DANGER, TEXT_SECONDARY});
+
+        // Pie chart uses PieStyler underneath; force label text color to white.
+        if (styler instanceof org.knowm.xchart.style.PieStyler pie) {
+            pie.setLabelsFontColor(TEXT_PRIMARY);
+        }
     }
 
     private JPanel buildOperationalRow() {
@@ -408,15 +445,23 @@ public class DashboardPanel extends BaseDashboardModule {
         table.getTableHeader().setFont(ThemeConfig.FONT_SMALL);
         table.getTableHeader().setBackground(BG_SURFACE);
         table.getTableHeader().setForeground(TEXT_SECONDARY);
-        table.putClientProperty(FlatClientProperties.STYLE, "arc: 20; showHorizontalLines: true; showVerticalLines: false;");
+        table.putClientProperty(FlatClientProperties.STYLE, "showHorizontalLines: true; showVerticalLines: false;");
         DefaultTableCellRenderer center = new DefaultTableCellRenderer();
         center.setHorizontalAlignment(SwingConstants.CENTER);
+        center.setForeground(TEXT_PRIMARY);
+        center.setBackground(BG_SURFACE);
         table.getColumnModel().getColumn(1).setCellRenderer(center);
         table.getColumnModel().getColumn(2).setCellRenderer(center);
+
+        DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer();
+        leftRenderer.setHorizontalAlignment(SwingConstants.LEFT);
+        leftRenderer.setForeground(TEXT_PRIMARY);
+        leftRenderer.setBackground(BG_SURFACE);
+        table.getColumnModel().getColumn(0).setCellRenderer(leftRenderer);
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.getViewport().setBackground(BG_SURFACE);
-        sp.putClientProperty(FlatClientProperties.STYLE, "arc: 20; borderColor: #334155; borderWidth: 1;");
+        sp.putClientProperty(FlatClientProperties.STYLE, "borderColor: #334155; borderWidth: 1;");
         left.add(h1, BorderLayout.NORTH);
         left.add(sp, BorderLayout.CENTER);
 
@@ -428,11 +473,11 @@ public class DashboardPanel extends BaseDashboardModule {
         list.setForeground(TEXT_PRIMARY);
         list.setBackground(BG_SURFACE);
         list.setFixedCellHeight(70);
-        list.putClientProperty(FlatClientProperties.STYLE, "arc: 20;");
+        list.putClientProperty(FlatClientProperties.STYLE, "");
         JScrollPane sp2 = new JScrollPane(list);
         sp2.setBorder(BorderFactory.createEmptyBorder());
         sp2.getViewport().setBackground(BG_SURFACE);
-        sp2.putClientProperty(FlatClientProperties.STYLE, "arc: 20; borderColor: #334155; borderWidth: 1;");
+        sp2.putClientProperty(FlatClientProperties.STYLE, "borderColor: #334155; borderWidth: 1;");
         right.add(h2, BorderLayout.NORTH);
         right.add(sp2, BorderLayout.CENTER);
 
@@ -447,7 +492,9 @@ public class DashboardPanel extends BaseDashboardModule {
     }
 
     private JLabel sectionTitle(String text, String iconPath) {
-        JLabel l = new JLabel(text, new FlatSVGIcon(iconPath, 20, 20), SwingConstants.LEFT);
+        FlatSVGIcon sectionIcon = new FlatSVGIcon(iconPath, 20, 20);
+        sectionIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> TEXT_PRIMARY));
+        JLabel l = new JLabel(text, sectionIcon, SwingConstants.LEFT);
         l.setFont(ThemeConfig.FONT_H2);
         l.setForeground(TEXT_PRIMARY);
         l.setIconTextGap(10);
@@ -460,8 +507,17 @@ public class DashboardPanel extends BaseDashboardModule {
                 DashboardSnapshot snap = controller.loadSnapshot();
                 List<TopMovieRow> topMovies = controller.getTopMovies(7, 5);
                 SwingUtilities.invokeLater(() -> {
-                    applySnapshot(snap);
-                    updateTopMovies(topMovies);
+                    // Apply snapshot first; if it fails, still attempt updateTopMovies.
+                    try {
+                        applySnapshot(snap);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                    try {
+                        updateTopMovies(topMovies);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                 });
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() ->
@@ -476,40 +532,63 @@ public class DashboardPanel extends BaseDashboardModule {
     }
 
     private void applySnapshot(DashboardSnapshot snap) {
+        if (snap == null) return;
+
         DashboardFinance f = snap.finance();
         DecimalFormat money = new DecimalFormat("#,##0");
-        
-        // Update values
-        lblRevenue.setText(money.format(f.revenueToday()) + " ₫");
-        lblTickets.setText(String.valueOf(f.ticketsSoldToday()));
-        lblOccupancy.setText(String.format("%.1f%%", f.occupancyPercent()));
-        lblCustomers.setText(String.valueOf(f.newCustomersToday()));
 
-        // Update trend indicators
-        updateTrendIndicator(lblRevenueTrend, f.revenueToday().doubleValue(), 
-                            f.revenueYesterday().doubleValue(), true);
-        updateTrendIndicator(lblTicketsTrend, f.ticketsSoldToday(), 
-                            f.ticketsYesterday(), false);
-        updateTrendIndicator(lblOccupancyTrend, f.occupancyPercent(), 
-                            f.occupancyYesterday(), false);
-        updateTrendIndicator(lblCustomersTrend, f.newCustomersToday(), 
-                            f.newCustomersYesterday(), false);
+        // 1) KPI + charts (fail-soft: lỗi phần này không được chặn Inventory/NowShowing)
+        try {
+            if (f != null) {
+                // Update values
+                lblRevenue.setText(money.format(f.revenueToday()) + " ₫");
+                lblTickets.setText(String.valueOf(f.ticketsSoldToday()));
+                lblOccupancy.setText(String.format("%.1f%%", f.occupancyPercent()));
+                lblCustomers.setText(String.valueOf(f.newCustomersToday()));
 
-        updateLineChart(f.revenueLast7Days());
-        updatePieChart(f.ticketRevenue7d(), f.fnbRevenue7d());
+                // Update trend indicators
+                updateTrendIndicator(lblRevenueTrend, f.revenueToday().doubleValue(),
+                        f.revenueYesterday().doubleValue(), true);
+                updateTrendIndicator(lblTicketsTrend, f.ticketsSoldToday(),
+                        f.ticketsYesterday(), false);
+                updateTrendIndicator(lblOccupancyTrend, f.occupancyPercent(),
+                        f.occupancyYesterday(), false);
+                updateTrendIndicator(lblCustomersTrend, f.newCustomersToday(),
+                        f.newCustomersYesterday(), false);
 
-        alertTableModel.setRowCount(0);
-        for (InventoryAlertRow row : snap.inventoryAlerts()) {
-            alertTableModel.addRow(new Object[]{row.productName(), row.currentQuantity(), row.minThreshold()});
+                updateLineChart(f.revenueLast7Days());
+                updatePieChart(f.ticketRevenue7d(), f.fnbRevenue7d());
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
 
-        nowShowingModel.clear();
-        for (NowShowingRow row : snap.nowShowing()) {
-            String line = "<html><div style='padding:4px 0'><b style='font-size:13px'>" 
-                    + escapeHtml(row.movieTitle()) + "</b><br/>"
-                    + "<span style='color:#94A3B8; font-size:12px; margin-top:4px'>" 
-                    + escapeHtml(row.statusLabel()) + "</span></div></html>";
-            nowShowingModel.addElement(line);
+        // 2) Inventory alerts
+        try {
+            alertTableModel.setRowCount(0);
+            if (snap.inventoryAlerts() != null) {
+                for (InventoryAlertRow row : snap.inventoryAlerts()) {
+                    alertTableModel.addRow(new Object[]{row.productName(), row.currentQuantity(), row.minThreshold()});
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        // 3) Now showing
+        try {
+            nowShowingModel.clear();
+            if (snap.nowShowing() != null) {
+                for (NowShowingRow row : snap.nowShowing()) {
+                    String line = "<html><div style='padding:4px 0'><b style='font-size:13px; color:" + toHex(TEXT_PRIMARY) + "'>"
+                            + escapeHtml(row.movieTitle()) + "</b><br/>"
+                            + "<span style='color:#94A3B8; font-size:12px; margin-top:4px'>"
+                            + escapeHtml(row.statusLabel()) + "</span></div></html>";
+                    nowShowingModel.addElement(line);
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
     
@@ -530,7 +609,8 @@ public class DashboardPanel extends BaseDashboardModule {
     
     private void updateTopMovies(List<TopMovieRow> topMovies) {
         // Rebuild top movies panel with real data
-        JPanel content = (JPanel) topMoviesPanel.getComponent(1);
+        JPanel content = this.topMoviesContent;
+        if (content == null) return;
         content.removeAll();
         
         if (topMovies.isEmpty()) {
@@ -560,6 +640,11 @@ public class DashboardPanel extends BaseDashboardModule {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
+    private static String toHex(Color c) {
+        if (c == null) return "#FFFFFF";
+        return String.format("#%02X%02X%02X", c.getRed(), c.getGreen(), c.getBlue());
+    }
+
     private void updateLineChart(List<RevenueSeriesPoint> points) {
         DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM");
         List<String> xData = new ArrayList<>();
@@ -582,12 +667,14 @@ public class DashboardPanel extends BaseDashboardModule {
         double f = fnb != null ? fnb.doubleValue() : 0;
         
         PieChart chart = pieChartPanel.getChart();
-        
+
+        // Rebuild pie series defensively to avoid stale placeholder state.
+        chart.getSeriesMap().clear();
         if (t <= 0 && f <= 0) {
-            chart.updatePieSeries("Chưa có dữ liệu", 1);
+            chart.addSeries("Chưa có dữ liệu", 1);
         } else {
-            chart.updatePieSeries("Vé xem phim", Math.max(t, 0));
-            chart.updatePieSeries("Bắp nước", Math.max(f, 0));
+            chart.addSeries("Vé xem phim", Math.max(t, 0));
+            chart.addSeries("Bắp nước", Math.max(f, 0));
         }
         
         pieChartPanel.revalidate();

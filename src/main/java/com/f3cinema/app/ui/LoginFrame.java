@@ -368,9 +368,11 @@ public class LoginFrame extends JFrame {
         if (user.getRole() == com.f3cinema.app.entity.enums.UserRole.ADMIN) {
             com.f3cinema.app.ui.admin.AdminMainFrame adminFrame = new com.f3cinema.app.ui.admin.AdminMainFrame(user);
             adminFrame.setVisible(true);
+            adminFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         } else {
             com.f3cinema.app.ui.staff.StaffMainFrame staffFrame = new com.f3cinema.app.ui.staff.StaffMainFrame(user);
             staffFrame.setVisible(true);
+            staffFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         }
         this.dispose();
     }

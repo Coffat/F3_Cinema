@@ -271,6 +271,7 @@ public class ProductCard extends JPanel {
     private JButton createIconButton(String iconPath, String tooltip, Color color, Runnable action) {
         JButton btn = new JButton();
         FlatSVGIcon icon = new FlatSVGIcon(iconPath, 18, 18);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> color));
         btn.setIcon(icon);
         btn.setToolTipText(tooltip);
         btn.setForeground(color);

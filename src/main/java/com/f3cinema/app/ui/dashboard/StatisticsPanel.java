@@ -32,7 +32,9 @@ public class StatisticsPanel extends BaseDashboardModule {
         String[] presets = {"Hom nay", "Hom qua", "Tuan nay", "Thang nay", "30 ngay"};
         for (String preset : presets) {
             JButton btn = new JButton(preset);
-            btn.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #1E293B;");
+            btn.setForeground(ThemeConfig.TEXT_PRIMARY);
+            btn.putClientProperty(FlatClientProperties.STYLE,
+                    "arc: 12; background: #1E293B; foreground: #F8FAFC; borderWidth: 0;");
             left.add(btn);
         }
         JComboBox<String> range = new JComboBox<>(new String[]{"Tuy chinh", "7 ngay", "30 ngay", "Quy nay", "Nam nay"});
@@ -40,9 +42,15 @@ public class StatisticsPanel extends BaseDashboardModule {
         JButton exportPdf = new JButton("Export PDF");
         JButton exportExcel = new JButton("Export Excel");
         JButton print = new JButton("Print");
-        exportPdf.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155;");
-        exportExcel.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155;");
-        print.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155;");
+        exportPdf.setForeground(ThemeConfig.TEXT_PRIMARY);
+        exportExcel.setForeground(ThemeConfig.TEXT_PRIMARY);
+        print.setForeground(ThemeConfig.TEXT_PRIMARY);
+        exportPdf.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 10; background: #334155; foreground: #F8FAFC; borderWidth: 0;");
+        exportExcel.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 10; background: #334155; foreground: #F8FAFC; borderWidth: 0;");
+        print.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 10; background: #334155; foreground: #F8FAFC; borderWidth: 0;");
         JCheckBox compare = new JCheckBox("So sanh ky truoc");
         compare.setOpaque(false);
         compare.setForeground(ThemeConfig.TEXT_SECONDARY);

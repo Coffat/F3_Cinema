@@ -64,7 +64,9 @@ public class StaffPanel extends BaseDashboardModule {
         controlBar.putClientProperty(FlatClientProperties.STYLE, "arc: 20");
 
         txtSearch = new JTextField(28);
-        txtSearch.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, new FlatSVGIcon("icons/search.svg", 16, 16));
+        FlatSVGIcon searchIcon = new FlatSVGIcon("icons/search.svg", 16, 16);
+        searchIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> ThemeConfig.TEXT_SECONDARY));
+        txtSearch.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, searchIcon);
         txtSearch.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Tim theo username / ho ten (Ctrl+F)...");
         txtSearch.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #0F172A; foreground: #F8FAFC; caretColor: #6366F1;");
         txtSearch.setFont(ThemeConfig.FONT_BODY);

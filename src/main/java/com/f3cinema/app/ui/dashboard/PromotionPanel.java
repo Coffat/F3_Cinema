@@ -21,9 +21,15 @@ public class PromotionPanel extends BaseDashboardModule {
     private JLabel statUsage;
     private JLabel statDiscount;
     private JLabel statRoi;
+    private final boolean isReadOnly;
 
     public PromotionPanel() {
-        super("Quản lý Voucher", "Home > Vouchers");
+        this(false);
+    }
+    
+    public PromotionPanel(boolean isReadOnly) {
+        super(isReadOnly ? "Danh sách Khuyến mãi" : "Quản lý Voucher", isReadOnly ? "Home > Promotions" : "Home > Vouchers");
+        this.isReadOnly = isReadOnly;
         loadVouchersFromDatabase();
         initUI();
     }
@@ -126,11 +132,16 @@ public class PromotionPanel extends BaseDashboardModule {
         left.setOpaque(false);
         left.add(search);
         left.add(status);
-        JButton add = new JButton("Thêm khuyến mãi");
-        add.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #6366F1; borderWidth: 0;");
-        add.addActionListener(e -> new PromotionDialog(SwingUtilities.getWindowAncestor(this), () -> refreshVouchers()).setVisible(true));
         control.add(left, BorderLayout.WEST);
-        control.add(add, BorderLayout.EAST);
+
+        if (!isReadOnly) {
+            JButton add = new JButton("Thêm khuyến mãi");
+            add.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #6366F1; borderWidth: 0;");
+            add.setForeground(Color.WHITE);
+            add.addActionListener(e -> new PromotionDialog(SwingUtilities.getWindowAncestor(this), () -> refreshVouchers()).setVisible(true));
+            control.add(add, BorderLayout.EAST);
+        }
+        
         toolbar.add(control, BorderLayout.CENTER);
         return toolbar;
     }
@@ -178,8 +189,9 @@ public class PromotionPanel extends BaseDashboardModule {
         iconWrapper.setPreferredSize(new Dimension(48, 48));
         iconWrapper.setLayout(new GridBagLayout());
         
-        JLabel icon = new JLabel(new com.formdev.flatlaf.extras.FlatSVGIcon(iconPath, 24, 24));
-        icon.setForeground(ThemeConfig.ACCENT_COLOR);
+        com.formdev.flatlaf.extras.FlatSVGIcon svgIcon = new com.formdev.flatlaf.extras.FlatSVGIcon(iconPath, 24, 24);
+        svgIcon.setColorFilter(new com.formdev.flatlaf.extras.FlatSVGIcon.ColorFilter(c -> ThemeConfig.ACCENT_COLOR));
+        JLabel icon = new JLabel(svgIcon);
         iconWrapper.add(icon);
         
         JLabel lbl = new JLabel(label);
@@ -207,7 +219,7 @@ public class PromotionPanel extends BaseDashboardModule {
         cards.setOpaque(false);
         cards.setBorder(BorderFactory.createEmptyBorder(0, 24, 16, 24));
         for (PromotionCard.PromotionItem p : promotions) {
-            cards.add(new PromotionCard(p,
+            cards.add(new PromotionCard(p, isReadOnly,
                     () -> handleEdit(p),
                     () -> handleDuplicate(p),
                     () -> handleDeactivate(p)));
@@ -267,7 +279,7 @@ public class PromotionPanel extends BaseDashboardModule {
         loadVouchersFromDatabase();
         cards.removeAll();
         for (PromotionCard.PromotionItem p : promotions) {
-            cards.add(new PromotionCard(p,
+            cards.add(new PromotionCard(p, isReadOnly,
                     () -> handleEdit(p),
                     () -> handleDuplicate(p),
                     () -> handleDeactivate(p)));

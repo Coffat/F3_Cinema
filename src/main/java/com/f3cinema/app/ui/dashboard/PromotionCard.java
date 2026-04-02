@@ -18,6 +18,7 @@ public class PromotionCard extends JPanel {
     private final Runnable onEdit;
     private final Runnable onDuplicate;
     private final Runnable onDeactivate;
+    private final boolean isReadOnly;
     private boolean isHovered = false;
     
     private static final int CARD_WIDTH = 500;
@@ -38,8 +39,9 @@ public class PromotionCard extends JPanel {
             int limit
     ) {}
 
-    public PromotionCard(PromotionItem item, Runnable onEdit, Runnable onDuplicate, Runnable onDeactivate) {
+    public PromotionCard(PromotionItem item, boolean isReadOnly, Runnable onEdit, Runnable onDuplicate, Runnable onDeactivate) {
         this.item = item;
+        this.isReadOnly = isReadOnly;
         this.onEdit = onEdit;
         this.onDuplicate = onDuplicate;
         this.onDeactivate = onDeactivate;
@@ -153,8 +155,8 @@ public class PromotionCard extends JPanel {
         iconWrapper.setLayout(new GridBagLayout());
         
         FlatSVGIcon icon = new FlatSVGIcon(getTypeIcon(), 32, 32);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> Color.WHITE));
         JLabel iconLabel = new JLabel(icon);
-        iconLabel.setForeground(Color.WHITE);
         iconWrapper.add(iconLabel);
         
         JLabel typeLabel = new JLabel(getTypeLabel());
@@ -266,8 +268,9 @@ public class PromotionCard extends JPanel {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         panel.setOpaque(false);
         
-        JLabel calIcon = new JLabel(new FlatSVGIcon("icons/calendar.svg", 12, 12));
-        calIcon.setForeground(ThemeConfig.TEXT_MUTED);
+        FlatSVGIcon calIconSvg = new FlatSVGIcon("icons/calendar.svg", 12, 12);
+        calIconSvg.setColorFilter(new FlatSVGIcon.ColorFilter(c -> ThemeConfig.TEXT_MUTED));
+        JLabel calIcon = new JLabel(calIconSvg);
         panel.add(calIcon);
         
         JLabel dateLabel = new JLabel(dateText);
@@ -315,9 +318,19 @@ public class PromotionCard extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         actions.setOpaque(false);
         
-        actions.add(createIconButton("icons/edit.svg", ThemeConfig.TEXT_SECONDARY, onEdit));
-        actions.add(createIconButton("icons/copy.svg", ThemeConfig.TEXT_SECONDARY, onDuplicate));
-        actions.add(createIconButton("icons/trash.svg", ThemeConfig.TEXT_DANGER, onDeactivate));
+        if (isReadOnly) {
+            Runnable copyCode = () -> {
+                java.awt.datatransfer.StringSelection stringSelection = new java.awt.datatransfer.StringSelection(item.code());
+                java.awt.datatransfer.Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(stringSelection, null);
+                JOptionPane.showMessageDialog(this, "Đã copy mã voucher: " + item.code(), "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            };
+            actions.add(createIconButton("icons/copy.svg", ThemeConfig.TEXT_SECONDARY, copyCode));
+        } else {
+            actions.add(createIconButton("icons/edit.svg", ThemeConfig.TEXT_SECONDARY, onEdit));
+            actions.add(createIconButton("icons/copy.svg", ThemeConfig.TEXT_SECONDARY, onDuplicate));
+            actions.add(createIconButton("icons/trash.svg", ThemeConfig.TEXT_DANGER, onDeactivate));
+        }
         
         return actions;
     }
@@ -325,6 +338,7 @@ public class PromotionCard extends JPanel {
     private JButton createIconButton(String iconPath, Color color, Runnable action) {
         JButton btn = new JButton();
         FlatSVGIcon icon = new FlatSVGIcon(iconPath, 15, 15);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> color));
         btn.setIcon(icon);
         btn.setForeground(color);
         btn.setPreferredSize(new Dimension(28, 28));

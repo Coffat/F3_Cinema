@@ -41,7 +41,6 @@ public class AdminMainFrame extends JFrame {
         setSize(1366, 860);
         setMinimumSize(new Dimension(1200, 800));
         setLocationRelativeTo(null);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
         getContentPane().setBackground(Color.decode("#0F172A"));
         setLayout(new BorderLayout());
 
@@ -63,6 +62,7 @@ public class AdminMainFrame extends JFrame {
         });
 
         lazyLoadAndShow(CARD_DASHBOARD);
+        sidebarController.handleMenuSelection(CARD_DASHBOARD);
     }
 
     private void lazyLoadAndShow(String menuKey) {
