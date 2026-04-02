@@ -18,6 +18,7 @@ public class PromotionCard extends JPanel {
     private final Runnable onEdit;
     private final Runnable onDuplicate;
     private final Runnable onDeactivate;
+    private final boolean isReadOnly;
     private boolean isHovered = false;
     
     private static final int CARD_WIDTH = 500;
@@ -38,8 +39,9 @@ public class PromotionCard extends JPanel {
             int limit
     ) {}
 
-    public PromotionCard(PromotionItem item, Runnable onEdit, Runnable onDuplicate, Runnable onDeactivate) {
+    public PromotionCard(PromotionItem item, boolean isReadOnly, Runnable onEdit, Runnable onDuplicate, Runnable onDeactivate) {
         this.item = item;
+        this.isReadOnly = isReadOnly;
         this.onEdit = onEdit;
         this.onDuplicate = onDuplicate;
         this.onDeactivate = onDeactivate;
@@ -316,9 +318,19 @@ public class PromotionCard extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         actions.setOpaque(false);
         
-        actions.add(createIconButton("icons/edit.svg", ThemeConfig.TEXT_SECONDARY, onEdit));
-        actions.add(createIconButton("icons/copy.svg", ThemeConfig.TEXT_SECONDARY, onDuplicate));
-        actions.add(createIconButton("icons/trash.svg", ThemeConfig.TEXT_DANGER, onDeactivate));
+        if (isReadOnly) {
+            Runnable copyCode = () -> {
+                java.awt.datatransfer.StringSelection stringSelection = new java.awt.datatransfer.StringSelection(item.code());
+                java.awt.datatransfer.Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(stringSelection, null);
+                JOptionPane.showMessageDialog(this, "Đã copy mã voucher: " + item.code(), "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            };
+            actions.add(createIconButton("icons/copy.svg", ThemeConfig.TEXT_SECONDARY, copyCode));
+        } else {
+            actions.add(createIconButton("icons/edit.svg", ThemeConfig.TEXT_SECONDARY, onEdit));
+            actions.add(createIconButton("icons/copy.svg", ThemeConfig.TEXT_SECONDARY, onDuplicate));
+            actions.add(createIconButton("icons/trash.svg", ThemeConfig.TEXT_DANGER, onDeactivate));
+        }
         
         return actions;
     }

@@ -24,6 +24,7 @@ public class StaffMainFrame extends JFrame {
     public static final String CARD_TICKETING = "TICKETING";
     public static final String CARD_SEARCH = "SEARCH";
     public static final String CARD_CUSTOMERS = "CUSTOMERS";
+    public static final String CARD_PROMOTIONS = "PROMOTIONS";
     public static final String CARD_TRANSACTIONS = "TRANSACTIONS";
 
     public StaffMainFrame(User user) {
@@ -76,6 +77,7 @@ public class StaffMainFrame extends JFrame {
             case CARD_TICKETING -> new TicketingFlowPanel();
             case CARD_SEARCH -> new SearchShowtimePanel();
             case CARD_CUSTOMERS -> new CustomerPanel();
+            case CARD_PROMOTIONS -> new com.f3cinema.app.ui.dashboard.PromotionPanel(true);
             case CARD_TRANSACTIONS -> new TransactionHistoryPanel();
             default -> null;
         };
