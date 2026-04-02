@@ -66,9 +66,19 @@ public class ShowtimePanel extends BaseDashboardModule {
     private final Set<Long> hiddenMovieIds = new HashSet<>();
 
     private final ShowtimeController controller;
+    /** Staff: bảng lịch giống admin nhưng không thêm/sửa/xóa suất. */
+    private final boolean readOnly;
+
+    private JButton btnAddShowtime;
 
     public ShowtimePanel() {
-        super("Quản lý Lịch chiếu", "Home > Showtime Management");
+        this(false);
+    }
+
+    public ShowtimePanel(boolean readOnly) {
+        super(readOnly ? "Lịch chiếu" : "Quản lý Lịch chiếu",
+                readOnly ? "Trang chủ / Suất chiếu" : "Home > Showtime Management");
+        this.readOnly = readOnly;
         this.controller = new ShowtimeController(this);
         initUI();
         loadFilterData();
@@ -115,6 +125,7 @@ public class ShowtimePanel extends BaseDashboardModule {
     }
 
     private void maybeShowPopup(MouseEvent e) {
+        if (readOnly) return;
         if (!e.isPopupTrigger()) return;
         int row = scheduleTable.rowAtPoint(e.getPoint());
         if (row < 0) return;
@@ -191,19 +202,20 @@ public class ShowtimePanel extends BaseDashboardModule {
         leftPanel.add(cbMovies);
         leftPanel.add(cbRooms);
 
-        JButton btnAdd = new JButton("+ Thêm suất chiếu");
-        btnAdd.setBackground(ThemeConfig.ACCENT_COLOR);
-        btnAdd.setForeground(Color.WHITE);
-        btnAdd.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
-        btnAdd.setPreferredSize(new Dimension(180, 36));
-        btnAdd.setMaximumSize(new Dimension(180, 36));
-        btnAdd.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0;");
-        btnAdd.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btnAdd.addActionListener(e -> controller.handleAddAction());
+        btnAddShowtime = new JButton("+ Thêm suất chiếu");
+        btnAddShowtime.setBackground(ThemeConfig.ACCENT_COLOR);
+        btnAddShowtime.setForeground(Color.WHITE);
+        btnAddShowtime.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
+        btnAddShowtime.setPreferredSize(new Dimension(180, 36));
+        btnAddShowtime.setMaximumSize(new Dimension(180, 36));
+        btnAddShowtime.putClientProperty(FlatClientProperties.STYLE, "arc: 12; borderWidth: 0;");
+        btnAddShowtime.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnAddShowtime.addActionListener(e -> controller.handleAddAction());
+        btnAddShowtime.setVisible(!readOnly);
 
         controlBar.add(leftPanel);
         controlBar.add(Box.createHorizontalGlue());
-        controlBar.add(btnAdd);
+        controlBar.add(btnAddShowtime);
         toolbar.add(controlBar, BorderLayout.CENTER);
         return toolbar;
     }

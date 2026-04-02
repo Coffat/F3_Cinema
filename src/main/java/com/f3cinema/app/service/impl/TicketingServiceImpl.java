@@ -200,13 +200,25 @@ public class TicketingServiceImpl implements TicketingService {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             tx = session.beginTransaction();
 
-            Showtime showtime = session.createQuery(
-                            "SELECT DISTINCT s FROM Showtime s JOIN FETCH s.room JOIN FETCH s.movie WHERE s.id = :id",
-                            Showtime.class)
-                    .setParameter("id", showtimeId)
-                    .uniqueResult();
-            if (showtime == null) {
-                throw new RuntimeException("Suất chiếu không hợp lệ.");
+            boolean hasSeatSelection = seatIds != null && !seatIds.isEmpty();
+            boolean hasSnackItems = snacks != null && !snacks.isEmpty();
+            if (!hasSeatSelection && !hasSnackItems) {
+                throw new IllegalArgumentException("Đơn hàng trống: cần ít nhất ghế hoặc sản phẩm.");
+            }
+
+            Showtime showtime = null;
+            if (hasSeatSelection) {
+                if (showtimeId == null) {
+                    throw new RuntimeException("Cần chọn suất chiếu khi đặt vé.");
+                }
+                showtime = session.createQuery(
+                                "SELECT DISTINCT s FROM Showtime s JOIN FETCH s.room JOIN FETCH s.movie WHERE s.id = :id",
+                                Showtime.class)
+                        .setParameter("id", showtimeId)
+                        .uniqueResult();
+                if (showtime == null) {
+                    throw new RuntimeException("Suất chiếu không hợp lệ.");
+                }
             }
 
             User staff = resolveStaffUser(session);
@@ -222,19 +234,21 @@ public class TicketingServiceImpl implements TicketingService {
             BigDecimal ticketsTotal = BigDecimal.ZERO;
             List<Ticket> tickets = new ArrayList<>();
 
-            for (Long seatId : seatIds) {
-                Seat seat = session.get(Seat.class, seatId);
-                if (seat == null) continue;
+            if (hasSeatSelection && showtime != null) {
+                for (Long seatId : seatIds) {
+                    Seat seat = session.get(Seat.class, seatId);
+                    if (seat == null) continue;
 
-                BigDecimal finalPrice = BigDecimal.valueOf(calculatePrice(showtime.getBasePrice(), seat.getSeatType()));
-                Ticket ticket = Ticket.builder()
-                        .showtime(showtime)
-                        .seat(seat)
-                        .finalPrice(finalPrice)
-                        .build();
+                    BigDecimal finalPrice = BigDecimal.valueOf(calculatePrice(showtime.getBasePrice(), seat.getSeatType()));
+                    Ticket ticket = Ticket.builder()
+                            .showtime(showtime)
+                            .seat(seat)
+                            .finalPrice(finalPrice)
+                            .build();
 
-                tickets.add(ticket);
-                ticketsTotal = ticketsTotal.add(finalPrice);
+                    tickets.add(ticket);
+                    ticketsTotal = ticketsTotal.add(finalPrice);
+                }
             }
 
             BigDecimal snacksTotal = BigDecimal.ZERO;
@@ -242,7 +256,11 @@ public class TicketingServiceImpl implements TicketingService {
 
             if (snacks != null && !snacks.isEmpty()) {
                 for (Map.Entry<Long, Integer> entry : snacks.entrySet()) {
-                    Product product = session.get(Product.class, entry.getKey());
+                    Product product = session.createQuery(
+                                    "SELECT p FROM Product p LEFT JOIN FETCH p.inventory WHERE p.id = :id",
+                                    Product.class)
+                            .setParameter("id", entry.getKey())
+                            .uniqueResult();
                     if (product == null) continue;
 
                     int qty = entry.getValue();

@@ -8,6 +8,8 @@ import java.util.List;
 
 public record TransactionDetailDTO(
         Long invoiceId,
+        /** Mã hiển thị: F3-yyyyMMdd-XXX */
+        String invoiceCode,
         LocalDateTime createdAt,
         InvoiceStatus invoiceStatus,
         String customerName,

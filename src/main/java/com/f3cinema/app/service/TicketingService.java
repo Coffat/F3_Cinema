@@ -16,7 +16,7 @@ public interface TicketingService {
     
     /**
      * Book seats with loyalty program integration.
-     * @param showtimeId Showtime ID
+     * @param showtimeId Suất chiếu (bắt buộc nếu có ghế); có thể null nếu chỉ bán đồ ăn/nước không kèm vé
      * @param seatIds Selected seat IDs
      * @param snacks Snacks cart items
      * @param customerId Customer ID (nullable for walk-in customers)
