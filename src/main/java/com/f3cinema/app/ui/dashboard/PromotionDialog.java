@@ -27,6 +27,9 @@ public class PromotionDialog extends BaseAppDialog {
     private JTextField tfDiscountPercent;
     private JTextField tfMaxDiscount;
     private JPanel pnPercentageFields;
+
+    /** Không dùng chung {@code tfDiscountPercent} với panel % — một component chỉ một parent. */
+    private JTextField tfComboDiscountPercent;
     
     private JTextField tfDiscountAmount;
     private JPanel pnFixedFields;
@@ -37,6 +40,9 @@ public class PromotionDialog extends BaseAppDialog {
     
     private JTextField tfAppliesTo;
     private JPanel pnComboFields;
+
+    /** Chứa 4 khối theo loại voucher — dùng CardLayout (trước đây cùng một ô GridBag nên chồng lên nhau, mất ô nhập %). */
+    private JPanel voucherTypeCards;
     
     private JTextField tfMinOrder;
     private JSpinner spValidFrom;
@@ -95,6 +101,7 @@ public class PromotionDialog extends BaseAppDialog {
         });
         
         tfDiscountPercent = new JTextField();
+        tfComboDiscountPercent = new JTextField();
         tfMaxDiscount = new JTextField();
         tfDiscountAmount = new JTextField();
         tfBuyQuantity = new JTextField();
@@ -162,18 +169,23 @@ public class PromotionDialog extends BaseAppDialog {
         gbcCombo.weightx = 1.0;
         gbcCombo.gridx = 0; gbcCombo.gridy = 0;
         gbcCombo.insets = new Insets(0, 0, 0, 12);
-        pnComboFields.add(field("Giảm giá (%) *", tfDiscountPercent, "Ví dụ: 30"), gbcCombo);
+        pnComboFields.add(field("Giảm giá (%) *", tfComboDiscountPercent, "Ví dụ: 30"), gbcCombo);
         gbcCombo.gridx = 1;
         gbcCombo.insets = new Insets(0, 0, 0, 0);
         pnComboFields.add(field("Áp dụng cho", tfAppliesTo, "COMBO"), gbcCombo);
 
-        gbc.gridx = 0; gbc.gridy = row++;
+        voucherTypeCards = new JPanel(new CardLayout());
+        voucherTypeCards.setOpaque(false);
+        voucherTypeCards.add(pnPercentageFields, VoucherType.PERCENTAGE.name());
+        voucherTypeCards.add(pnFixedFields, VoucherType.FIXED_AMOUNT.name());
+        voucherTypeCards.add(pnBuyXGetYFields, VoucherType.BUY_X_GET_Y.name());
+        voucherTypeCards.add(pnComboFields, VoucherType.COMBO_DISCOUNT.name());
+
+        gbc.gridx = 0;
+        gbc.gridy = row++;
         gbc.gridwidth = 2;
         gbc.insets = new Insets(0, 0, 12, 0);
-        formContent.add(pnPercentageFields, gbc);
-        formContent.add(pnFixedFields, gbc);
-        formContent.add(pnBuyXGetYFields, gbc);
-        formContent.add(pnComboFields, gbc);
+        formContent.add(voucherTypeCards, gbc);
 
         gbc.gridwidth = 1;
         gbc.insets = new Insets(0, 0, 12, 12);
@@ -215,11 +227,10 @@ public class PromotionDialog extends BaseAppDialog {
     }
     
     private void updateFormFieldsVisibility(VoucherType type) {
-        pnPercentageFields.setVisible(type == VoucherType.PERCENTAGE);
-        pnFixedFields.setVisible(type == VoucherType.FIXED_AMOUNT);
-        pnBuyXGetYFields.setVisible(type == VoucherType.BUY_X_GET_Y);
-        pnComboFields.setVisible(type == VoucherType.COMBO_DISCOUNT);
-        
+        if (voucherTypeCards != null) {
+            CardLayout cl = (CardLayout) voucherTypeCards.getLayout();
+            cl.show(voucherTypeCards, type.name());
+        }
         revalidate();
         repaint();
     }
@@ -247,7 +258,9 @@ public class PromotionDialog extends BaseAppDialog {
         cbVoucherType.setSelectedItem(editingVoucher.getVoucherType());
         
         if (editingVoucher.getDiscountPercent() != null) {
-            tfDiscountPercent.setText(editingVoucher.getDiscountPercent().toString());
+            String pct = editingVoucher.getDiscountPercent().toString();
+            tfDiscountPercent.setText(pct);
+            tfComboDiscountPercent.setText(pct);
         }
         if (editingVoucher.getDiscountAmount() != null) {
             tfDiscountAmount.setText(editingVoucher.getDiscountAmount().toString());
@@ -305,7 +318,7 @@ public class PromotionDialog extends BaseAppDialog {
                     getQuantity = Integer.parseInt(tfGetQuantity.getText().trim());
                 }
                 case COMBO_DISCOUNT -> {
-                    discountPercent = new BigDecimal(tfDiscountPercent.getText().trim());
+                    discountPercent = new BigDecimal(tfComboDiscountPercent.getText().trim());
                     appliesToCategory = tfAppliesTo.getText().isBlank() ? "COMBO" : 
                         tfAppliesTo.getText().trim().toUpperCase();
                 }

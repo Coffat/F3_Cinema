@@ -5,10 +5,17 @@ import com.f3cinema.app.service.impl.InventoryServiceImpl;
 import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
 import com.f3cinema.app.ui.common.dialog.DialogStyle;
+import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 /**
  * Standard Dialog to insert new product to the F3 Cinema Warehouse.
@@ -19,6 +26,9 @@ public class ProductDialog extends BaseAppDialog {
     private JTextField txtName, txtUnit;
     private JComboBox<String> cbCategory;
     private JSpinner spinPrice, spinThreshold;
+    private JLabel lblImagePreview;
+    private String selectedImagePath;
+    private static final String IMAGE_DIR = "src/main/resources/images/products/";
 
     public ProductDialog(JFrame owner, Runnable onSuccessCallback) {
         super(owner, "Thêm Mới Sản Phẩm Bán Kho");
@@ -39,7 +49,7 @@ public class ProductDialog extends BaseAppDialog {
         mainContent.add(Box.createRigidArea(new Dimension(0, 30)));
 
         // ------------- FORM -------------
-        JPanel form = new JPanel(new GridLayout(3, 2, 18, 16));
+        JPanel form = new JPanel(new GridLayout(4, 2, 18, 16));
         form.setOpaque(false);
         form.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -54,6 +64,8 @@ public class ProductDialog extends BaseAppDialog {
 
         spinThreshold = new JSpinner(new SpinnerNumberModel(20, 1, 10000, 1));
         form.add(createFieldGroup("Mức cảnh báo tồn kho (Min Threshold)", spinThreshold));
+
+        form.add(createImageUploadPanel());
 
         JPanel filler = new JPanel();
         filler.setOpaque(false);
@@ -95,6 +107,74 @@ public class ProductDialog extends BaseAppDialog {
         return p;
     }
 
+    private JPanel createImageUploadPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.setOpaque(false);
+        JLabel lbl = DialogStyle.formLabel("Hình ảnh sản phẩm");
+
+        JPanel contentPanel = new JPanel(new BorderLayout(12, 0));
+        contentPanel.setOpaque(false);
+
+        lblImagePreview = new JLabel();
+        lblImagePreview.setPreferredSize(new Dimension(80, 80));
+        lblImagePreview.setBorder(BorderFactory.createLineBorder(new Color(51, 65, 85), 1));
+        lblImagePreview.setBackground(new Color(30, 41, 59));
+        lblImagePreview.setOpaque(true);
+        lblImagePreview.setHorizontalAlignment(SwingConstants.CENTER);
+        lblImagePreview.setVerticalAlignment(SwingConstants.CENTER);
+        lblImagePreview.setText("No Image");
+
+        JButton btnSelectImage = new JButton("Chọn ảnh");
+        btnSelectImage.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155; foreground: #F8FAFC; borderWidth: 0;");
+        btnSelectImage.addActionListener(e -> selectImage());
+
+        contentPanel.add(lblImagePreview, BorderLayout.WEST);
+        contentPanel.add(btnSelectImage, BorderLayout.CENTER);
+
+        panel.add(lbl, BorderLayout.NORTH);
+        panel.add(contentPanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private void selectImage() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Chọn hình ảnh sản phẩm");
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+        fileChooser.addChoosableFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Images", "jpg", "jpeg", "png", "gif"));
+
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            selectedImagePath = selectedFile.getAbsolutePath();
+            loadImagePreview(selectedImagePath);
+        }
+    }
+
+    private void loadImagePreview(String imagePath) {
+        try {
+            File imageFile = new File(imagePath);
+            if (!imageFile.exists()) {
+                return;
+            }
+
+            BufferedImage originalImage = javax.imageio.ImageIO.read(imageFile);
+            if (originalImage == null) {
+                return;
+            }
+
+            int targetWidth = 80;
+            int targetHeight = 80;
+            Image scaledImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+
+            ImageIcon icon = new ImageIcon(scaledImage);
+            lblImagePreview.setIcon(icon);
+            lblImagePreview.setText(null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void saveProduct() {
         String name = txtName.getText().trim();
         String unit = txtUnit.getText().trim();
@@ -109,7 +189,33 @@ public class ProductDialog extends BaseAppDialog {
         Integer threshold = (Integer) spinThreshold.getValue();
 
         String normalizedName = name.startsWith("[" + category + "]") ? name : ("[" + category + "] " + name);
-        ProductDTO dto = new ProductDTO(null, normalizedName, price, unit, null, 0, threshold);
+
+        String imageUrl = null;
+        if (selectedImagePath != null && !selectedImagePath.isEmpty()) {
+            try {
+                File imageDir = new File(IMAGE_DIR);
+                if (!imageDir.exists()) {
+                    imageDir.mkdirs();
+                }
+
+                String extension = "";
+                int dotIndex = selectedImagePath.lastIndexOf('.');
+                if (dotIndex > 0) {
+                    extension = selectedImagePath.substring(dotIndex);
+                }
+
+                String newFileName = UUID.randomUUID().toString() + extension;
+                File destFile = new File(IMAGE_DIR + newFileName);
+                Files.copy(new File(selectedImagePath).toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                imageUrl = "images/products/" + newFileName;
+            } catch (IOException e) {
+                e.printStackTrace();
+                AppMessageDialogs.showWarning(this, "Cảnh báo", "Không thể lưu ảnh, sản phẩm sẽ được lưu không có ảnh.");
+            }
+        }
+
+        ProductDTO dto = new ProductDTO(null, normalizedName, price, unit, imageUrl, 0, threshold);
 
         // Async save preventing UI blocking
         new SwingWorker<Void, Void>() {

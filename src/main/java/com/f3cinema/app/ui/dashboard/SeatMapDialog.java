@@ -6,6 +6,7 @@ import com.f3cinema.app.entity.enums.SeatType;
 import com.f3cinema.app.service.RoomService;
 import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
 import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
+import com.f3cinema.app.ui.common.dialog.DialogStyle;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
@@ -13,89 +14,162 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+/**
+ * Sơ đồ ghế: mỗi lần click một ghế là đổi loại (Regular → VIP → Couple) và lưu.
+ */
 public class SeatMapDialog extends BaseAppDialog {
     private final RoomService roomService = RoomService.getInstance();
     private final Long roomId;
     private JPanel mapPanel;
+    /** Chỉ khác null khi lưới lớn hơn màn hình và cần cuộn */
+    private JScrollPane scrollPane;
     private JPanel topPanel;
     private JLabel capacityLabel;
-    private JComboBox<SeatType> bulkTypeCombo;
-    private JButton applyBulkButton;
-    /** Khi bật: click ghế chỉ chọn/bỏ (nhiều ghế), không cần Ctrl. Khi tắt: click đổi loại từng ghế. */
-    private JToggleButton bulkSelectModeToggle;
-    private final Set<Seat> selectedSeats = new HashSet<>();
     private List<Seat> seats;
-    
+
     public SeatMapDialog(JFrame owner, Long roomId) {
-        super(owner, "Sơ đồ ghế — bật \"Chọn nhiều\" rồi click các ghế, chọn loại và Apply");
+        super(owner, "Sơ đồ ghế — click từng ghế để đổi loại");
         this.roomId = roomId;
-        setupBaseDialog(900, 700);
+        setupUndecoratedNoFixedSize();
         JPanel surface = createSurfacePanel();
         setContentPane(surface);
-        
+
         mapPanel = new JPanel();
-        mapPanel.setOpaque(false);
+        mapPanel.setOpaque(true);
+        mapPanel.setBackground(ThemeConfig.BG_CARD);
         mapPanel.setBorder(new EmptyBorder(24, 24, 24, 24));
-        
-        JScrollPane scrollPane = new JScrollPane(mapPanel);
-        scrollPane.getViewport().setOpaque(false);
-        scrollPane.setOpaque(false);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        surface.add(scrollPane, BorderLayout.CENTER);
 
         topPanel = new JPanel();
-        topPanel.setOpaque(false);
+        topPanel.setOpaque(true);
+        topPanel.setBackground(ThemeConfig.BG_CARD);
         topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
         topPanel.setBorder(new EmptyBorder(10, 16, 8, 16));
 
         JPanel legendRow = buildLegend();
+        legendRow.setBackground(ThemeConfig.BG_CARD);
         legendRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         topPanel.add(legendRow);
         topPanel.add(Box.createVerticalStrut(8));
 
-        JPanel bulkPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        bulkPanel.setOpaque(false);
-        bulkPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bulkSelectModeToggle = new JToggleButton("Chọn nhiều", true);
-        bulkSelectModeToggle.setFont(ThemeConfig.FONT_SMALL);
-        bulkSelectModeToggle.setToolTipText("Bật: click từng ghế để chọn/bỏ (không cần Ctrl). Tắt: mỗi click đổi loại ghế.");
-        bulkSelectModeToggle.putClientProperty(FlatClientProperties.STYLE,
-                "arc: 10; selectedBackground: #6366F1;");
+        JPanel capRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        capRow.setOpaque(true);
+        capRow.setBackground(ThemeConfig.BG_CARD);
+        capRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         capacityLabel = new JLabel("Capacity: 0/0");
         capacityLabel.setForeground(ThemeConfig.TEXT_SECONDARY);
         capacityLabel.setFont(ThemeConfig.FONT_BODY);
-        bulkPanel.add(bulkSelectModeToggle);
-        bulkPanel.add(capacityLabel);
-        bulkTypeCombo = new JComboBox<>(SeatType.values());
-        bulkTypeCombo.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #0F172A; foreground: #F8FAFC;");
-        applyBulkButton = new JButton("Apply to selection");
-        applyBulkButton.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #6366F1; foreground: #FFFFFF; borderWidth: 0;");
-        applyBulkButton.addActionListener(e -> applyBulkUpdate());
-        bulkPanel.add(bulkTypeCombo);
-        bulkPanel.add(applyBulkButton);
-        topPanel.add(bulkPanel);
+        capRow.add(capacityLabel);
+        topPanel.add(capRow);
         surface.add(topPanel, BorderLayout.NORTH);
-        
+
+        JPanel south = new JPanel(new BorderLayout(0, 10));
+        south.setOpaque(true);
+        south.setBackground(ThemeConfig.BG_CARD);
+        south.setBorder(new EmptyBorder(8, 20, 16, 20));
+        JLabel hint = new JLabel("Mỗi lần click ghế đã lưu ngay — bấm nút bên dưới khi xong.");
+        hint.setFont(ThemeConfig.FONT_SMALL);
+        hint.setForeground(ThemeConfig.TEXT_SECONDARY);
+        south.add(hint, BorderLayout.NORTH);
+        JButton btnDone = DialogStyle.primaryButton("Lưu và đóng");
+        btnDone.addActionListener(e -> dispose());
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        btnRow.setOpaque(false);
+        btnRow.add(btnDone);
+        south.add(btnRow, BorderLayout.SOUTH);
+        surface.add(south, BorderLayout.SOUTH);
+
         loadSeats();
+
+        Dimension mapPref = mapPanel.getPreferredSize();
+        Rectangle win = computeAvailableWindowBounds(owner);
+        // Trừ chỗ cho legend + capacity + footer — tránh pack() vượt màn hình rồi cắt không cuộn
+        int reserveTopBottom = 200;
+        boolean needScroll = mapPref.width > win.width - 32
+                || mapPref.height > win.height - reserveTopBottom;
+
+        if (needScroll) {
+            scrollPane = new JScrollPane(mapPanel);
+            scrollPane.getViewport().setOpaque(true);
+            scrollPane.getViewport().setBackground(ThemeConfig.BG_CARD);
+            scrollPane.setOpaque(true);
+            scrollPane.setBackground(ThemeConfig.BG_CARD);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder());
+            scrollPane.getVerticalScrollBar().setUnitIncrement(20);
+            scrollPane.getHorizontalScrollBar().setUnitIncrement(20);
+            surface.add(scrollPane, BorderLayout.CENTER);
+        } else {
+            scrollPane = null;
+            surface.add(mapPanel, BorderLayout.CENTER);
+        }
+
+        pack();
+        capDialogToScreen(win);
+        setLocationRelativeTo(owner);
+    }
+
+    /** Vùng an toàn trên màn hình (trừ taskbar / menu). */
+    private static Rectangle computeAvailableWindowBounds(Window owner) {
+        GraphicsConfiguration gc = owner != null ? owner.getGraphicsConfiguration() : null;
+        if (gc == null) {
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            gc = ge.getDefaultScreenDevice().getDefaultConfiguration();
+        }
+        Rectangle bounds = gc.getBounds();
+        Insets inset = Toolkit.getDefaultToolkit().getScreenInsets(gc);
+        int w = bounds.width - inset.left - inset.right - 48;
+        int h = bounds.height - inset.top - inset.bottom - 48;
+        return new Rectangle(0, 0, Math.max(400, w), Math.max(400, h));
+    }
+
+    private void capDialogToScreen(Rectangle avail) {
+        int w = getWidth();
+        int h = getHeight();
+        if (w > avail.width) {
+            w = avail.width;
+        }
+        if (h > avail.height) {
+            h = avail.height;
+        }
+        setSize(w, h);
+    }
+
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        SwingUtilities.invokeLater(this::refreshSeatMapLayout);
+    }
+
+    private void refreshSeatMapLayout() {
+        if (mapPanel == null) return;
+        mapPanel.revalidate();
+        mapPanel.repaint();
+        if (scrollPane != null) {
+            scrollPane.revalidate();
+            scrollPane.repaint();
+        }
+        Container root = getContentPane();
+        if (root != null) {
+            root.revalidate();
+            root.repaint();
+        }
     }
 
     private JPanel buildLegend() {
         JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 8));
-        legend.setOpaque(false);
+        legend.setOpaque(true);
+        legend.setBackground(ThemeConfig.BG_CARD);
         legend.add(createLegendItem("Regular", ThemeConfig.TEXT_SECONDARY));
         legend.add(createLegendItem("VIP", Color.decode("#F59E0B")));
         legend.add(createLegendItem("Couple", Color.decode("#EC4899")));
-        legend.add(createLegendItem("Selected", ThemeConfig.ACCENT_COLOR));
         return legend;
     }
 
     private JPanel createLegendItem(String label, Color color) {
         JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        item.setOpaque(false);
+        item.setOpaque(true);
+        item.setBackground(ThemeConfig.BG_CARD);
         JPanel swatch = new JPanel();
         swatch.setPreferredSize(new Dimension(16, 16));
         swatch.setBackground(color);
@@ -110,51 +184,50 @@ public class SeatMapDialog extends BaseAppDialog {
 
     private void loadSeats() {
         seats = roomService.getSeatsByRoom(roomId);
-        if(seats.isEmpty()) return;
-        
+        if (seats.isEmpty()) return;
+
         int maxRows = 0;
         int maxCols = 0;
-        for(Seat s : seats) {
+        for (Seat s : seats) {
             maxRows = Math.max(maxRows, s.getRowChar().charAt(0) - 'A' + 1);
             maxCols = Math.max(maxCols, s.getNumber());
         }
-        
-        mapPanel.setLayout(new GridLayout(maxRows, maxCols, 5, 5));
+
+        mapPanel.setLayout(new GridLayout(maxRows, maxCols, 4, 4));
         mapPanel.removeAll();
-        
+
         Seat[][] matrix = new Seat[maxRows][maxCols];
-        for(Seat s : seats) {
-            matrix[s.getRowChar().charAt(0) - 'A'][s.getNumber()-1] = s;
+        for (Seat s : seats) {
+            matrix[s.getRowChar().charAt(0) - 'A'][s.getNumber() - 1] = s;
         }
-        
+
         for (int r = 0; r < maxRows; r++) {
             for (int c = 0; c < maxCols; c++) {
                 Seat s = matrix[r][c];
                 if (s == null) {
-                    mapPanel.add(new JLabel());
+                    JLabel empty = new JLabel();
+                    empty.setOpaque(true);
+                    empty.setBackground(ThemeConfig.BG_CARD);
+                    mapPanel.add(empty);
                 } else {
-                    JButton btn = new JButton(s.getRowChar() + s.getNumber());
-                    btn.setPreferredSize(new Dimension(44, 44));
-                    btn.setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD));
+                    String row = s.getRowChar();
+                    int num = s.getNumber();
+                    String label = row + num;
+                    JButton btn = new JButton(label);
+                    Font seatFont = new Font(Font.MONOSPACED, Font.BOLD, 11);
+                    btn.setFont(seatFont);
+                    btn.setPreferredSize(new Dimension(56, 44));
                     btn.setForeground(Color.WHITE);
                     btn.setFocusPainted(false);
                     btn.setBorderPainted(false);
                     btn.putClientProperty(FlatClientProperties.STYLE, "arc: 12");
                     btn.setBackground(colorForType(s.getSeatType()));
-                    btn.setToolTipText(s.getRowChar() + s.getNumber() + " - " + s.getSeatType().name());
+                    btn.setToolTipText(label + " — click để đổi loại ghế");
 
                     btn.addMouseListener(new MouseAdapter() {
                         @Override
-                        public void mouseClicked(MouseEvent e) {
-                            boolean multiSelect = bulkSelectModeToggle.isSelected()
-                                    || e.isControlDown() || e.isMetaDown();
-                            if (multiSelect) {
-                                if (selectedSeats.contains(s)) {
-                                    selectedSeats.remove(s);
-                                } else {
-                                    selectedSeats.add(s);
-                                }
-                                refreshSeatSelectionStyles();
+                        public void mousePressed(MouseEvent e) {
+                            if (!SwingUtilities.isLeftMouseButton(e)) {
                                 return;
                             }
                             SeatType nextType = nextType(s.getSeatType());
@@ -170,44 +243,7 @@ public class SeatMapDialog extends BaseAppDialog {
             }
         }
         updateCapacity();
-        mapPanel.revalidate();
-        mapPanel.repaint();
-    }
-
-    private void applyBulkUpdate() {
-        if (selectedSeats.isEmpty()) {
-            AppMessageDialogs.showInfo(this, "Chưa chọn ghế",
-                    "Bật \"Chọn nhiều\" (mặc định đã bật) rồi click các ghế, hoặc giữ Ctrl/⌘ khi tắt chế độ đó. Chọn loại ở combobox rồi bấm Apply.");
-            return;
-        }
-        SeatType target = (SeatType) bulkTypeCombo.getSelectedItem();
-        if (target == null) return;
-        for (Component c : mapPanel.getComponents()) {
-            if (c instanceof JButton btn) {
-                Object seatObj = btn.getClientProperty("seat");
-                if (seatObj instanceof Seat seat && selectedSeats.contains(seat)) {
-                    seat.setSeatType(target);
-                    btn.setBackground(colorForType(target));
-                    persistAsync(seat);
-                }
-            }
-        }
-        selectedSeats.clear();
-        refreshSeatSelectionStyles();
-        updateCapacity();
-    }
-
-    private void refreshSeatSelectionStyles() {
-        for (Component c : mapPanel.getComponents()) {
-            if (c instanceof JButton btn) {
-                Object seatObj = btn.getClientProperty("seat");
-                if (seatObj instanceof Seat seat) {
-                    boolean selected = selectedSeats.contains(seat);
-                    btn.setBorderPainted(selected);
-                    btn.setBorder(BorderFactory.createLineBorder(selected ? ThemeConfig.ACCENT_COLOR : new Color(0, 0, 0, 0), selected ? 2 : 0));
-                }
-            }
-        }
+        refreshSeatMapLayout();
     }
 
     private SeatType nextType(SeatType current) {
@@ -232,7 +268,7 @@ public class SeatMapDialog extends BaseAppDialog {
                 roomService.updateSeat(seat);
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() ->
-                        AppMessageDialogs.showError(this, "Loi", "Loi khi luu trang thai ghe!"));
+                        AppMessageDialogs.showError(this, "Lỗi", "Không lưu được trạng thái ghế."));
             }
         }).start();
     }

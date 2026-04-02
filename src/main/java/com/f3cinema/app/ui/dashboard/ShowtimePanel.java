@@ -7,27 +7,51 @@ import com.f3cinema.app.entity.Room;
 import com.f3cinema.app.entity.Showtime;
 import com.f3cinema.app.service.MovieService;
 import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
-import com.f3cinema.app.ui.dashboard.timeline.*;
+import com.f3cinema.app.ui.dashboard.showtime.ShowtimeScheduleSupport;
+import com.f3cinema.app.ui.dashboard.showtime.ShowtimeScheduleTableModel;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableRowSorter;
+import javax.swing.RowFilter;
+import javax.swing.RowSorter;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.Insets;
+import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-
-import static com.f3cinema.app.ui.dashboard.timeline.TimelineConstants.*;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * ShowtimePanel — Admin "Quản lý Lịch chiếu" with Timeline View.
- * Displays showtimes as color-coded blocks on a room x time grid.
+ * ShowtimePanel — Admin "Quản lý Lịch chiếu" with schedule table (room + time columns).
  */
 public class ShowtimePanel extends BaseDashboardModule {
+
+    private static final Color BG_ELEVATED = ThemeConfig.BORDER_COLOR;
+    private static final Color ACCENT = ThemeConfig.ACCENT_COLOR;
 
     private JComboBox<MovieSummaryDTO> cbMovies;
     private JComboBox<Room> cbRooms;
@@ -36,15 +60,9 @@ public class ShowtimePanel extends BaseDashboardModule {
     private LocalDate selectedDate = LocalDate.now();
     private static final DateTimeFormatter PICKER_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private TimelinePanel timelinePanel;
-    private TimeRulerHeader timeRulerHeader;
-    private RoomSidebar roomSidebar;
-    private JScrollPane timelineScroll;
+    private JTable scheduleTable;
     private JPanel legendPanel;
 
-    private JButton btnZoomIn;
-    private JButton btnZoomOut;
-    private JSlider zoomSlider;
     private final Set<Long> hiddenMovieIds = new HashSet<>();
 
     private final ShowtimeController controller;
@@ -59,49 +77,51 @@ public class ShowtimePanel extends BaseDashboardModule {
 
     private void initUI() {
         contentBody.add(createToolbar(), BorderLayout.NORTH);
-        contentBody.add(createTimelineArea(), BorderLayout.CENTER);
+        contentBody.add(createTableArea(), BorderLayout.CENTER);
         legendPanel = createLegendPanel();
         contentBody.add(legendPanel, BorderLayout.SOUTH);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // TIMELINE AREA
-    // ─────────────────────────────────────────────────────────────────────────
+    private JScrollPane createTableArea() {
+        scheduleTable = new JTable();
+        scheduleTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        scheduleTable.setRowHeight(28);
+        scheduleTable.setShowGrid(true);
+        scheduleTable.setGridColor(ThemeConfig.CHART_GRID);
+        scheduleTable.setBackground(ThemeConfig.BG_CARD);
+        scheduleTable.setForeground(ThemeConfig.TEXT_PRIMARY);
+        scheduleTable.setFont(ThemeConfig.FONT_BODY);
+        scheduleTable.setFillsViewportHeight(true);
+        scheduleTable.getTableHeader().setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD));
+        scheduleTable.getTableHeader().setBackground(ThemeConfig.BG_CARD);
+        scheduleTable.getTableHeader().setForeground(ThemeConfig.TEXT_SECONDARY);
 
-    private JPanel createTimelineArea() {
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-
-        timelinePanel = new TimelinePanel();
-        timeRulerHeader = new TimeRulerHeader();
-        roomSidebar = new RoomSidebar();
-
-        timelineScroll = new JScrollPane(timelinePanel);
-        timelineScroll.setBorder(BorderFactory.createEmptyBorder());
-        timelineScroll.getViewport().setBackground(BG_MAIN);
-        timelineScroll.setRowHeaderView(roomSidebar);
-        timelineScroll.setColumnHeaderView(timeRulerHeader);
-        timelineScroll.getHorizontalScrollBar().setUnitIncrement(20);
-        timelineScroll.getVerticalScrollBar().setUnitIncrement(20);
-
-        // Corner panel (top-left intersection of ruler and sidebar)
-        JPanel corner = new JPanel() {
+        scheduleTable.addMouseListener(new MouseAdapter() {
             @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setColor(ROW_SEPARATOR);
-                g2.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight());
-                g2.drawLine(0, getHeight() - 1, getWidth(), getHeight() - 1);
-                g2.dispose();
+            public void mousePressed(MouseEvent e) {
+                maybeShowPopup(e);
             }
-        };
-        corner.setBackground(BG_MAIN);
-        corner.setPreferredSize(new Dimension(SIDEBAR_WIDTH, RULER_HEIGHT));
-        timelineScroll.setCorner(JScrollPane.UPPER_LEFT_CORNER, corner);
 
-        wrapper.add(timelineScroll, BorderLayout.CENTER);
-        return wrapper;
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                maybeShowPopup(e);
+            }
+        });
+
+        JScrollPane scroll = new JScrollPane(scheduleTable);
+        scroll.setBorder(BorderFactory.createEmptyBorder(0, 24, 12, 24));
+        scroll.getViewport().setBackground(ThemeConfig.BG_MAIN);
+        return scroll;
+    }
+
+    private void maybeShowPopup(MouseEvent e) {
+        if (!e.isPopupTrigger()) return;
+        int row = scheduleTable.rowAtPoint(e.getPoint());
+        if (row < 0) return;
+        int modelRow = scheduleTable.convertRowIndexToModel(row);
+        ShowtimeScheduleTableModel model = (ShowtimeScheduleTableModel) scheduleTable.getModel();
+        Showtime st = model.getShowtimeAt(modelRow);
+        showRowPopupMenu(e.getComponent(), e.getX(), e.getY(), st);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -122,11 +142,10 @@ public class ShowtimePanel extends BaseDashboardModule {
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftPanel.setOpaque(false);
 
-        // Calendar button
         btnDatePicker = new JButton("\uD83D\uDCC5  " + selectedDate.format(PICKER_FORMATTER));
         btnDatePicker.setFont(ThemeConfig.FONT_BODY);
-        btnDatePicker.setForeground(TEXT_PRIMARY);
-        btnDatePicker.setBackground(BG_SURFACE);
+        btnDatePicker.setForeground(ThemeConfig.TEXT_PRIMARY);
+        btnDatePicker.setBackground(ThemeConfig.BG_CARD);
         btnDatePicker.setPreferredSize(new Dimension(175, 36));
         btnDatePicker.setMaximumSize(new Dimension(175, 36));
         btnDatePicker.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -155,13 +174,11 @@ public class ShowtimePanel extends BaseDashboardModule {
             controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId());
         });
 
-        // Movie filter
         cbMovies = new JComboBox<>();
         styleToolbarComponent(cbMovies, 200);
         cbMovies.addActionListener(e ->
                 controller.loadShowtimes(getSelectedDate(), getSelectedMovieId(), getSelectedRoomId()));
 
-        // Room filter
         cbRooms = new JComboBox<>();
         styleToolbarComponent(cbRooms, 180);
         cbRooms.addActionListener(e ->
@@ -174,31 +191,6 @@ public class ShowtimePanel extends BaseDashboardModule {
         leftPanel.add(cbMovies);
         leftPanel.add(cbRooms);
 
-        // Zoom controls
-        JPanel zoomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
-        zoomPanel.setOpaque(false);
-
-        btnZoomOut = createToolbarIconButton("−");
-        btnZoomOut.addActionListener(e -> zoom(-ZOOM_STEP));
-        btnZoomIn = createToolbarIconButton("+");
-        btnZoomIn.addActionListener(e -> zoom(ZOOM_STEP));
-        zoomSlider = new JSlider(100, 200, 100);
-        zoomSlider.setOpaque(false);
-        zoomSlider.setPreferredSize(new Dimension(120, 24));
-        zoomSlider.addChangeListener(e -> {
-            double target = zoomSlider.getValue() / 100.0;
-            double next = DEFAULT_PIXELS_PER_MINUTE * target;
-            timelinePanel.setPixelsPerMinute(next);
-            timeRulerHeader.setPixelsPerMinute(next);
-            timelineScroll.revalidate();
-            timelineScroll.repaint();
-        });
-
-        zoomPanel.add(btnZoomOut);
-        zoomPanel.add(btnZoomIn);
-        zoomPanel.add(zoomSlider);
-
-        // Add button
         JButton btnAdd = new JButton("+ Thêm suất chiếu");
         btnAdd.setBackground(ThemeConfig.ACCENT_COLOR);
         btnAdd.setForeground(Color.WHITE);
@@ -211,8 +203,6 @@ public class ShowtimePanel extends BaseDashboardModule {
 
         controlBar.add(leftPanel);
         controlBar.add(Box.createHorizontalGlue());
-        controlBar.add(zoomPanel);
-        controlBar.add(Box.createHorizontalStrut(8));
         controlBar.add(btnAdd);
         toolbar.add(controlBar, BorderLayout.CENTER);
         return toolbar;
@@ -221,22 +211,13 @@ public class ShowtimePanel extends BaseDashboardModule {
     private JButton createToolbarIconButton(String text) {
         JButton btn = new JButton(text);
         btn.setFont(new Font("Inter", Font.BOLD, 16));
-        btn.setForeground(TEXT_PRIMARY);
-        btn.setBackground(BG_SURFACE);
+        btn.setForeground(ThemeConfig.TEXT_PRIMARY);
+        btn.setBackground(ThemeConfig.BG_CARD);
         btn.setPreferredSize(new Dimension(36, 36));
         btn.setMaximumSize(new Dimension(36, 36));
         btn.putClientProperty(FlatClientProperties.STYLE, "arc: 10; borderWidth: 0;");
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return btn;
-    }
-
-    private void zoom(double delta) {
-        double current = timelinePanel.getPixelsPerMinute();
-        double next = Math.max(MIN_PIXELS_PER_MINUTE, Math.min(MAX_PIXELS_PER_MINUTE, current + delta));
-        timelinePanel.setPixelsPerMinute(next);
-        timeRulerHeader.setPixelsPerMinute(next);
-        timelineScroll.revalidate();
-        timelineScroll.repaint();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -250,65 +231,76 @@ public class ShowtimePanel extends BaseDashboardModule {
         return panel;
     }
 
-    private void updateLegend() {
+    private void updateLegend(List<Showtime> rows, MovieColorPalette palette) {
         legendPanel.removeAll();
-        MovieColorPalette palette = timelinePanel.getPalette();
         Set<String> seen = new LinkedHashSet<>();
 
-        for (ShowtimeBlock block : timelinePanel.getBlocks()) {
-            String title = block.getShowtime().getMovie().getTitle();
-            if (seen.add(title)) {
-                Long movieId = block.getShowtime().getMovie().getId();
-                Color color = palette.getColor(movieId);
+        for (Showtime st : rows) {
+            if (st.getMovie() == null) continue;
+            String title = st.getMovie().getTitle();
+            if (!seen.add(title)) continue;
+            Long movieId = st.getMovie().getId();
+            Color color = palette.getColor(movieId);
 
-                JPanel swatch = new JPanel() {
-                    @Override
-                    protected void paintComponent(Graphics g) {
-                        super.paintComponent(g);
-                        Graphics2D g2 = (Graphics2D) g.create();
-                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                        g2.setColor(color);
-                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
-                        g2.dispose();
-                    }
-                };
-                swatch.setOpaque(false);
-                swatch.setPreferredSize(new Dimension(12, 12));
+            JPanel swatch = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(color);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
+                    g2.dispose();
+                }
+            };
+            swatch.setOpaque(false);
+            swatch.setPreferredSize(new Dimension(12, 12));
 
-                JLabel label = new JLabel(title);
-                label.setFont(new Font("Inter", Font.PLAIN, 12));
-                label.setForeground(TEXT_MUTED);
+            JLabel label = new JLabel(title);
+            label.setFont(ThemeConfig.FONT_SMALL);
+            label.setForeground(ThemeConfig.TEXT_SECONDARY);
 
-                JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-                item.setOpaque(false);
-                item.add(swatch);
-                item.add(label);
-                JToggleButton toggle = new JToggleButton("ON", !hiddenMovieIds.contains(movieId));
-                toggle.setFont(new Font("Inter", Font.PLAIN, 10));
-                toggle.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #1E293B;");
-                toggle.addActionListener(e -> {
-                    if (toggle.isSelected()) hiddenMovieIds.remove(movieId);
-                    else hiddenMovieIds.add(movieId);
-                    applyLegendVisibility();
-                });
-                item.add(toggle);
-                legendPanel.add(item);
-            }
+            JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+            item.setOpaque(false);
+            item.add(swatch);
+            item.add(label);
+            JToggleButton toggle = new JToggleButton("ON", !hiddenMovieIds.contains(movieId));
+            toggle.setFont(ThemeConfig.FONT_SMALL);
+            toggle.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #1E293B;");
+            toggle.addActionListener(e -> {
+                if (toggle.isSelected()) hiddenMovieIds.remove(movieId);
+                else hiddenMovieIds.add(movieId);
+                applyLegendRowFilter();
+            });
+            item.add(toggle);
+            legendPanel.add(item);
         }
         legendPanel.revalidate();
         legendPanel.repaint();
     }
 
-    private void applyLegendVisibility() {
-        for (ShowtimeBlock block : timelinePanel.getBlocks()) {
-            Long movieId = block.getShowtime().getMovie().getId();
-            block.setVisible(!hiddenMovieIds.contains(movieId));
+    @SuppressWarnings("unchecked")
+    private void applyLegendRowFilter() {
+        RowSorter<?> rs = scheduleTable.getRowSorter();
+        if (!(rs instanceof TableRowSorter)) return;
+        TableRowSorter<ShowtimeScheduleTableModel> sorter =
+                (TableRowSorter<ShowtimeScheduleTableModel>) rs;
+        if (hiddenMovieIds.isEmpty()) {
+            sorter.setRowFilter(null);
+            return;
         }
-        timelinePanel.repaint();
+        sorter.setRowFilter(new RowFilter<ShowtimeScheduleTableModel, Integer>() {
+            @Override
+            public boolean include(Entry<? extends ShowtimeScheduleTableModel, ? extends Integer> entry) {
+                Showtime st = entry.getModel().getShowtimeAt(entry.getIdentifier());
+                Long mid = st.getMovie() != null ? st.getMovie().getId() : null;
+                return mid == null || !hiddenMovieIds.contains(mid);
+            }
+        });
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // INNER CLASS: CalendarPopup (preserved from original)
+    // INNER CLASS: CalendarPopup
     // ─────────────────────────────────────────────────────────────────────────
 
     private class CalendarPopup extends JPopupMenu {
@@ -323,14 +315,14 @@ public class ShowtimePanel extends BaseDashboardModule {
                     BorderFactory.createLineBorder(BG_ELEVATED, 1, true),
                     new EmptyBorder(8, 8, 8, 8)
             ));
-            setBackground(BG_SURFACE);
+            setBackground(ThemeConfig.BG_CARD);
             setLayout(new BorderLayout(0, 8));
             setPreferredSize(new Dimension(320, 310));
 
             add(buildHeader(), BorderLayout.NORTH);
 
             gridPanel = new JPanel(new GridLayout(0, 7, 4, 4));
-            gridPanel.setBackground(BG_SURFACE);
+            gridPanel.setBackground(ThemeConfig.BG_CARD);
             add(gridPanel, BorderLayout.CENTER);
 
             renderGrid();
@@ -340,19 +332,31 @@ public class ShowtimePanel extends BaseDashboardModule {
             JPanel header = new JPanel(new BorderLayout(4, 0));
             header.setOpaque(false);
 
-            JButton btnPrevYear  = navBtn("«");
-            JButton btnNextYear  = navBtn("»");
+            JButton btnPrevYear = navBtn("«");
+            JButton btnNextYear = navBtn("»");
             JButton btnPrevMonth = navBtn("<");
             JButton btnNextMonth = navBtn(">");
 
-            btnPrevYear .addActionListener(e -> { currentYearMonth = currentYearMonth.minusYears(1);  renderGrid(); });
-            btnNextYear .addActionListener(e -> { currentYearMonth = currentYearMonth.plusYears(1);   renderGrid(); });
-            btnPrevMonth.addActionListener(e -> { currentYearMonth = currentYearMonth.minusMonths(1); renderGrid(); });
-            btnNextMonth.addActionListener(e -> { currentYearMonth = currentYearMonth.plusMonths(1);  renderGrid(); });
+            btnPrevYear.addActionListener(e -> {
+                currentYearMonth = currentYearMonth.minusYears(1);
+                renderGrid();
+            });
+            btnNextYear.addActionListener(e -> {
+                currentYearMonth = currentYearMonth.plusYears(1);
+                renderGrid();
+            });
+            btnPrevMonth.addActionListener(e -> {
+                currentYearMonth = currentYearMonth.minusMonths(1);
+                renderGrid();
+            });
+            btnNextMonth.addActionListener(e -> {
+                currentYearMonth = currentYearMonth.plusMonths(1);
+                renderGrid();
+            });
 
             lblMonthYear = new JLabel("", SwingConstants.CENTER);
             lblMonthYear.setFont(new Font("Inter", Font.BOLD, 15));
-            lblMonthYear.setForeground(TEXT_PRIMARY);
+            lblMonthYear.setForeground(ThemeConfig.TEXT_PRIMARY);
 
             JPanel leftNav = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
             leftNav.setOpaque(false);
@@ -364,9 +368,9 @@ public class ShowtimePanel extends BaseDashboardModule {
             rightNav.add(btnNextMonth);
             rightNav.add(btnNextYear);
 
-            header.add(leftNav,      BorderLayout.WEST);
+            header.add(leftNav, BorderLayout.WEST);
             header.add(lblMonthYear, BorderLayout.CENTER);
-            header.add(rightNav,     BorderLayout.EAST);
+            header.add(rightNav, BorderLayout.EAST);
             return header;
         }
 
@@ -378,7 +382,7 @@ public class ShowtimePanel extends BaseDashboardModule {
             for (String d : new String[]{"T2", "T3", "T4", "T5", "T6", "T7", "CN"}) {
                 JLabel lbl = new JLabel(d, SwingConstants.CENTER);
                 lbl.setFont(new Font("Inter", Font.BOLD, 12));
-                lbl.setForeground(TEXT_MUTED);
+                lbl.setForeground(ThemeConfig.TEXT_SECONDARY);
                 gridPanel.add(lbl);
             }
 
@@ -408,15 +412,18 @@ public class ShowtimePanel extends BaseDashboardModule {
             btn.setOpaque(true);
 
             boolean isSel = date.equals(selectedDate);
-            btn.setBackground(isSel ? ACCENT : BG_SURFACE);
-            btn.setForeground(isSel ? Color.WHITE : TEXT_PRIMARY);
+            btn.setBackground(isSel ? ACCENT : ThemeConfig.BG_CARD);
+            btn.setForeground(isSel ? Color.WHITE : ThemeConfig.TEXT_PRIMARY);
 
             btn.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override public void mouseEntered(java.awt.event.MouseEvent e) {
-                    if (!date.equals(selectedDate)) btn.setBackground(BG_ELEVATED);
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    if (!date.equals(selectedDate)) btn.setBackground(ThemeConfig.BG_CARD_HOVER);
                 }
-                @Override public void mouseExited(java.awt.event.MouseEvent e) {
-                    btn.setBackground(date.equals(selectedDate) ? ACCENT : BG_SURFACE);
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    btn.setBackground(date.equals(selectedDate) ? ACCENT : ThemeConfig.BG_CARD);
                 }
             });
 
@@ -432,16 +439,23 @@ public class ShowtimePanel extends BaseDashboardModule {
         private JButton navBtn(String text) {
             JButton btn = new JButton(text);
             btn.setFont(new Font("Inter", Font.BOLD, 13));
-            btn.setForeground(TEXT_PRIMARY);
-            btn.setBackground(BG_SURFACE);
+            btn.setForeground(ThemeConfig.TEXT_PRIMARY);
+            btn.setBackground(ThemeConfig.BG_CARD);
             btn.setFocusPainted(false);
             btn.setBorderPainted(false);
             btn.setOpaque(true);
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             btn.setPreferredSize(new Dimension(30, 28));
             btn.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override public void mouseEntered(java.awt.event.MouseEvent e) { btn.setBackground(BG_ELEVATED); }
-                @Override public void mouseExited (java.awt.event.MouseEvent e) { btn.setBackground(BG_SURFACE);  }
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    btn.setBackground(ThemeConfig.BG_CARD_HOVER);
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    btn.setBackground(ThemeConfig.BG_CARD);
+                }
             });
             return btn;
         }
@@ -479,8 +493,7 @@ public class ShowtimePanel extends BaseDashboardModule {
         }
     }
 
-    private void showBlockPopupMenu(ShowtimeBlock block, int x, int y) {
-        Showtime st = block.getShowtime();
+    private void showRowPopupMenu(Component invoker, int x, int y, Showtime st) {
         JPopupMenu menu = new JPopupMenu();
 
         JMenuItem itemEdit = new JMenuItem("✏  Chỉnh sửa");
@@ -498,7 +511,45 @@ public class ShowtimePanel extends BaseDashboardModule {
 
         menu.add(itemEdit);
         menu.add(itemDelete);
-        menu.show(block, x, y);
+        menu.show(invoker, x, y);
+    }
+
+    private void installTableRenderer(MovieColorPalette rowPalette) {
+        DefaultTableCellRenderer base = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                int modelRow = table.convertRowIndexToModel(row);
+                ShowtimeScheduleTableModel m = (ShowtimeScheduleTableModel) table.getModel();
+                Showtime st = m.getShowtimeAt(modelRow);
+                Long movieId = st.getMovie() != null ? st.getMovie().getId() : null;
+                Color tint = movieId != null ? rowPalette.getBlockBackground(movieId)
+                        : ThemeConfig.BG_CARD;
+                if (isSelected) {
+                    ((JLabel) c).setBackground(tint.darker());
+                } else {
+                    ((JLabel) c).setBackground(tint);
+                }
+                ((JLabel) c).setOpaque(true);
+                if (column == ShowtimeScheduleTableModel.COL_WARN && value != null && !value.toString().isEmpty()) {
+                    ((JLabel) c).setForeground(ThemeConfig.TEXT_DANGER);
+                } else {
+                    ((JLabel) c).setForeground(ThemeConfig.TEXT_PRIMARY);
+                }
+                return c;
+            }
+        };
+        scheduleTable.setDefaultRenderer(Object.class, base);
+    }
+
+    private void sizeColumns() {
+        TableColumn col;
+        int[] widths = {100, 88, 120, 220, 96, 200};
+        for (int i = 0; i < widths.length && i < scheduleTable.getColumnCount(); i++) {
+            col = scheduleTable.getColumnModel().getColumn(i);
+            col.setPreferredWidth(widths[i]);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -506,33 +557,39 @@ public class ShowtimePanel extends BaseDashboardModule {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Replaces the old updateTableData. Receives rooms and showtimes grouped by room ID.
+     * Receives rooms and showtimes grouped by room ID; fills the schedule table (layout A: all rooms in one table).
      */
-    public void updateTimelineData(List<Room> rooms, Map<Long, List<Showtime>> grouped) {
-        roomSidebar.setRooms(rooms);
-        timelinePanel.setData(rooms, grouped);
+    public void updateScheduleTable(List<Room> rooms, Map<Long, List<Showtime>> grouped) {
+        List<Showtime> flat = ShowtimeScheduleSupport.flattenInRoomOrder(rooms, grouped);
+        Map<Long, String> conflicts = ShowtimeScheduleSupport.conflictMessagesByShowtimeId(rooms, grouped);
 
-        // Wire click listeners on all blocks
-        for (ShowtimeBlock block : timelinePanel.getBlocks()) {
-            block.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    if (SwingUtilities.isRightMouseButton(e) || e.getClickCount() == 1) {
-                        showBlockPopupMenu(block, e.getX(), e.getY());
-                    }
-                }
-            });
+        MovieColorPalette palette = new MovieColorPalette();
+        for (Showtime st : flat) {
+            if (st.getMovie() != null) palette.getColor(st.getMovie().getId());
         }
 
-        updateLegend();
-        timelineScroll.revalidate();
-        timelineScroll.repaint();
+        ShowtimeScheduleTableModel model = new ShowtimeScheduleTableModel(flat, conflicts, selectedDate);
+        scheduleTable.setModel(model);
+
+        TableRowSorter<ShowtimeScheduleTableModel> sorter = new TableRowSorter<>(model);
+        scheduleTable.setRowSorter(sorter);
+        applyLegendRowFilter();
+
+        installTableRenderer(palette);
+        sizeColumns();
+
+        updateLegend(flat, palette);
+        scheduleTable.revalidate();
+        scheduleTable.repaint();
     }
 
-    /** @deprecated Use updateTimelineData instead. Kept for backward compatibility during migration. */
+    /** @deprecated Use {@link #updateScheduleTable(List, Map)}. */
     @Deprecated
+    public void updateTimelineData(List<Room> rooms, Map<Long, List<Showtime>> grouped) {
+        updateScheduleTable(rooms, grouped);
+    }
+
     public void updateTableData(List<Showtime> data) {
-        // Group by room for timeline display
         Map<Long, List<Showtime>> grouped = new LinkedHashMap<>();
         Set<Room> roomSet = new LinkedHashSet<>();
         for (Showtime s : data) {
@@ -542,7 +599,7 @@ public class ShowtimePanel extends BaseDashboardModule {
         }
         List<Room> rooms = new ArrayList<>(roomSet);
         rooms.sort(Comparator.comparing(Room::getName));
-        updateTimelineData(rooms, grouped);
+        updateScheduleTable(rooms, grouped);
     }
 
     public void setLoadingState(boolean isLoading) {
@@ -553,7 +610,9 @@ public class ShowtimePanel extends BaseDashboardModule {
         AppMessageDialogs.showError(this, "Lỗi Quản lý Suất chiếu", msg);
     }
 
-    public LocalDate getSelectedDate() { return selectedDate; }
+    public LocalDate getSelectedDate() {
+        return selectedDate;
+    }
 
     public Long getSelectedMovieId() {
         MovieSummaryDTO sel = (MovieSummaryDTO) cbMovies.getSelectedItem();

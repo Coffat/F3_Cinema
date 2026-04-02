@@ -7,6 +7,7 @@ import com.f3cinema.app.ui.common.dialog.BaseAppDialog;
 import com.f3cinema.app.ui.common.dialog.DialogStyle;
 import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -28,13 +29,15 @@ public class StockReceiptDialog extends BaseAppDialog {
     private DefaultTableModel tableModel;
     private JTable itemTable;
     private JLabel lblTotalCost;
-    private JComboBox<ProductDTO> cbProduct;
     private JSpinner spinQuantity;
     private JSpinner spinPrice;
     private final Runnable onSuccessCallback;
     
     // Yêu cầu 1: List lưu trữ tạm thời các mặt hàng đang nhập
     private final List<StockReceiptItemDTO> currentItems = new ArrayList<>();
+
+    /** Tránh vòng lặp: setValueAt / addRow kích hoạt TableModelListener → refreshFromTableModel → setValueAt… */
+    private boolean ignoreTableModelEvents;
 
     public StockReceiptDialog(JFrame owner, Runnable onSuccessCallback) {
         super(owner, "Khởi Tạo Phiếu Nhập Kho");
@@ -104,31 +107,20 @@ public class StockReceiptDialog extends BaseAppDialog {
         JPanel topCenterItem = new JPanel(new BorderLayout());
         topCenterItem.setOpaque(false);
         
-        JLabel lblDetail = new JLabel("CHI TIET MAT HANG");
+        JLabel lblDetail = new JLabel("CHI TIẾT MẶT HÀNG");
         lblDetail.setFont(ThemeConfig.FONT_H2);
         lblDetail.setForeground(ThemeConfig.TEXT_SECONDARY);
         topCenterItem.add(lblDetail, BorderLayout.WEST);
 
-        JPanel inlineAdd = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        inlineAdd.setOpaque(false);
-        cbProduct = new JComboBox<>();
-        loadProducts();
-        cbProduct.setPreferredSize(new Dimension(300, 40));
-        spinQuantity = new JSpinner(new SpinnerNumberModel(1, 1, 10000, 1));
-        spinPrice = new JSpinner(new SpinnerNumberModel(10000.0, 0.0, 10000000.0, 500.0));
-        spinQuantity.setPreferredSize(new Dimension(90, 40));
-        spinPrice.setPreferredSize(new Dimension(140, 40));
-        DialogStyle.styleInput(cbProduct);
-        DialogStyle.styleInput(spinQuantity);
-        DialogStyle.styleInput(spinPrice);
-        JButton btnAddItem = new JButton("Them san pham");
-        btnAddItem.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #38BDF8; foreground: #0F172A; borderWidth: 0;");
-        btnAddItem.addActionListener(e -> addInlineItem());
-        inlineAdd.add(cbProduct);
-        inlineAdd.add(spinQuantity);
-        inlineAdd.add(spinPrice);
-        inlineAdd.add(btnAddItem);
-        topCenterItem.add(inlineAdd, BorderLayout.EAST);
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        btnPanel.setOpaque(false);
+        
+        JButton btnSelectProduct = new JButton("Chọn sản phẩm");
+        btnSelectProduct.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #6366F1; foreground: #FFFFFF; borderWidth: 0;");
+        btnSelectProduct.addActionListener(e -> showProductSelectionDialog());
+        btnPanel.add(btnSelectProduct);
+        
+        topCenterItem.add(btnPanel, BorderLayout.EAST);
         
         centerPanel.add(topCenterItem, BorderLayout.NORTH);
 
@@ -139,7 +131,11 @@ public class StockReceiptDialog extends BaseAppDialog {
                 return column == 1 || column == 2;
             }
         };
-        tableModel.addTableModelListener(e -> refreshFromTableModel());
+        tableModel.addTableModelListener(e -> {
+            if (!ignoreTableModelEvents) {
+                refreshFromTableModel();
+            }
+        });
 
         itemTable = new JTable(tableModel);
         itemTable.setFillsViewportHeight(true);
@@ -212,63 +208,49 @@ public class StockReceiptDialog extends BaseAppDialog {
         return p;
     }
 
-    private void loadProducts() {
-        try {
-            List<ProductDTO> products = InventoryServiceImpl.getInstance().getAllInventory();
-            for (ProductDTO p : products) cbProduct.addItem(p);
-            cbProduct.setRenderer(new DefaultListCellRenderer() {
-                @Override
-                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                    if (value instanceof ProductDTO p) setText(p.name());
-                    return this;
-                }
-            });
-        } catch (Exception e) {
-            AppMessageDialogs.showError(this, "Loi", "Khong the tai danh sach san pham.");
-        }
-    }
-
-    private void addInlineItem() {
-        ProductDTO selected = (ProductDTO) cbProduct.getSelectedItem();
-        if (selected == null) return;
-        int qty = (Integer) spinQuantity.getValue();
-        BigDecimal price = BigDecimal.valueOf((Double) spinPrice.getValue());
-        currentItems.add(new StockReceiptItemDTO(selected.id(), selected.name(), qty, price));
-        refreshTableAndTotal();
-    }
-
     private void refreshTableAndTotal() {
-        tableModel.setRowCount(0);
-        
-        BigDecimal totalCost = BigDecimal.ZERO;
-        for (StockReceiptItemDTO item : currentItems) {
-            BigDecimal rowTotal = item.importPrice().multiply(BigDecimal.valueOf(item.quantity()));
-            totalCost = totalCost.add(rowTotal);
-            
-            tableModel.addRow(new Object[]{
-                item.productName(),
-                item.quantity(),
-                item.importPrice(),
-                rowTotal
-            });
+        ignoreTableModelEvents = true;
+        try {
+            tableModel.setRowCount(0);
+
+            BigDecimal totalCost = BigDecimal.ZERO;
+            for (StockReceiptItemDTO item : currentItems) {
+                BigDecimal rowTotal = item.importPrice().multiply(BigDecimal.valueOf(item.quantity()));
+                totalCost = totalCost.add(rowTotal);
+
+                tableModel.addRow(new Object[]{
+                        item.productName(),
+                        item.quantity(),
+                        item.importPrice(),
+                        rowTotal
+                });
+            }
+            lblTotalCost.setText(String.format("Tong tien nhap: %,.0f đ", totalCost));
+        } finally {
+            ignoreTableModelEvents = false;
         }
-        lblTotalCost.setText(String.format("Tong tien nhap: %,.0f đ", totalCost));
     }
 
     private void refreshFromTableModel() {
-        currentItems.clear();
-        BigDecimal total = BigDecimal.ZERO;
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            String name = String.valueOf(tableModel.getValueAt(i, 0));
-            int qty = Integer.parseInt(String.valueOf(tableModel.getValueAt(i, 1)));
-            BigDecimal price = new BigDecimal(String.valueOf(tableModel.getValueAt(i, 2)));
-            BigDecimal row = price.multiply(BigDecimal.valueOf(qty));
-            tableModel.setValueAt(row, i, 3);
-            currentItems.add(new StockReceiptItemDTO(null, name, qty, price));
-            total = total.add(row);
+        ignoreTableModelEvents = true;
+        try {
+            List<StockReceiptItemDTO> previousItems = new ArrayList<>(currentItems);
+            currentItems.clear();
+            BigDecimal total = BigDecimal.ZERO;
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                String name = String.valueOf(tableModel.getValueAt(i, 0));
+                int qty = Integer.parseInt(String.valueOf(tableModel.getValueAt(i, 1)));
+                BigDecimal price = new BigDecimal(String.valueOf(tableModel.getValueAt(i, 2)));
+                BigDecimal row = price.multiply(BigDecimal.valueOf(qty));
+                tableModel.setValueAt(row, i, 3);
+                Long productId = i < previousItems.size() ? previousItems.get(i).productId() : null;
+                currentItems.add(new StockReceiptItemDTO(productId, name, qty, price));
+                total = total.add(row);
+            }
+            lblTotalCost.setText(String.format("Tong tien nhap: %,.0f đ", total));
+        } finally {
+            ignoreTableModelEvents = false;
         }
-        lblTotalCost.setText(String.format("Tong tien nhap: %,.0f đ", total));
     }
 
     private void saveReceipt() {
@@ -315,5 +297,135 @@ public class StockReceiptDialog extends BaseAppDialog {
                 }
             }
         }.execute();
+    }
+
+    private void showProductSelectionDialog() {
+        JDialog dialog = new JDialog(this, "Chọn sản phẩm nhập kho", true);
+        dialog.setSize(600, 450);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout(0, 16));
+
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 16));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(ThemeConfig.BG_CARD);
+
+        JLabel lblHeader = DialogStyle.titleLabel("CHỌN SẢN PHẨM");
+        mainPanel.add(lblHeader, BorderLayout.NORTH);
+
+        List<ProductDTO> allProducts = InventoryServiceImpl.getInstance().getAllInventory();
+        String[] productColumnNames = {"", "Sản phẩm", "Tồn kho", "Giá bán"};
+        Object[][] productData = new Object[allProducts.size()][4];
+        for (int i = 0; i < allProducts.size(); i++) {
+            ProductDTO p = allProducts.get(i);
+            productData[i][0] = Boolean.FALSE;
+            productData[i][1] = p;
+            productData[i][2] = p.currentQuantity() != null ? p.currentQuantity() : 0;
+            productData[i][3] = p.price();
+        }
+
+        DefaultTableModel productTableModel = new DefaultTableModel(productData, productColumnNames) {
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 0) return Boolean.class;
+                return super.getColumnClass(columnIndex);
+            }
+
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 0;
+            }
+        };
+
+        JTable productTable = new JTable(productTableModel);
+        productTable.setBackground(ThemeConfig.BG_CARD);
+        productTable.setForeground(ThemeConfig.TEXT_PRIMARY);
+        productTable.setRowHeight(36);
+        productTable.setShowVerticalLines(false);
+        productTable.setGridColor(ThemeConfig.BG_MAIN);
+        productTable.getTableHeader().setBackground(ThemeConfig.BG_MAIN);
+        productTable.getTableHeader().setForeground(ThemeConfig.TEXT_SECONDARY);
+        productTable.getTableHeader().setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
+        productTable.getColumnModel().getColumn(0).setMaxWidth(40);
+        productTable.getColumnModel().getColumn(2).setMaxWidth(80);
+        productTable.getColumnModel().getColumn(3).setMaxWidth(100);
+
+        productTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (column == 1 && value instanceof ProductDTO p) {
+                    setText(p.name());
+                }
+                if (isSelected) {
+                    setBackground(new Color(99, 102, 241, 50));
+                } else {
+                    setBackground(ThemeConfig.BG_CARD);
+                }
+                return c;
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(productTable);
+        scrollPane.getViewport().setBackground(ThemeConfig.BG_CARD);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 8));
+        inputPanel.setOpaque(false);
+        inputPanel.setBackground(ThemeConfig.BG_CARD);
+
+        JLabel lblQty = new JLabel("Số lượng nhập:");
+        lblQty.setForeground(ThemeConfig.TEXT_SECONDARY);
+        JSpinner spinQty = new JSpinner(new SpinnerNumberModel(1, 1, 10000, 1));
+        spinQty.setPreferredSize(new Dimension(100, 32));
+
+        JLabel lblPrice = new JLabel("Đơn giá nhập:");
+        lblPrice.setForeground(ThemeConfig.TEXT_SECONDARY);
+        JSpinner spinPrice = new JSpinner(new SpinnerNumberModel(10000.0, 0.0, 10000000.0, 500.0));
+        spinPrice.setPreferredSize(new Dimension(120, 32));
+
+        inputPanel.add(lblQty);
+        inputPanel.add(spinQty);
+        inputPanel.add(lblPrice);
+        inputPanel.add(spinPrice);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        btnPanel.setOpaque(false);
+
+        JButton btnCancel = DialogStyle.secondaryButton("Hủy");
+        btnCancel.addActionListener(e -> dialog.dispose());
+        btnPanel.add(btnCancel);
+
+        JButton btnAdd = DialogStyle.primaryButton("Thêm vào phiếu");
+        btnAdd.addActionListener(e -> {
+            int selectedCount = 0;
+            for (int i = 0; i < productTableModel.getRowCount(); i++) {
+                if (Boolean.TRUE.equals(productTableModel.getValueAt(i, 0))) {
+                    selectedCount++;
+                }
+            }
+            if (selectedCount == 0) {
+                AppMessageDialogs.showWarning(dialog, "Thiếu lựa chọn", "Vui lòng chọn ít nhất một sản phẩm!");
+                return;
+            }
+
+            int qty = (Integer) spinQty.getValue();
+            BigDecimal price = BigDecimal.valueOf((Double) spinPrice.getValue());
+
+            for (int i = 0; i < productTableModel.getRowCount(); i++) {
+                if (Boolean.TRUE.equals(productTableModel.getValueAt(i, 0))) {
+                    ProductDTO p = (ProductDTO) productTableModel.getValueAt(i, 1);
+                    currentItems.add(new StockReceiptItemDTO(p.id(), p.name(), qty, price));
+                }
+            }
+            refreshTableAndTotal();
+            dialog.dispose();
+        });
+        btnPanel.add(btnAdd);
+
+        inputPanel.add(btnPanel);
+        mainPanel.add(inputPanel, BorderLayout.SOUTH);
+
+        dialog.add(mainPanel);
+        dialog.setVisible(true);
     }
 }
