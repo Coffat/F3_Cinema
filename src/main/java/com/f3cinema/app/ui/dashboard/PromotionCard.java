@@ -153,8 +153,8 @@ public class PromotionCard extends JPanel {
         iconWrapper.setLayout(new GridBagLayout());
         
         FlatSVGIcon icon = new FlatSVGIcon(getTypeIcon(), 32, 32);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> Color.WHITE));
         JLabel iconLabel = new JLabel(icon);
-        iconLabel.setForeground(Color.WHITE);
         iconWrapper.add(iconLabel);
         
         JLabel typeLabel = new JLabel(getTypeLabel());
@@ -266,8 +266,9 @@ public class PromotionCard extends JPanel {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         panel.setOpaque(false);
         
-        JLabel calIcon = new JLabel(new FlatSVGIcon("icons/calendar.svg", 12, 12));
-        calIcon.setForeground(ThemeConfig.TEXT_MUTED);
+        FlatSVGIcon calIconSvg = new FlatSVGIcon("icons/calendar.svg", 12, 12);
+        calIconSvg.setColorFilter(new FlatSVGIcon.ColorFilter(c -> ThemeConfig.TEXT_MUTED));
+        JLabel calIcon = new JLabel(calIconSvg);
         panel.add(calIcon);
         
         JLabel dateLabel = new JLabel(dateText);
@@ -325,6 +326,7 @@ public class PromotionCard extends JPanel {
     private JButton createIconButton(String iconPath, Color color, Runnable action) {
         JButton btn = new JButton();
         FlatSVGIcon icon = new FlatSVGIcon(iconPath, 15, 15);
+        icon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> color));
         btn.setIcon(icon);
         btn.setForeground(color);
         btn.setPreferredSize(new Dimension(28, 28));

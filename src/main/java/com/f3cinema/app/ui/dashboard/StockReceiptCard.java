@@ -75,7 +75,9 @@ public class StockReceiptCard extends JPanel {
         status.setBorder(new EmptyBorder(4, 8, 4, 8));
         status.setFont(ThemeConfig.FONT_SMALL);
         JButton detail = new JButton("Xem");
-        detail.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #334155;");
+        detail.setForeground(ThemeConfig.TEXT_PRIMARY);
+        detail.putClientProperty(FlatClientProperties.STYLE,
+                "arc: 8; background: #334155; foreground: #F8FAFC; borderWidth: 0;");
         detail.addActionListener(e -> onViewDetail.run());
         p.add(status, BorderLayout.NORTH);
         p.add(detail, BorderLayout.SOUTH);

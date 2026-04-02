@@ -43,8 +43,13 @@ public class WarehousePanel extends BaseDashboardModule {
         tabbedPane.setFont(ThemeConfig.FONT_BODY.deriveFont(Font.BOLD));
         tabbedPane.setForeground(ThemeConfig.TEXT_PRIMARY);
 
-        tabbedPane.addTab("Sản phẩm", new FlatSVGIcon("icons/box.svg", 20, 20), createProductTab());
-        tabbedPane.addTab("Phiếu nhập kho", new FlatSVGIcon("icons/clipboard.svg", 20, 20), createHistoryTab());
+        FlatSVGIcon productsIcon = new FlatSVGIcon("icons/box.svg", 20, 20);
+        productsIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> ThemeConfig.TEXT_PRIMARY));
+        FlatSVGIcon receiptIcon = new FlatSVGIcon("icons/clipboard.svg", 20, 20);
+        receiptIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> ThemeConfig.TEXT_PRIMARY));
+
+        tabbedPane.addTab("Sản phẩm", productsIcon, createProductTab());
+        tabbedPane.addTab("Phiếu nhập kho", receiptIcon, createHistoryTab());
 
         JButton btnAddProduct = new JButton("Thêm Sản phẩm");
         stylePrimaryButton(btnAddProduct);
@@ -94,8 +99,9 @@ public class WarehousePanel extends BaseDashboardModule {
         card.setBackground(ThemeConfig.BG_CARD);
         card.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
         card.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
-        JLabel iconLabel = new JLabel(new FlatSVGIcon(icon, 28, 28));
-        iconLabel.setForeground(accent);
+        FlatSVGIcon svgIcon = new FlatSVGIcon(icon, 28, 28);
+        svgIcon.setColorFilter(new FlatSVGIcon.ColorFilter(c -> accent));
+        JLabel iconLabel = new JLabel(svgIcon);
         value.setFont(ThemeConfig.FONT_H1);
         value.setForeground(ThemeConfig.TEXT_PRIMARY);
         JLabel lbl = new JLabel(label);

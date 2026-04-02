@@ -128,6 +128,7 @@ public class PromotionPanel extends BaseDashboardModule {
         left.add(status);
         JButton add = new JButton("Thêm khuyến mãi");
         add.putClientProperty(FlatClientProperties.STYLE, "arc: 12; background: #6366F1; borderWidth: 0;");
+        add.setForeground(Color.WHITE);
         add.addActionListener(e -> new PromotionDialog(SwingUtilities.getWindowAncestor(this), () -> refreshVouchers()).setVisible(true));
         control.add(left, BorderLayout.WEST);
         control.add(add, BorderLayout.EAST);
@@ -178,8 +179,9 @@ public class PromotionPanel extends BaseDashboardModule {
         iconWrapper.setPreferredSize(new Dimension(48, 48));
         iconWrapper.setLayout(new GridBagLayout());
         
-        JLabel icon = new JLabel(new com.formdev.flatlaf.extras.FlatSVGIcon(iconPath, 24, 24));
-        icon.setForeground(ThemeConfig.ACCENT_COLOR);
+        com.formdev.flatlaf.extras.FlatSVGIcon svgIcon = new com.formdev.flatlaf.extras.FlatSVGIcon(iconPath, 24, 24);
+        svgIcon.setColorFilter(new com.formdev.flatlaf.extras.FlatSVGIcon.ColorFilter(c -> ThemeConfig.ACCENT_COLOR));
+        JLabel icon = new JLabel(svgIcon);
         iconWrapper.add(icon);
         
         JLabel lbl = new JLabel(label);
