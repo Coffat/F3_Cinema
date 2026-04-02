@@ -19,6 +19,8 @@ public interface InventoryService {
     // Local additions (Product Management)
     List<ProductDTO> getAllInventory();
     void addProduct(ProductDTO dto);
+    void updateProduct(ProductDTO dto);
+    void deleteProduct(Long productId);
     void addStock(Long productId, int quantity);
     
     // Huy's additions (Dashboard Alerts)

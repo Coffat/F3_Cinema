@@ -8,6 +8,8 @@ import com.f3cinema.app.entity.Product;
 import com.f3cinema.app.exception.CinemaException;
 import com.f3cinema.app.repository.DashboardRepository;
 import com.f3cinema.app.repository.DashboardRepositoryImpl;
+import com.f3cinema.app.repository.ProductRepository;
+import com.f3cinema.app.repository.ProductRepositoryImpl;
 import com.f3cinema.app.service.InventoryService;
 import lombok.extern.log4j.Log4j2;
 import org.hibernate.Session;
@@ -26,6 +28,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     private static final InventoryServiceImpl INSTANCE = new InventoryServiceImpl();
     private final DashboardRepository dashboardRepository = DashboardRepositoryImpl.getInstance();
+    private final ProductRepository productRepository = new ProductRepositoryImpl();
 
     private InventoryServiceImpl() {
     }
@@ -82,7 +85,6 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     public void addProduct(ProductDTO dto) {
         Transaction transaction = null;
-        // Bắt buộc mở Session mới bên trong try() để tự động đóng khi xong việc
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
 
@@ -104,11 +106,11 @@ public class InventoryServiceImpl implements InventoryService {
             // 3. Khớp nối quan hệ 2 chiều
             product.setInventory(inventory);
 
-            // 4. Chỉ cần persist Product. Hibernate sẽ tự động lưu luôn Inventory nhờ
-            // CascadeType.ALL
+            // 4. Chỉ cần persist Product. Hibernate sẽ tự động lưu luôn Inventory nhờ CascadeType.ALL
             session.persist(product);
 
             transaction.commit();
+            log.info("Successfully added product: {}", dto.name());
         } catch (Exception e) {
             if (transaction != null && transaction.isActive()) {
                 try {
@@ -117,44 +119,69 @@ public class InventoryServiceImpl implements InventoryService {
                     log.error("Failed to rollback transaction", ex);
                 }
             }
-            throw new RuntimeException("Lỗi lưu dữ liệu: " + e.getMessage(), e);
+            log.error("Failed to add product: {}", dto.name(), e);
+            throw new CinemaException("Lỗi lưu dữ liệu: " + e.getMessage(), e);
         }
     }
-    // public void addProduct(ProductDTO dto) {
-    // Transaction transaction = null;
-    // try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-    // transaction = session.beginTransaction();
 
-    // // 1. Khởi tạo đối tượng Master (Product)
-    // Product product = Product.builder()
-    // .name(dto.name())
-    // .price(dto.price())
-    // .unit(dto.unit())
-    // .build();
+    @Override
+    public void updateProduct(ProductDTO dto) {
+        if (dto.id() == null) {
+            throw new CinemaException("ID sản phẩm không được trống khi cập nhật.");
+        }
 
-    // session.persist(product);
+        Transaction transaction = null;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            transaction = session.beginTransaction();
 
-    // // 2. Khởi tạo đối tượng Detail (Inventory) với currentQuantity = 0
-    // Inventory inventory = Inventory.builder()
-    // .product(product)
-    // .currentQuantity(0)
-    // .minThreshold(dto.minThreshold() != null ? dto.minThreshold() : 10)
-    // .build();
+            // Fetch product within current session to ensure proper merging
+            Product product = session.get(Product.class, dto.id());
+            if (product == null) {
+                throw new CinemaException("Không tìm thấy sản phẩm với ID: " + dto.id());
+            }
 
-    // session.persist(inventory);
+            // Map standard fields
+            product.setName(dto.name());
+            product.setPrice(dto.price());
+            product.setUnit(dto.unit());
+            product.setImageUrl(dto.imageUrl());
 
-    // // Link đối tượng lên mức memory cascade
-    // product.setInventory(inventory);
+            // Update Inventory Threshold
+            if (product.getInventory() != null) {
+                product.getInventory().setMinThreshold(dto.minThreshold());
+            }
 
-    // transaction.commit();
-    // log.info("Lưu thành công sản phẩm vào thiết lập kho ban đầu cho: {}",
-    // dto.name());
-    // } catch (Exception e) {
-    // if (transaction != null) transaction.rollback();
-    // log.error("Lỗi transaction khi thêm mới sản phẩm và kho", e);
-    // throw new CinemaException("Không thể tạo mới sản phẩm", e);
-    // }
-    // }
+            session.merge(product);
+            transaction.commit();
+            log.info("Successfully updated product ID: {}", dto.id());
+        } catch (Exception e) {
+            if (transaction != null && transaction.isActive()) {
+                try { transaction.rollback(); } catch (Exception ex) { log.error(ex); }
+            }
+            log.error("Failed to update product ID: {}", dto.id(), e);
+            throw new CinemaException("Không thể cập nhật sản phẩm: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void deleteProduct(Long productId) {
+        if (productId == null) {
+            throw new CinemaException("ID sản phẩm không hợp lệ.");
+        }
+
+        // 1. Validation: Check existence
+        productRepository.findById(productId)
+                .orElseThrow(() -> new CinemaException("Không tìm thấy sản phẩm ID: " + productId));
+
+        try {
+            // 2. Perform Soft Delete via Repository
+            productRepository.softDelete(productId);
+            log.info("Successfully soft-deleted product ID: {}", productId);
+        } catch (Exception e) {
+            log.error("Failed to delete product ID: {}", productId, e);
+            throw new CinemaException("Lỗi khi thực hiện xóa sản phẩm: " + e.getMessage(), e);
+        }
+    }
 
     @Override
     public synchronized void addStock(Long productId, int quantity) {

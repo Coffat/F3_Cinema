@@ -263,7 +263,8 @@ public class ProductCard extends JPanel {
         
         gbc.gridx = 2;
         gbc.insets = new Insets(0, 4, 0, 0);
-        panel.add(createIconButton("icons/trash.svg", "Xóa", Color.decode("#EF4444"), onDelete), gbc);
+        // Correct Action Color: Rose 500 (#F43F5E)
+        panel.add(createIconButton("icons/trash.svg", "Xóa", Color.decode("#F43F5E"), onDelete), gbc);
         
         return panel;
     }

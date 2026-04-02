@@ -15,6 +15,9 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WarehousePanel extends BaseDashboardModule {
@@ -29,6 +32,9 @@ public class WarehousePanel extends BaseDashboardModule {
 
     private SwingWorker<List<ProductDTO>, Void> inventoryWorker;
     private SwingWorker<List<StockReceiptSummaryDTO>, Void> historyWorker;
+    
+    // Java 21 Virtual Thread Executor for Zero Latency UX
+    private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     public WarehousePanel() {
         super("Kho & Sản phẩm", "Home > Warehouse & Products");
@@ -60,7 +66,7 @@ public class WarehousePanel extends BaseDashboardModule {
         btnAddProduct.putClientProperty(FlatClientProperties.STYLE, "arc: 10; borderWidth: 0; focusWidth: 0; innerFocusWidth: 0");
         btnAddProduct.addActionListener(e -> {
             Window window = SwingUtilities.getWindowAncestor(this);
-            ProductDialog dialog = new ProductDialog((JFrame) window, this::loadInventoryData);
+            ProductDialog dialog = new ProductDialog((JFrame) window, null, this::loadInventoryData);
             dialog.setVisible(true);
         });
         JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
@@ -184,11 +190,9 @@ public class WarehousePanel extends BaseDashboardModule {
             inventoryWorker.cancel(true);
         }
 
-        // Sử dụng SwingWorker để trách giật lag UI Thread
         inventoryWorker = new SwingWorker<List<ProductDTO>, Void>() {
             @Override
             protected List<ProductDTO> doInBackground() throws Exception {
-                // Background thread: Call DB
                 return InventoryServiceImpl.getInstance().getAllInventory();
             }
 
@@ -241,13 +245,101 @@ public class WarehousePanel extends BaseDashboardModule {
         for (ProductDTO p : products) {
             ProductCard card = new ProductCard(
                     p,
-                    () -> AppMessageDialogs.showInfo(this, "Chức năng sửa sản phẩm sẽ được bổ sung."),
-                    () -> AppMessageDialogs.showInfo(this, "Chức năng điều chỉnh tồn kho sẽ được bổ sung."),
-                    () -> AppMessageDialogs.showInfo(this, "Chức năng xóa sản phẩm sẽ được bổ sung."));
+                    () -> openEditDialog(p.id()),
+                    () -> openAdjustStockDialog(p.id(), p.name(), p.unit()),
+                    () -> handleDeleteProduct(p.id(), p.name()));
             productsContainer.add(card);
         }
         productsContainer.revalidate();
         productsContainer.repaint();
+    }
+
+    private void openEditDialog(Long productId) {
+        Window window = SwingUtilities.getWindowAncestor(this);
+        ProductDialog dialog = new ProductDialog((JFrame) window, productId, this::loadInventoryData);
+        dialog.setVisible(true);
+    }
+
+    /**
+     * Quick Stock Adjustment — Add quantity directly with a small validated input.
+     */
+    private void openAdjustStockDialog(Long id, String name, String unit) {
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setOpaque(false);
+        JLabel lbl = new JLabel("Nhập số lượng " + unit + " muốn cộng thêm vào kho cho '" + name + "':");
+        lbl.setFont(ThemeConfig.FONT_SMALL);
+        lbl.setForeground(ThemeConfig.TEXT_PRIMARY);
+        
+        JSpinner spinner = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
+        spinner.putClientProperty(FlatClientProperties.STYLE, "arc: 8; background: #0F172A; foreground: #FFFFFF;");
+        
+        panel.add(lbl, BorderLayout.NORTH);
+        panel.add(spinner, BorderLayout.CENTER);
+        
+        int choice = JOptionPane.showConfirmDialog(this, panel, "Cập Nhật Tồn Kho Nhanh", 
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        
+        if (choice == JOptionPane.OK_OPTION) {
+            int quantity = (Integer) spinner.getValue();
+            setLoadingState(true);
+            
+            CompletableFuture.runAsync(() -> {
+                try {
+                    InventoryServiceImpl.getInstance().addStock(id, quantity);
+                    SwingUtilities.invokeLater(() -> {
+                        setLoadingState(false);
+                        AppMessageDialogs.showInfo(WarehousePanel.this, "Hoàn Tất", 
+                                "Đã nhập thành công " + quantity + " " + unit + " cho " + name);
+                        loadInventoryData();
+                    });
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> {
+                        setLoadingState(false);
+                        AppMessageDialogs.showError(WarehousePanel.this, "Lỗi", e.getMessage());
+                    });
+                }
+            }, virtualThreadExecutor);
+        }
+    }
+
+    /**
+     * Optimized Delete Logic — Zero Latency UX with Java 21 Virtual Threads.
+     */
+    private void handleDeleteProduct(Long id, String name) {
+        int confirm = JOptionPane.showConfirmDialog(this, 
+                "Bạn có chắc chắn muốn ngừng kinh doanh sản phẩm '" + name + "'?\nLưu ý: Sản phẩm sẽ bị ẩn khỏi danh sách bán nhưng vẫn lưu lại trong lịch sử hóa đơn.",
+                "Xác nhận ngừng kinh doanh", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            setLoadingState(true);
+
+            CompletableFuture.runAsync(() -> {
+                try {
+                    InventoryServiceImpl.getInstance().deleteProduct(id);
+                    SwingUtilities.invokeLater(() -> {
+                        setLoadingState(false);
+                        AppMessageDialogs.showInfo(WarehousePanel.this, "Hệ Thống", "Đã ngừng kinh doanh sản phẩm: " + name);
+                        loadInventoryData();
+                    });
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> {
+                        setLoadingState(false);
+                        String msg = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+                        AppMessageDialogs.showError(WarehousePanel.this, "Lỗi Hệ Thống", "Không thể xóa sản phẩm: " + msg);
+                    });
+                }
+            }, virtualThreadExecutor);
+        }
+    }
+
+    private void setLoadingState(boolean isLoading) {
+        contentBody.setEnabled(!isLoading);
+        if (isLoading) {
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        } else {
+            setCursor(Cursor.getDefaultCursor());
+        }
+        repaint();
     }
 
     private void renderReceiptTimeline(List<StockReceiptSummaryDTO> receipts) {
@@ -266,7 +358,6 @@ public class WarehousePanel extends BaseDashboardModule {
         receiptsTimelineContainer.repaint();
     }
 
-    /** Căn giữa thẻ phiếu — không kéo full ngang viewport. */
     private JPanel wrapReceiptRow(JComponent card) {
         JPanel row = new JPanel();
         row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
