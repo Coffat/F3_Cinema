@@ -13,6 +13,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
+import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
+import java.util.List;
 
 import com.f3cinema.app.entity.Genre;
 import com.f3cinema.app.service.GenreService;
@@ -162,6 +164,9 @@ public class MovieDialog extends BaseAppDialog {
         lblError.setForeground(C_DANGER);
         form.add(lblError, gbc);
 
+        JPanel actionContainer = new JPanel(new BorderLayout());
+        actionContainer.setOpaque(false);
+
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnPanel.setOpaque(false);
         JButton btnCancel = DialogStyle.secondaryButton("Hủy");
@@ -169,6 +174,17 @@ public class MovieDialog extends BaseAppDialog {
         btnCancel.addActionListener(e -> dispose());
         btnSave.addActionListener(e -> handleSave());
         btnPanel.add(btnCancel); btnPanel.add(btnSave);
+        actionContainer.add(btnPanel, BorderLayout.EAST);
+
+        if (editTarget != null) {
+            JPanel deletePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+            deletePanel.setOpaque(false);
+            JButton btnDelete = DialogStyle.secondaryButton("Xóa phim");
+            btnDelete.setForeground(ThemeConfig.TEXT_DANGER);
+            btnDelete.addActionListener(e -> handleDelete());
+            deletePanel.add(btnDelete);
+            actionContainer.add(deletePanel, BorderLayout.WEST);
+        }
 
         JScrollPane formScrollPane = new JScrollPane(form);
         formScrollPane.setOpaque(false);
@@ -179,7 +195,7 @@ public class MovieDialog extends BaseAppDialog {
 
         glass.add(lblTitle, BorderLayout.NORTH);
         glass.add(formScrollPane, BorderLayout.CENTER);
-        glass.add(btnPanel, BorderLayout.SOUTH);
+        glass.add(actionContainer, BorderLayout.SOUTH);
         setContentPane(glass);
     }
 
@@ -212,6 +228,19 @@ public class MovieDialog extends BaseAppDialog {
             dispose();
         } catch (Exception ex) {
             lblError.setText("⚠ " + ex.getMessage());
+        }
+    }
+
+    private void handleDelete() {
+        if (editTarget == null) return;
+        if (AppMessageDialogs.confirmYesNo(this, "Xác nhận xóa", "Bạn có chắc muốn xóa phim: \"" + editTarget.getTitle() + "\"?")) {
+            try {
+                movieService.deleteMovie(editTarget.getId());
+                saved = true;
+                dispose();
+            } catch (Exception ex) {
+                lblError.setText("⚠ " + ex.getMessage());
+            }
         }
     }
 

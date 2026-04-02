@@ -154,8 +154,7 @@ public class MoviePanel extends BaseDashboardModule {
         } else {
             for (Movie m : movies) {
                 MovieCard card = new MovieCard(m, 
-                    () -> controller.handleEditAction(m),
-                    () -> controller.handleDeleteAction(m)
+                    () -> controller.handleEditAction(m)
                 );
                 cardContainer.add(card);
             }

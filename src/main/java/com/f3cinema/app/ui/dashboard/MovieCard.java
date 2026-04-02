@@ -29,13 +29,10 @@ public class MovieCard extends JPanel {
 
     private final Movie movie;
     private final Runnable onEdit;
-    private final Runnable onDelete;
 
     private boolean isHovered = false;
     private double hoverAnim = 0.0;
     private Timer animTimer;
-    private JButton editButton;
-    private JButton deleteButton;
     
     // Thread-safe Cache
     private static final Map<String, Image> imageCache = new ConcurrentHashMap<>();
@@ -46,10 +43,9 @@ public class MovieCard extends JPanel {
     private static final Color C_ACCENT = ThemeConfig.ACCENT_COLOR;
     private static final Color C_GLOW = new Color(99, 102, 241, 90);
 
-    public MovieCard(Movie movie, Runnable onEdit, Runnable onDelete) {
+    public MovieCard(Movie movie, Runnable onEdit) {
         this.movie = movie;
         this.onEdit = onEdit;
-        this.onDelete = onDelete;
         initUI();
         triggerAsyncLoad();
     }
@@ -71,47 +67,15 @@ public class MovieCard extends JPanel {
             if (getParent() != null) {
                 getParent().repaint(getX() - 20, getY() - 20, getWidth() + 40, getHeight() + 40);
             }
-            updateActionVisibility();
         });
 
         addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { isHovered = true; if (!animTimer.isRunning()) animTimer.start(); updateActionVisibility(); }
-            @Override public void mouseExited(MouseEvent e) { isHovered = false; if (!animTimer.isRunning()) animTimer.start(); updateActionVisibility(); }
+            @Override public void mouseEntered(MouseEvent e) { isHovered = true; if (!animTimer.isRunning()) animTimer.start(); }
+            @Override public void mouseExited(MouseEvent e) { isHovered = false; if (!animTimer.isRunning()) animTimer.start(); }
             @Override public void mouseClicked(MouseEvent e) {
-                if (SwingUtilities.isRightMouseButton(e)) showContextMenu(e);
-                else onEdit.run();
+                onEdit.run();
             }
         });
-
-        editButton = buildActionButton("Sua");
-        editButton.setBounds(12, 12, 48, 28);
-        editButton.addActionListener(e -> onEdit.run());
-        add(editButton);
-
-        deleteButton = buildActionButton("Xoa");
-        deleteButton.setBounds(66, 12, 48, 28);
-        deleteButton.setForeground(ThemeConfig.TEXT_DANGER);
-        deleteButton.addActionListener(e -> onDelete.run());
-        add(deleteButton);
-        updateActionVisibility();
-    }
-
-    private JButton buildActionButton(String text) {
-        JButton button = new JButton(text);
-        button.setVisible(false);
-        button.setFocusable(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.putClientProperty(FlatClientProperties.STYLE,
-                "arc: 10; background: #0F172A; borderWidth: 0; margin: 2,8,2,8;");
-        button.setFont(ThemeConfig.FONT_SMALL.deriveFont(Font.BOLD));
-        button.setForeground(ThemeConfig.TEXT_PRIMARY);
-        return button;
-    }
-
-    private void updateActionVisibility() {
-        boolean visible = hoverAnim > 0.4 || isHovered;
-        if (editButton != null) editButton.setVisible(visible);
-        if (deleteButton != null) deleteButton.setVisible(visible);
     }
 
     private void triggerAsyncLoad() {
@@ -305,13 +269,4 @@ public class MovieCard extends JPanel {
         g2.drawString(text, x + 8, y + 15);
     }
 
-    private void showContextMenu(MouseEvent e) {
-        JPopupMenu menu = new JPopupMenu();
-        menu.putClientProperty(FlatClientProperties.STYLE, "arc: 12;");
-        JMenuItem editItem = new JMenuItem("Sửa"); editItem.addActionListener(al -> onEdit.run());
-        JMenuItem deleteItem = new JMenuItem("Xóa"); deleteItem.setForeground(Color.decode("#F43F5E")); 
-        deleteItem.addActionListener(al -> onDelete.run());
-        menu.add(editItem); menu.addSeparator(); menu.add(deleteItem);
-        menu.show(this, e.getX(), e.getY());
-    }
 }
