@@ -5,6 +5,8 @@ import com.f3cinema.app.service.TicketingService;
 import com.f3cinema.app.service.VoucherService;
 import com.f3cinema.app.service.cart.CartManager;
 import com.f3cinema.app.service.impl.TicketingServiceImpl;
+import com.f3cinema.app.service.impl.TransactionHistoryServiceImpl;
+import com.f3cinema.app.util.pdf.InvoiceExportService;
 import com.f3cinema.app.ui.staff.ticketing.TicketOrderState;
 import com.f3cinema.app.ui.staff.ticketing.TicketingFlowPanel;
 import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
@@ -18,7 +20,9 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
+import java.io.File;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -643,7 +647,12 @@ public class PaymentPanel extends JPanel {
                     navigator.reset();
 
                 } catch (Exception e) {
-                    AppMessageDialogs.showError(PaymentPanel.this, "Lỗi", "Lỗi khi đặt vé: " + e.getMessage());
+                    Throwable root = e;
+                    while (root.getCause() != null && root.getCause() != root) {
+                        root = root.getCause();
+                    }
+                    AppMessageDialogs.showError(PaymentPanel.this, "Lỗi",
+                            "Lỗi khi thanh toán: " + root.getMessage());
                     btnConfirm.setEnabled(true);
                     btnConfirm.setText("XÁC NHẬN THANH TOÁN");
                 }
@@ -668,7 +677,16 @@ public class PaymentPanel extends JPanel {
     }
 
     private void showSuccessDialog(Long invoiceId) {
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Thanh toan thanh cong", Dialog.ModalityType.APPLICATION_MODAL);
+        String displayCode = "#" + invoiceId;
+        try {
+            var d = TransactionHistoryServiceImpl.getInstance().getTransactionDetail(invoiceId);
+            if (d.invoiceCode() != null && !d.invoiceCode().isBlank()) {
+                displayCode = d.invoiceCode();
+            }
+        } catch (Exception ignored) {
+        }
+
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Thanh toán thành công", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setSize(460, 320);
         dialog.setLocationRelativeTo(this);
         JPanel root = new JPanel(new BorderLayout(0, 14));
@@ -677,16 +695,48 @@ public class PaymentPanel extends JPanel {
         JLabel check = new JLabel("✓", SwingConstants.CENTER);
         check.setFont(new Font("Inter", Font.BOLD, 52));
         check.setForeground(SUCCESS);
-        JLabel info = new JLabel("<html><div style='text-align:center'>Thanh toan thanh cong<br/>Hoa don #" + invoiceId + "<br/>Tong tien: " + formatPrice(state.getGrandTotal()) + "</div></html>", SwingConstants.CENTER);
+        String finalDisplayCode = displayCode;
+        JLabel info = new JLabel("<html><div style='text-align:center'>Thanh toán thành công<br/><b>" + finalDisplayCode + "</b><br/><span style='color:#94a3b8;font-size:12px'>ID: #" + invoiceId + "</span><br/>Tổng tiền: " + formatPrice(state.getGrandTotal()) + "</div></html>", SwingConstants.CENTER);
         info.setForeground(TEXT_PRIMARY);
         info.setFont(new Font("Inter", Font.PLAIN, 14));
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         actions.setOpaque(false);
-        JButton btnPrint = new JButton("In hoa don");
-        JButton btnContinue = new JButton("Ban ve tiep");
+        JButton btnPrint = new JButton("In hóa đơn (PDF)");
+        JButton btnContinue = new JButton("Bán vé tiếp");
         btnPrint.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #334155;");
         btnContinue.putClientProperty(FlatClientProperties.STYLE, "arc: 10; background: #6366F1; borderWidth: 0;");
-        btnPrint.addActionListener(e -> AppMessageDialogs.showInfo(dialog, "Tinh nang in hoa don se duoc bo sung."));
+        btnPrint.addActionListener(e -> {
+            JFileChooser chooser = new JFileChooser();
+            String safeName = finalDisplayCode.replaceAll("[^A-Za-z0-9\\-]", "_");
+            chooser.setSelectedFile(new File("hoa-don-" + safeName + ".pdf"));
+            if (chooser.showSaveDialog(dialog) != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+            Path target = chooser.getSelectedFile().toPath();
+            btnPrint.setEnabled(false);
+            new SwingWorker<Path, Void>() {
+                @Override
+                protected Path doInBackground() throws Exception {
+                    var detail = TransactionHistoryServiceImpl.getInstance().getTransactionDetail(invoiceId);
+                    return InvoiceExportService.getInstance().exportInvoice(detail, target);
+                }
+
+                @Override
+                protected void done() {
+                    btnPrint.setEnabled(true);
+                    try {
+                        Path saved = get();
+                        AppMessageDialogs.showInfo(dialog, "Thành công", "Đã xuất PDF:\n" + saved.toAbsolutePath());
+                    } catch (Exception ex) {
+                        Throwable root = ex;
+                        while (root.getCause() != null && root.getCause() != root) {
+                            root = root.getCause();
+                        }
+                        AppMessageDialogs.showError(dialog, "Không in được", root.getMessage());
+                    }
+                }
+            }.execute();
+        });
         btnContinue.addActionListener(e -> dialog.dispose());
         actions.add(btnPrint);
         actions.add(btnContinue);

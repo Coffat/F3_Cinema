@@ -23,6 +23,12 @@ public abstract class BaseAppDialog extends JDialog {
         setBackground(new Color(0, 0, 0, 0));
     }
 
+    /** Giống setupBaseDialog nhưng không setSize — dùng pack() sau khi dựng nội dung. */
+    protected final void setupUndecoratedNoFixedSize() {
+        setUndecorated(true);
+        setBackground(new Color(0, 0, 0, 0));
+    }
+
     protected final JPanel createSurfacePanel(int paddingTop, int paddingLeft, int paddingBottom, int paddingRight) {
         JPanel surface = new JPanel(new BorderLayout()) {
             @Override

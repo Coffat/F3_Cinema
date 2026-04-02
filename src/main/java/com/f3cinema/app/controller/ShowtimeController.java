@@ -16,7 +16,7 @@ import java.util.List;
 
 /**
  * ShowtimeController — Orchestrates between the Timeline View and Service layer.
- * Loads showtimes grouped by room for the visual scheduling timeline.
+ * Loads showtimes grouped by room for the schedule table.
  */
 public class ShowtimeController {
 
@@ -65,7 +65,7 @@ public class ShowtimeController {
             protected void done() {
                 try {
                     TimelineData result = get();
-                    view.updateTimelineData(result.rooms, result.grouped);
+                    view.updateScheduleTable(result.rooms, result.grouped);
                 } catch (Exception ex) {
                     view.showErrorMessage("Lỗi kết nối cơ sở dữ liệu: " + ex.getMessage());
                 } finally {

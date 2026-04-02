@@ -11,11 +11,18 @@ import java.text.DecimalFormat;
 import java.time.format.DateTimeFormatter;
 
 public class StockReceiptCard extends JPanel {
+
+    /** Giới hạn ngang — tránh thẻ kéo full chiều rộng tab (BoxLayout Y). */
+    public static final int CARD_WIDTH = 520;
+    private static final int CARD_HEIGHT = 96;
+
     public StockReceiptCard(StockReceiptSummaryDTO receipt, int index, Runnable onViewDetail) {
-        setLayout(new BorderLayout(12, 12));
+        setLayout(new BorderLayout(12, 8));
         setOpaque(false);
-        setBorder(new EmptyBorder(16, 16, 16, 16));
-        setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        setBorder(new EmptyBorder(12, 14, 12, 14));
+        setPreferredSize(new Dimension(CARD_WIDTH, CARD_HEIGHT));
+        setMaximumSize(new Dimension(CARD_WIDTH, CARD_HEIGHT + 8));
+        setMinimumSize(new Dimension(CARD_WIDTH, CARD_HEIGHT));
         add(buildLeft(receipt), BorderLayout.WEST);
         add(buildCenter(receipt), BorderLayout.CENTER);
         add(buildRight(index, onViewDetail), BorderLayout.EAST);

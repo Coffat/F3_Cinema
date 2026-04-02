@@ -154,7 +154,15 @@ public class RoomPanel extends BaseDashboardModule {
     }
     
     private void editRoom(Long id) {
-        // Can be implemented similarly to RoomDialog if passing Room obj
+        Room room = roomService.getRoomById(id);
+        if (room == null) {
+            return;
+        }
+        if (room.getSeats() == null || room.getSeats().isEmpty()) {
+            room.setSeats(roomService.getSeatsByRoom(id));
+        }
+        RoomDialog dialog = new RoomDialog((JFrame) SwingUtilities.getWindowAncestor(this), room, this);
+        dialog.setVisible(true);
     }
 
     private void viewSeatMap(Long id) {

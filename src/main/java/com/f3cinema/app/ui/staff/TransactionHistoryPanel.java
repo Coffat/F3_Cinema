@@ -19,6 +19,8 @@ import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -43,11 +45,33 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
     private Long selectedInvoiceId;
     private TransactionDetailDTO selectedDetail;
 
+    /** Làm mới định kỳ khi tab đang hiển thị (phút nhân viên mở trang lịch sử). */
+    private Timer autoRefreshTimer;
+
     public TransactionHistoryPanel() {
         super("Lịch sử giao dịch", "Trang chủ / Giao dịch");
         initUI();
         bindEvents();
+        setupAutoRefresh();
         loadTimeline();
+    }
+
+    private void setupAutoRefresh() {
+        int intervalMs = 30_000;
+        autoRefreshTimer = new Timer(intervalMs, e -> loadTimeline());
+        autoRefreshTimer.setRepeats(true);
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                autoRefreshTimer.start();
+                loadTimeline();
+            }
+
+            @Override
+            public void componentHidden(ComponentEvent e) {
+                autoRefreshTimer.stop();
+            }
+        });
     }
 
     private void initUI() {
@@ -224,7 +248,10 @@ public class TransactionHistoryPanel extends BaseDashboardModule {
         selectedInvoiceId = invoiceId;
         selectedDetail = detail;
 
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Chi tiết hóa đơn #" + invoiceId, Dialog.ModalityType.APPLICATION_MODAL);
+        String title = detail.invoiceCode() != null
+                ? ("Chi tiết · " + detail.invoiceCode())
+                : ("Chi tiết hóa đơn #" + invoiceId);
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setLayout(new BorderLayout());
         dialog.setSize(760, 560);
         dialog.setLocationRelativeTo(this);

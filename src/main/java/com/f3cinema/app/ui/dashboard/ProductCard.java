@@ -43,7 +43,23 @@ public class ProductCard extends JPanel {
         }
         
         add(buildOverlayContent(), BorderLayout.CENTER);
-        add(buildActionsSection(onEdit, onAdjust, onDelete), BorderLayout.SOUTH);
+        
+        boolean hasActions = onEdit != null || onAdjust != null || onDelete != null;
+        if (hasActions) {
+            add(buildActionsSection(onEdit, onAdjust, onDelete), BorderLayout.SOUTH);
+        } else {
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    new com.f3cinema.app.service.cart.command.AddToCartCommand(product, 1).execute();
+                }
+            });
+        }
+    }
+    
+    public ProductCard(ProductDTO product) {
+        this(product, null, null, null);
     }
 
     @Override
@@ -281,7 +297,9 @@ public class ProductCard extends JPanel {
             }
         });
         
-        btn.addActionListener(e -> action.run());
+        btn.addActionListener(e -> {
+            if (action != null) action.run();
+        });
         return btn;
     }
 

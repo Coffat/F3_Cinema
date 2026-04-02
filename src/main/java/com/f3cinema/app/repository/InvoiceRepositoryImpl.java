@@ -8,6 +8,7 @@ import com.f3cinema.app.dto.transaction.TransactionRowDTO;
 import com.f3cinema.app.entity.Invoice;
 import com.f3cinema.app.entity.enums.InvoiceStatus;
 import com.f3cinema.app.entity.enums.PaymentStatus;
+import com.f3cinema.app.util.InvoiceCodeFormatter;
 import lombok.extern.log4j.Log4j2;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
@@ -15,6 +16,8 @@ import org.hibernate.query.MutationQuery;
 import org.hibernate.query.Query;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -45,7 +48,8 @@ public class InvoiceRepositoryImpl extends BaseRepositoryImpl<Invoice, Long> imp
                         u.fullName,
                         i.totalAmount,
                         i.status,
-                        p.status
+                        p.status,
+                        ' '
                     )
                     FROM Invoice i
                     JOIN i.user u
@@ -60,9 +64,10 @@ public class InvoiceRepositoryImpl extends BaseRepositoryImpl<Invoice, Long> imp
 
             Query<TransactionRowDTO> query = session.createQuery(hql.toString(), TransactionRowDTO.class);
             bindFilters(query, keyword, fromDate, toDate, invoiceStatus, paymentStatus, staffId);
-            return query.setFirstResult(Math.max(offset, 0))
+            List<TransactionRowDTO> raw = query.setFirstResult(Math.max(offset, 0))
                     .setMaxResults(limit <= 0 ? 20 : limit)
                     .list();
+            return enrichRowsWithInvoiceCodes(session, raw);
         } catch (Exception e) {
             log.error("Error searching invoices", e);
             throw e;
@@ -224,6 +229,46 @@ public class InvoiceRepositoryImpl extends BaseRepositoryImpl<Invoice, Long> imp
             }
             log.error("Error updating payment statuses for invoice id={}", invoiceId, e);
             throw e;
+        }
+    }
+
+    private List<TransactionRowDTO> enrichRowsWithInvoiceCodes(Session session, List<TransactionRowDTO> raw) {
+        List<TransactionRowDTO> out = new ArrayList<>(raw.size());
+        for (TransactionRowDTO r : raw) {
+            int seq = countInvoicesSameCalendarDayWithIdUpTo(session, r.invoiceId(), r.createdAt());
+            String code = InvoiceCodeFormatter.format(r.createdAt().toLocalDate(), seq);
+            out.add(new TransactionRowDTO(
+                    r.invoiceId(),
+                    r.createdAt(),
+                    r.customerName(),
+                    r.customerPhone(),
+                    r.staffName(),
+                    r.totalAmount(),
+                    r.invoiceStatus(),
+                    r.paymentStatus(),
+                    code));
+        }
+        return out;
+    }
+
+    private int countInvoicesSameCalendarDayWithIdUpTo(Session session, Long invoiceId, LocalDateTime createdAt) {
+        LocalDate day = createdAt.toLocalDate();
+        LocalDateTime start = day.atStartOfDay();
+        LocalDateTime end = day.plusDays(1).atStartOfDay();
+        Long c = session.createQuery(
+                        "SELECT COUNT(i.id) FROM Invoice i WHERE i.createdAt >= :start AND i.createdAt < :end AND i.id <= :id",
+                        Long.class)
+                .setParameter("start", start)
+                .setParameter("end", end)
+                .setParameter("id", invoiceId)
+                .uniqueResult();
+        return c != null ? c.intValue() : 0;
+    }
+
+    @Override
+    public int countInvoicesSameCalendarDayWithIdUpTo(Long invoiceId, LocalDateTime createdAt) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return countInvoicesSameCalendarDayWithIdUpTo(session, invoiceId, createdAt);
         }
     }
 
