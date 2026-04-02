@@ -14,6 +14,7 @@ import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -124,9 +125,7 @@ public class MovieCard extends JPanel {
                 try {
                     Image rawImg = null;
                     if (url.startsWith("http")) {
-                        try (InputStream in = URI.create(url).toURL().openStream()) {
-                            rawImg = ImageIO.read(in);
-                        }
+                        rawImg = loadImageFromHttp(url);
                     } else {
                         rawImg = ImageIO.read(new File(url));
                     }
@@ -140,7 +139,7 @@ public class MovieCard extends JPanel {
                         return resized;
                     }
                 } catch (Exception e) {
-                    System.err.println("Load failed: " + url);
+                    System.err.println("Load failed: " + url + " -> " + e.getMessage());
                 }
                 return null;
             }
@@ -156,6 +155,25 @@ public class MovieCard extends JPanel {
             }
         };
         loader.execute();
+    }
+
+    private static Image loadImageFromHttp(String url) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
+        conn.setInstanceFollowRedirects(true);
+        conn.setConnectTimeout(8000);
+        conn.setReadTimeout(10000);
+        conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+        conn.setRequestProperty("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8");
+        int status = conn.getResponseCode();
+        if (status < 200 || status >= 300) {
+            conn.disconnect();
+            throw new IllegalStateException("HTTP status " + status);
+        }
+        try (InputStream in = conn.getInputStream()) {
+            return ImageIO.read(in);
+        } finally {
+            conn.disconnect();
+        }
     }
 
     @Override

@@ -25,6 +25,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -343,9 +344,15 @@ public class DashboardPanel extends BaseDashboardModule {
         
         styleXChartCategory(chart);
         
-        // Placeholder data
-        List<String> xData = List.of("", "", "", "", "", "", "");
-        List<Number> yData = List.of(0, 0, 0, 0, 0, 0, 0);
+        // Placeholder data — labels must be non-empty for XChart TextLayout
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM");
+        LocalDate today = LocalDate.now();
+        List<String> xData = new ArrayList<>();
+        List<Number> yData = new ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            xData.add(today.minusDays(i).format(df));
+            yData.add(0);
+        }
         chart.addSeries("Doanh thu", xData, yData);
         
         XChartPanel<CategoryChart> panel = new XChartPanel<>(chart);
@@ -438,7 +445,7 @@ public class DashboardPanel extends BaseDashboardModule {
         table.getTableHeader().setFont(ThemeConfig.FONT_SMALL);
         table.getTableHeader().setBackground(BG_SURFACE);
         table.getTableHeader().setForeground(TEXT_SECONDARY);
-        table.putClientProperty(FlatClientProperties.STYLE, "arc: 20; showHorizontalLines: true; showVerticalLines: false;");
+        table.putClientProperty(FlatClientProperties.STYLE, "showHorizontalLines: true; showVerticalLines: false;");
         DefaultTableCellRenderer center = new DefaultTableCellRenderer();
         center.setHorizontalAlignment(SwingConstants.CENTER);
         center.setForeground(TEXT_PRIMARY);
@@ -454,7 +461,7 @@ public class DashboardPanel extends BaseDashboardModule {
         JScrollPane sp = new JScrollPane(table);
         sp.setBorder(BorderFactory.createEmptyBorder());
         sp.getViewport().setBackground(BG_SURFACE);
-        sp.putClientProperty(FlatClientProperties.STYLE, "arc: 20; borderColor: #334155; borderWidth: 1;");
+        sp.putClientProperty(FlatClientProperties.STYLE, "borderColor: #334155; borderWidth: 1;");
         left.add(h1, BorderLayout.NORTH);
         left.add(sp, BorderLayout.CENTER);
 
@@ -466,11 +473,11 @@ public class DashboardPanel extends BaseDashboardModule {
         list.setForeground(TEXT_PRIMARY);
         list.setBackground(BG_SURFACE);
         list.setFixedCellHeight(70);
-        list.putClientProperty(FlatClientProperties.STYLE, "arc: 20;");
+        list.putClientProperty(FlatClientProperties.STYLE, "");
         JScrollPane sp2 = new JScrollPane(list);
         sp2.setBorder(BorderFactory.createEmptyBorder());
         sp2.getViewport().setBackground(BG_SURFACE);
-        sp2.putClientProperty(FlatClientProperties.STYLE, "arc: 20; borderColor: #334155; borderWidth: 1;");
+        sp2.putClientProperty(FlatClientProperties.STYLE, "borderColor: #334155; borderWidth: 1;");
         right.add(h2, BorderLayout.NORTH);
         right.add(sp2, BorderLayout.CENTER);
 
@@ -660,12 +667,14 @@ public class DashboardPanel extends BaseDashboardModule {
         double f = fnb != null ? fnb.doubleValue() : 0;
         
         PieChart chart = pieChartPanel.getChart();
-        
+
+        // Rebuild pie series defensively to avoid stale placeholder state.
+        chart.getSeriesMap().clear();
         if (t <= 0 && f <= 0) {
-            chart.updatePieSeries("Chưa có dữ liệu", 1);
+            chart.addSeries("Chưa có dữ liệu", 1);
         } else {
-            chart.updatePieSeries("Vé xem phim", Math.max(t, 0));
-            chart.updatePieSeries("Bắp nước", Math.max(f, 0));
+            chart.addSeries("Vé xem phim", Math.max(t, 0));
+            chart.addSeries("Bắp nước", Math.max(f, 0));
         }
         
         pieChartPanel.revalidate();

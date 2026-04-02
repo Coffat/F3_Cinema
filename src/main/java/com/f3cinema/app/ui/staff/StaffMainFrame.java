@@ -36,7 +36,6 @@ public class StaffMainFrame extends JFrame {
         setSize(1280, 800);
         setMinimumSize(new Dimension(1024, 768));
         setLocationRelativeTo(null);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         getContentPane().setBackground(Color.decode("#0F172A"));
@@ -59,6 +58,7 @@ public class StaffMainFrame extends JFrame {
         });
 
         lazyLoadAndShow(CARD_TICKETING);
+        contentController.handleMenuSelection(CARD_TICKETING);
     }
 
     private void lazyLoadAndShow(String menuKey) {
