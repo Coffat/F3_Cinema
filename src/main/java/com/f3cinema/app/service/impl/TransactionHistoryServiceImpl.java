@@ -70,8 +70,13 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
         String customerPhone = invoice.getCustomer() != null ? invoice.getCustomer().getPhone() : null;
         String staffName = invoice.getUser() != null ? invoice.getUser().getFullName() : null;
 
+        com.f3cinema.app.entity.enums.PaymentMethod pm = null;
+        if (!payments.isEmpty()) {
+            pm = payments.get(0).method();
+        }
+
         int seq = invoiceRepository.countInvoicesSameCalendarDayWithIdUpTo(invoice.getId(), invoice.getCreatedAt());
-        String invoiceCode = InvoiceCodeFormatter.format(invoice.getCreatedAt().toLocalDate(), seq);
+        String invoiceCode = InvoiceCodeFormatter.format(invoice.getCreatedAt().toLocalDate(), seq, pm);
 
         return new TransactionDetailDTO(
                 invoice.getId(),

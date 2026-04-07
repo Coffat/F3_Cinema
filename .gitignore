@@ -18,6 +18,9 @@ target/
 ### VS Code ###
 .vscode/
 
+### MoMo test config (secret) ###
+src/main/resources/momo.properties
+
 ### Others ###
 *.log
 *.tmp

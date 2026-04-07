@@ -181,6 +181,7 @@ CREATE TABLE IF NOT EXISTS payments (
     amount DECIMAL(19, 2) NOT NULL,
     method VARCHAR(50) NOT NULL,
     status VARCHAR(20) NOT NULL,
+    transaction_id VARCHAR(100) NULL,
     CONSTRAINT fk_payments_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
 );
 

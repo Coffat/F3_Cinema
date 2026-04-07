@@ -235,7 +235,11 @@ public class InvoiceExportService {
             try {
                 InvoiceRepositoryImpl repo = new InvoiceRepositoryImpl();
                 int seq = repo.countInvoicesSameCalendarDayWithIdUpTo(detail.invoiceId(), detail.createdAt());
-                return InvoiceCodeFormatter.format(detail.createdAt().toLocalDate(), seq);
+                PaymentMethod pm = null;
+                if (detail.payments() != null && !detail.payments().isEmpty()) {
+                    pm = detail.payments().get(0).method();
+                }
+                return InvoiceCodeFormatter.format(detail.createdAt().toLocalDate(), seq, pm);
             } catch (Exception ignored) {
             }
         }
@@ -263,8 +267,8 @@ public class InvoiceExportService {
         if (m == null) return "—";
         return switch (m) {
             case CASH -> "Tiền mặt";
-            case BANK_TRANSFER -> "Chuyển khoản / Thẻ";
-            case MOMO -> "Ví MoMo";
+            case BANK_TRANSFER -> "Chuyển khoản";
+            default -> "Khác";
         };
     }
 
@@ -274,6 +278,7 @@ public class InvoiceExportService {
             case COMPLETED -> "Hoàn tất";
             case PENDING -> "Chờ xử lý";
             case FAILED -> "Thất bại";
+            default -> "Khác";
         };
     }
 

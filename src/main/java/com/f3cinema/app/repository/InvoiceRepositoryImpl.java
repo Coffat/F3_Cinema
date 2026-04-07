@@ -49,6 +49,7 @@ public class InvoiceRepositoryImpl extends BaseRepositoryImpl<Invoice, Long> imp
                         i.totalAmount,
                         i.status,
                         p.status,
+                        p.method,
                         ' '
                     )
                     FROM Invoice i
@@ -236,7 +237,7 @@ public class InvoiceRepositoryImpl extends BaseRepositoryImpl<Invoice, Long> imp
         List<TransactionRowDTO> out = new ArrayList<>(raw.size());
         for (TransactionRowDTO r : raw) {
             int seq = countInvoicesSameCalendarDayWithIdUpTo(session, r.invoiceId(), r.createdAt());
-            String code = InvoiceCodeFormatter.format(r.createdAt().toLocalDate(), seq);
+            String code = InvoiceCodeFormatter.format(r.createdAt().toLocalDate(), seq, r.paymentMethod());
             out.add(new TransactionRowDTO(
                     r.invoiceId(),
                     r.createdAt(),
@@ -246,6 +247,7 @@ public class InvoiceRepositoryImpl extends BaseRepositoryImpl<Invoice, Long> imp
                     r.totalAmount(),
                     r.invoiceStatus(),
                     r.paymentStatus(),
+                    r.paymentMethod(),
                     code));
         }
         return out;

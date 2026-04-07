@@ -246,7 +246,59 @@ public class PromotionPanel extends BaseDashboardModule {
     }
     
     private void handleDuplicate(PromotionCard.PromotionItem item) {
-        AppMessageDialogs.showInfo(this, "Tính năng nhân bản sẽ được phát triển.");
+        try {
+            Voucher original = voucherService.searchVouchers(item.code()).stream()
+                .filter(v -> v.getCode().equals(item.code()))
+                .findFirst()
+                .orElse(null);
+
+            if (original == null) {
+                AppMessageDialogs.showError(this, "Không tìm thấy voucher gốc.");
+                return;
+            }
+
+            // Sinh mã mới: thêm "COPY_" + 4 ký tự cuối timestamp để tránh trùng
+            String newCode = "COPY_" + original.getCode();
+            if (newCode.length() > 45) {
+                newCode = "CPY" + original.getCode().substring(0, Math.min(original.getCode().length(), 42));
+            }
+            // Đảm bảo unique bằng cách thêm số ngẫu nhiên nếu code đã tồn tại
+            String finalCode = newCode;
+            int attempt = 0;
+            while (attempt < 100) {
+                try {
+                    voucherService.createVoucher(
+                        finalCode,
+                        (original.getDescription() != null ? original.getDescription() : "") + " (nhân bản)",
+                        original.getVoucherType(),
+                        original.getDiscountPercent(),
+                        original.getDiscountAmount(),
+                        original.getMaxDiscount(),
+                        original.getMinOrderAmount(),
+                        original.getBuyQuantity(),
+                        original.getGetQuantity(),
+                        original.getAppliesToCategory(),
+                        original.getValidFrom(),
+                        original.getValidUntil(),
+                        original.getUsageLimit()
+                    );
+                    AppMessageDialogs.showInfo(this, "Thành công", "Đã nhân bản voucher thành: " + finalCode);
+                    refreshVouchers();
+                    return;
+                } catch (IllegalArgumentException ex) {
+                    if (ex.getMessage() != null && ex.getMessage().contains("đã tồn tại")) {
+                        // Thử code khác
+                        attempt++;
+                        finalCode = newCode + attempt;
+                    } else {
+                        throw ex;
+                    }
+                }
+            }
+            AppMessageDialogs.showError(this, "Không thể nhân bản: mã voucher đã bị trùng quá nhiều lần.");
+        } catch (Exception e) {
+            AppMessageDialogs.showError(this, "Lỗi nhân bản: " + e.getMessage());
+        }
     }
     
     private void handleDeactivate(PromotionCard.PromotionItem item) {

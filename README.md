@@ -207,17 +207,14 @@ classDiagram
     }
     class PaymentStrategy {
         <<interface>>
-        +pay(amount): boolean
+        +processPayment(Invoice): void
     }
     class CashPaymentStrategy {
-        +pay(amount): boolean
-    }
-    class MomoPaymentStrategy {
-        +pay(amount): boolean
+        +processPayment(Invoice): void
     }
     PaymentContext --> PaymentStrategy
     PaymentStrategy <|.. CashPaymentStrategy
-    PaymentStrategy <|.. MomoPaymentStrategy
+    note for PaymentStrategy "Thanh toán chuyển khoản bằng MoMo Test: package service.payment + dialog QR trong app."
 ```
 
 ### 4. Strategy + Factory Pattern — Discount System
@@ -272,7 +269,7 @@ classDiagram
 | `vouchers` | Voucher codes | id, code, voucher_type, discount_percent/amount, usage_limit |
 | `invoices` | Sales transactions | id, user_id, customer_id, promotion_id, status, final_total |
 | `invoice_items` | Product line items | id, invoice_id, product_id, quantity, unit_price |
-| `payments` | Payment records | id, invoice_id, amount, method, status |
+| `payments` | Payment records | id, invoice_id, amount, method, status, transaction_id (mã tham chiếu chuyển khoản) |
 
 ---
 
@@ -310,7 +307,7 @@ f3-cinema-management/
 │   │   │   │   ├── PaymentStrategy.java
 │   │   │   │   ├── PaymentContext.java
 │   │   │   │   ├── CashPaymentStrategy.java
-│   │   │   │   └── MomoPaymentStrategy.java
+│   │   │   │   └── MomoPaymentService.java
 │   │   │   ├── discount/                # Discount (Strategy + Factory Patterns)
 │   │   │   │   ├── DiscountStrategy.java
 │   │   │   │   ├── DiscountStrategyFactory.java
@@ -373,6 +370,10 @@ mvn package
 # Execute main class
 mvn exec:java -Dexec.mainClass="com.f3cinema.app.App"
 ```
+
+### Chuyển khoản MoMo Test
+
+Cấu hình tài khoản nhận tiền trong `src/main/resources/momo.properties` (hoặc dùng `momo.properties.example`). Ở bước thanh toán, hệ thống hiển thị QR MoMo Test ngay trong app và thu ngân xác nhận "Đã nhận tiền" để chốt đơn.
 
 ---
 

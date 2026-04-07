@@ -667,14 +667,16 @@ public class DashboardPanel extends BaseDashboardModule {
         double f = fnb != null ? fnb.doubleValue() : 0;
         
         PieChart chart = pieChartPanel.getChart();
-
-        // Rebuild pie series defensively to avoid stale placeholder state.
-        chart.getSeriesMap().clear();
+        // Safely clear and re-add series to avoid 'series not found' exceptions
+        for (String key : new java.util.ArrayList<>(chart.getSeriesMap().keySet())) {
+            chart.removeSeries(key);
+        }
+        
         if (t <= 0 && f <= 0) {
             chart.addSeries("Chưa có dữ liệu", 1);
         } else {
-            chart.addSeries("Vé xem phim", Math.max(t, 0));
-            chart.addSeries("Bắp nước", Math.max(f, 0));
+            chart.addSeries("Vé xem phim", Math.max(t, 0.01)); // XChart pie needs > 0
+            chart.addSeries("Bắp nước", Math.max(f, 0.001));
         }
         
         pieChartPanel.revalidate();
