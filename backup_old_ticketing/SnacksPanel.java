@@ -7,7 +7,6 @@ import com.f3cinema.app.service.cart.TicketSessionManager;
 import com.f3cinema.app.service.cart.command.ClearCartCommand;
 import com.f3cinema.app.service.impl.InventoryServiceImpl;
 import com.f3cinema.app.service.payment.CashPaymentStrategy;
-import com.f3cinema.app.service.payment.MomoPaymentStrategy;
 import com.f3cinema.app.service.payment.PaymentContext;
 import com.f3cinema.app.ui.components.WrapLayout;
 import com.f3cinema.app.ui.dashboard.BaseDashboardModule;
@@ -124,7 +123,7 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
         totalPanel.add(lblTotalLabel, BorderLayout.WEST);
         totalPanel.add(lblTotal, BorderLayout.EAST);
 
-        cbPaymentMethod = new JComboBox<>(new String[]{"Tiền mặt", "Momo"});
+        cbPaymentMethod = new JComboBox<>(new String[]{"Tiền mặt", "MoMo (Test)"});
         cbPaymentMethod.putClientProperty(FlatClientProperties.STYLE, "arc: 10; padding: 5, 10, 5, 10");
 
         btnCheckout = new FlatButton();
@@ -240,11 +239,7 @@ public class SnacksPanel extends BaseDashboardModule implements CartObserver {
         PaymentContext context = new PaymentContext();
         String selectedMethod = (String) cbPaymentMethod.getSelectedItem();
         
-        if ("Momo".equals(selectedMethod)) {
-            context.setPaymentStrategy(new MomoPaymentStrategy());
-        } else {
-            context.setPaymentStrategy(new CashPaymentStrategy());
-        }
+        context.setPaymentStrategy(new CashPaymentStrategy());
 
         UIManager.put("OptionPane.messageFont", new Font("-apple-system", Font.BOLD, 14));
         String msg = String.format("Thanh toán thành công!\nTổng tiền: %,.0f VNĐ", grandTotal);
