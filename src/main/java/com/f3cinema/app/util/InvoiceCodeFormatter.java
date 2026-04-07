@@ -1,19 +1,29 @@
 package com.f3cinema.app.util;
 
+import com.f3cinema.app.entity.enums.PaymentMethod;
+import com.f3cinema.app.util.format.*;
+
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 /**
- * Mã hóa đơn hiển thị: {@code F3-yyyyMMdd-XXX} — XXX là thứ tự hóa đơn trong ngày (theo {@code id} tăng dần).
+ * Mã hóa đơn hiển thị (Sử dụng Strategy Pattern): {@code F3-[Phương thức]-[yyyyMMdd]-XXX}.
  */
 public final class InvoiceCodeFormatter {
 
-    private static final DateTimeFormatter DATE_PART = DateTimeFormatter.BASIC_ISO_DATE;
-
     private InvoiceCodeFormatter() {}
 
-    public static String format(LocalDate issueDate, int sequenceInDay) {
-        int seq = Math.max(1, sequenceInDay);
-        return String.format("F3-%s-%03d", issueDate.format(DATE_PART), seq);
+    private static InvoiceCodeStrategy getStrategy(PaymentMethod method) {
+        if (method == null) {
+            return new UnknownInvoiceCodeStrategy();
+        }
+        return switch (method) {
+            case CASH -> new CashInvoiceCodeStrategy();
+            case BANK_TRANSFER -> new BankTransferInvoiceCodeStrategy();
+            case CARD -> new CardInvoiceCodeStrategy();
+        };
+    }
+
+    public static String format(LocalDate issueDate, int sequenceInDay, PaymentMethod method) {
+        return getStrategy(method).generateCode(issueDate, sequenceInDay);
     }
 }

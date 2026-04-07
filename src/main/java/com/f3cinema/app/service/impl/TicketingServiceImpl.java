@@ -187,14 +187,16 @@ public class TicketingServiceImpl implements TicketingService {
 
     @Override
     public Long bookSeatsWithLoyalty(
-            Long showtimeId, 
+            Long showtimeId,
             List<Long> seatIds,
             Map<Long, Integer> snacks,
             Long customerId,
-            PointRedemptionTier redemptionTier
+            PointRedemptionTier redemptionTier,
+            PaymentMethod paymentMethod,
+            String externalTransactionId
     ) {
-        log.info("Booking with loyalty: showtime={}, seats={}, customer={}, tier={}", 
-                showtimeId, seatIds, customerId, redemptionTier);
+        log.info("Booking with loyalty: showtime={}, seats={}, customer={}, tier={}, payment={}, txn={}",
+                showtimeId, seatIds, customerId, redemptionTier, paymentMethod, externalTransactionId);
 
         Transaction tx = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
@@ -324,8 +326,9 @@ public class TicketingServiceImpl implements TicketingService {
             Payment payment = Payment.builder()
                     .invoice(invoice)
                     .amount(finalTotal)
-                    .method(PaymentMethod.CASH)
+                    .method(paymentMethod != null ? paymentMethod : PaymentMethod.CASH)
                     .status(PaymentStatus.COMPLETED)
+                    .transactionId(externalTransactionId)
                     .build();
             session.persist(payment);
 

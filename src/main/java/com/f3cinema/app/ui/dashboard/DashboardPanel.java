@@ -583,11 +583,16 @@ public class DashboardPanel extends BaseDashboardModule {
         
         PieChart chart = pieChartPanel.getChart();
         
+        // Safely clear and re-add series to avoid 'series not found' exceptions
+        for (String key : new java.util.ArrayList<>(chart.getSeriesMap().keySet())) {
+            chart.removeSeries(key);
+        }
+        
         if (t <= 0 && f <= 0) {
-            chart.updatePieSeries("Chưa có dữ liệu", 1);
+            chart.addSeries("Chưa có dữ liệu", 1);
         } else {
-            chart.updatePieSeries("Vé xem phim", Math.max(t, 0));
-            chart.updatePieSeries("Bắp nước", Math.max(f, 0));
+            chart.addSeries("Vé xem phim", Math.max(t, 0.01)); // XChart pie needs > 0
+            chart.addSeries("Bắp nước", Math.max(f, 0.001));
         }
         
         pieChartPanel.revalidate();

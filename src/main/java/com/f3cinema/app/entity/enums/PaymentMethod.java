@@ -6,9 +6,9 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum PaymentMethod {
-    CASH("Cash Payment"),
-    BANK_TRANSFER("Bank Transfer"),
-    MOMO("MoMo E-Wallet");
+    CASH("Tiền mặt"),
+    BANK_TRANSFER("Chuyển khoản"),
+    CARD("Thẻ ngân hàng");
 
     private final String label;
 }

@@ -178,7 +178,6 @@ public class NavbarPanel extends JPanel {
         addNavItem("Nhân viên", "icons/users.svg", "STAFF");
         addNavItem("Kho", "icons/box.svg", "WAREHOUSE");
         addNavItem("Khuyến mãi", "icons/gift.svg", "PROMOTION");
-        addNavItem("Thống kê", "icons/pie-chart.svg", "STATISTICS");
 
         if (!navItems.isEmpty()) setActiveItem(navItems.get(0));
     }

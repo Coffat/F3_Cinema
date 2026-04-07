@@ -1,6 +1,7 @@
 package com.f3cinema.app.dto.transaction;
 
 import com.f3cinema.app.entity.enums.InvoiceStatus;
+import com.f3cinema.app.entity.enums.PaymentMethod;
 import com.f3cinema.app.entity.enums.PaymentStatus;
 
 import java.math.BigDecimal;
@@ -15,6 +16,7 @@ public record TransactionRowDTO(
         BigDecimal totalAmount,
         InvoiceStatus invoiceStatus,
         PaymentStatus paymentStatus,
+        PaymentMethod paymentMethod,
         /** Mã hiển thị: F3-yyyyMMdd-XXX (XXX = STT trong ngày). */
         String invoiceCode
 ) {

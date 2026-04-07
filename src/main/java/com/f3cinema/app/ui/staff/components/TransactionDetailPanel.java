@@ -249,8 +249,8 @@ public class TransactionDetailPanel extends JPanel {
         if (m == null) return "—";
         return switch (m) {
             case CASH -> "Tiền mặt";
-            case BANK_TRANSFER -> "Chuyển khoản / Thẻ";
-            case MOMO -> "Ví MoMo";
+            case BANK_TRANSFER -> "Chuyển khoản";
+            case CARD -> "Thẻ ngân hàng";
         };
     }
 

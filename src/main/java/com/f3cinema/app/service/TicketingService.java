@@ -2,6 +2,7 @@ package com.f3cinema.app.service;
 
 import com.f3cinema.app.dto.SeatDTO;
 import com.f3cinema.app.dto.ShowtimeSummaryDTO;
+import com.f3cinema.app.entity.enums.PaymentMethod;
 import com.f3cinema.app.entity.enums.PointRedemptionTier;
 
 import java.math.BigDecimal;
@@ -24,10 +25,12 @@ public interface TicketingService {
      * @return Invoice ID
      */
     Long bookSeatsWithLoyalty(
-        Long showtimeId, 
+        Long showtimeId,
         List<Long> seatIds,
         Map<Long, Integer> snacks,
         Long customerId,
-        PointRedemptionTier redemptionTier
+        PointRedemptionTier redemptionTier,
+        PaymentMethod paymentMethod,
+        String externalTransactionId
     );
 }

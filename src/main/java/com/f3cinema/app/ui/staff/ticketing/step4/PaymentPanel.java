@@ -1,15 +1,18 @@
 package com.f3cinema.app.ui.staff.ticketing.step4;
 
 import com.f3cinema.app.dto.ProductDTO;
+import com.f3cinema.app.entity.enums.PaymentMethod;
 import com.f3cinema.app.service.TicketingService;
 import com.f3cinema.app.service.VoucherService;
 import com.f3cinema.app.service.cart.CartManager;
 import com.f3cinema.app.service.impl.TicketingServiceImpl;
+import com.f3cinema.app.service.payment.MomoPaymentService;
 import com.f3cinema.app.service.impl.TransactionHistoryServiceImpl;
 import com.f3cinema.app.util.pdf.InvoiceExportService;
 import com.f3cinema.app.ui.staff.ticketing.TicketOrderState;
 import com.f3cinema.app.ui.staff.ticketing.TicketingFlowPanel;
 import com.f3cinema.app.ui.common.dialog.AppMessageDialogs;
+import com.f3cinema.app.ui.common.dialog.MomoQrDialog;
 import com.f3cinema.app.ui.staff.ticketing.components.CustomerLookupPanel;
 import com.f3cinema.app.ui.staff.ticketing.components.OrderSummaryCard;
 import com.f3cinema.app.ui.staff.ticketing.components.PointRedemptionPanel;
@@ -53,7 +56,6 @@ public class PaymentPanel extends JPanel {
     private ButtonGroup paymentMethodGroup;
     private JRadioButton rbPayCash;
     private JRadioButton rbPayCard;
-    private JRadioButton rbPayMomo;
     private String selectedMethod = "CASH";
     private OrderSummaryCard summaryCard;
     private JButton btnConfirm;
@@ -339,18 +341,18 @@ public class PaymentPanel extends JPanel {
         lblMethod.setForeground(TEXT_PRIMARY);
 
         paymentMethodGroup = new ButtonGroup();
-        rbPayCash = createPaymentMethodRadio("Tien mat", "CASH");
-        rbPayCard = createPaymentMethodRadio("The", "CARD");
-        rbPayMomo = createPaymentMethodRadio("Vi dien tu", "MOMO");
+        rbPayCash = createPaymentMethodRadio("Tiền mặt", "CASH");
+        rbPayMomo = createPaymentMethodRadio("MoMo", "MOMO_TEST");
+        rbPayCard = createPaymentMethodRadio("Thẻ NH", "CARD");
         paymentMethodGroup.add(rbPayCash);
-        paymentMethodGroup.add(rbPayCard);
         paymentMethodGroup.add(rbPayMomo);
+        paymentMethodGroup.add(rbPayCard);
 
-        JPanel row = new JPanel(new GridLayout(1, 3, 12, 0));
+        JPanel row = new JPanel(new GridLayout(1, 3, 4, 0));
         row.setOpaque(false);
         row.add(rbPayCash);
-        row.add(rbPayCard);
         row.add(rbPayMomo);
+        row.add(rbPayCard);
 
         syncPaymentMethodRadiosFromState();
 
@@ -375,13 +377,17 @@ public class PaymentPanel extends JPanel {
         return rb;
     }
 
+    private JRadioButton rbPayMomo;
+
     private void syncPaymentMethodRadiosFromState() {
         String m = state.getPaymentMethod() != null ? state.getPaymentMethod() : "CASH";
         selectedMethod = m;
-        switch (m) {
-            case "CARD" -> rbPayCard.setSelected(true);
-            case "MOMO" -> rbPayMomo.setSelected(true);
-            default -> rbPayCash.setSelected(true);
+        if ("MOMO_TEST".equals(m) || "BANK_TRANSFER".equals(m)) {
+            if (rbPayMomo != null) rbPayMomo.setSelected(true);
+        } else if ("CARD".equals(m)) {
+            if (rbPayCard != null) rbPayCard.setSelected(true);
+        } else {
+            if (rbPayCash != null) rbPayCash.setSelected(true);
         }
     }
 
@@ -617,6 +623,61 @@ public class PaymentPanel extends JPanel {
         String confirmMsg = buildConfirmMessage();
         if (!AppMessageDialogs.confirmYesNo(this, "Xác nhận thanh toán", confirmMsg)) return;
 
+        if ("MOMO_TEST".equals(selectedMethod) || "BANK_TRANSFER".equals(selectedMethod)) {
+            startMomoPaymentFlow();
+            return;
+        }
+
+        PaymentMethod pm = resolveUiPaymentMethod(selectedMethod);
+        runStandardBooking(pm, null);
+    }
+
+    private void startMomoPaymentFlow() {
+        // Generate an orderId that resembles F3 invoice code (F3-yyyyMMdd-XXX) to avoid looking completely different.
+        // We append a random salt to guarantee uniqueness required by MoMo's strict policy.
+        String datePart = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+        String salt = String.format("%04d", System.currentTimeMillis() % 10000);
+        String orderId = "F3-" + datePart + "-" + salt;
+        String orderInfo = "Thanh toan don " + orderId;
+        try {
+            MomoPaymentService momo = MomoPaymentService.loadFromClasspath();
+            MomoPaymentService.MomoInitResponse init = momo.createTestQr(state.getGrandTotal(), orderInfo, orderId);
+
+            String qrUrl = init.bestQrUrl();
+            if (qrUrl == null || qrUrl.isBlank()) {
+                throw new IllegalStateException("MoMo không trả về QR/payUrl hợp lệ.");
+            }
+
+            MomoQrDialog.AutoCheckFn autoCheck = () -> momo.queryStatus(init.orderId(), init.requestId()).paid();
+            boolean confirmed = MomoQrDialog.showAndConfirm(
+                    this,
+                    qrUrl,
+                    formatPrice(state.getGrandTotal()),
+                    init.orderId(),
+                    autoCheck,
+                    momo.autoCheckTimeoutSeconds(),
+                    momo.autoCheckPollSeconds()
+            );
+            if (!confirmed) {
+                return;
+            }
+
+            MomoPaymentService.MomoQueryResult latest = momo.queryStatus(init.orderId(), init.requestId());
+            String transactionRef = latest.transactionId() != null && !latest.transactionId().isBlank()
+                    ? latest.transactionId()
+                    : init.orderId();
+
+            runStandardBooking(PaymentMethod.BANK_TRANSFER, transactionRef);
+        } catch (Exception e) {
+            Throwable root = e;
+            while (root.getCause() != null && root.getCause() != root) {
+                root = root.getCause();
+            }
+            AppMessageDialogs.showError(this, "MoMo Test", "Không khởi tạo được thanh toán MoMo: " + root.getMessage());
+        }
+    }
+
+    private void runStandardBooking(PaymentMethod paymentMethod, String externalTxnId) {
         btnConfirm.setEnabled(false);
         btnConfirm.setText("Đang xử lý...");
 
@@ -624,13 +685,15 @@ public class PaymentPanel extends JPanel {
             @Override
             protected Long doInBackground() throws Exception {
                 Long customerId = state.hasCustomer() ? state.getCustomer().getId() : null;
-                
+
                 return ticketingService.bookSeatsWithLoyalty(
-                    state.getShowtimeId(),
-                    state.getSelectedSeatIds(),
-                    state.getSnacksCartByProductId(),
-                    customerId,
-                    state.getSelectedTier()
+                        state.getShowtimeId(),
+                        state.getSelectedSeatIds(),
+                        state.getSnacksCartByProductId(),
+                        customerId,
+                        state.getSelectedTier(),
+                        paymentMethod,
+                        externalTxnId
                 );
             }
 
@@ -639,8 +702,8 @@ public class PaymentPanel extends JPanel {
                 try {
                     Long invoiceId = get();
                     showSuccessDialog(invoiceId);
-                    
-                    com.f3cinema.app.service.cart.CartManager.getInstance().clearCart();
+
+                    CartManager.getInstance().clearCart();
                     if (customerLookupPanel != null) customerLookupPanel.reset();
                     if (pointRedemptionPanel != null) pointRedemptionPanel.reset();
                     clearManualVoucher();
@@ -653,11 +716,22 @@ public class PaymentPanel extends JPanel {
                     }
                     AppMessageDialogs.showError(PaymentPanel.this, "Lỗi",
                             "Lỗi khi thanh toán: " + root.getMessage());
+                } finally {
                     btnConfirm.setEnabled(true);
                     btnConfirm.setText("XÁC NHẬN THANH TOÁN");
                 }
             }
         }.execute();
+    }
+
+    private static PaymentMethod resolveUiPaymentMethod(String ui) {
+        if ("MOMO_TEST".equals(ui) || "BANK_TRANSFER".equals(ui)) {
+            return PaymentMethod.BANK_TRANSFER;
+        }
+        if ("CARD".equals(ui)) {
+            return PaymentMethod.CARD;
+        }
+        return PaymentMethod.CASH;
     }
 
     private String buildConfirmMessage() {
@@ -748,7 +822,7 @@ public class PaymentPanel extends JPanel {
     }
 
     private String getPaymentMethodLabel() {
-        if ("MOMO".equals(selectedMethod)) return "Momo";
+        if ("MOMO_TEST".equals(selectedMethod) || "BANK_TRANSFER".equals(selectedMethod)) return "MoMo/CK";
         if ("CARD".equals(selectedMethod)) return "Thẻ ngân hàng";
         return "Tiền mặt";
     }
